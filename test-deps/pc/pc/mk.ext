@@ -1,0 +1,7 @@
+all:
+	@echo "ext.mk"
+	@make
+
+clean:
+	@echo "ext.mk"
+	@make clean

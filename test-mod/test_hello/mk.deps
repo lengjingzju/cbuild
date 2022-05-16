@@ -1,0 +1,1 @@
+#DEPS() hello(clean): hello_add hello_sub
