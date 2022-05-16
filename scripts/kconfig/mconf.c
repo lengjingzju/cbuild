@@ -18,9 +18,15 @@
 #include <strings.h>
 #include <signal.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include "lkc.h"
 #include "lxdialog/dialog.h"
+#include "confpath.h"
+
+path_template(configpath)
+path_template(autoconfigpath)
+path_template(autoheaderpath)
 
 #define JUMP_NB			9
 
@@ -274,6 +280,13 @@ search_help[] =
 	"          ^USB => find all symbols starting with USB\n"
 	"          USB$ => find all symbols ending with USB\n"
 	"\n";
+
+enum input_mode {
+	configpath,
+	autoconfigpath,
+	autoheaderpath,
+};
+static int input_mode_opt;
 
 static int indent;
 static struct menu *current_menu;
@@ -998,20 +1011,75 @@ static void sig_handler(int signo)
 	exit(handle_exit());
 }
 
+static const struct option long_opts[] = {
+	{"help",          no_argument,       NULL,            'h'},
+	{"silent",        no_argument,       NULL,            's'},
+	{"configpath",    required_argument, &input_mode_opt, configpath},
+	{"autoconfigpath",required_argument, &input_mode_opt, autoconfigpath},
+	{"autoheaderpath",required_argument, &input_mode_opt, autoheaderpath},
+	{NULL, 0, NULL, 0}
+};
+
+static void conf_usage(const char *progname)
+{
+	printf("Usage: %s [options] <kconfig-file>\n", progname);
+	printf("\n");
+	printf("Generic options:\n");
+	printf("  -h, --help              Print this message and exit.\n");
+	printf("  -s, --silent            Do not print log.\n");
+	printf("\n");
+	printf("Path options:\n");
+	printf("  --configpath            Specify the config path, default is '.config'\n");
+	printf("  --autoconfigpath        Specify the auto config path, default is 'include/config/auto.conf'\n");
+	printf("  --autoheaderpath        Specify the auto header path, default is 'include/generated/autoconf.h'\n");
+}
+
 int main(int ac, char **av)
 {
+	const char *progname = av[0];
+	int opt;
 	char *mode;
 	int res;
 
 	signal(SIGINT, sig_handler);
 
-	if (ac > 1 && strcmp(av[1], "-s") == 0) {
-		silent = 1;
-		/* Silence conf_read() until the real callback is set up */
-		conf_set_message_callback(NULL);
-		av++;
+	while ((opt = getopt_long(ac, av, "hs", long_opts, NULL)) != -1) {
+		switch (opt) {
+		case 'h':
+			conf_usage(progname);
+			exit(1);
+			break;
+		case 's':
+			silent = 1;
+			/* Silence conf_read() until the real callback is set up */
+			conf_set_message_callback(NULL);
+			break;
+		case 0:
+			switch (input_mode_opt) {
+			case configpath:
+				set_configpath(optarg);
+				break;
+			case autoconfigpath:
+				set_autoconfigpath(optarg);
+				break;
+			case autoheaderpath:
+				set_autoheaderpath(optarg);
+				break;
+			default:
+				break;
+			}
+			break;
+		default:
+			break;
+		}
 	}
-	conf_parse(av[1]);
+
+	if (ac == optind) {
+		fprintf(stderr, "%s: Kconfig file missing\n", av[0]);
+		conf_usage(progname);
+		exit(1);
+	}
+	conf_parse(av[optind]);
 	conf_read(NULL);
 
 	mode = getenv("MENUCONFIG_MODE");

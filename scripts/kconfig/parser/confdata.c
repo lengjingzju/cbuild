@@ -19,6 +19,7 @@
 #include <unistd.h>
 
 #include "lkc.h"
+#include "confpath.h"
 
 /* return true if 'path' exists, false otherwise */
 static bool is_present(const char *path)
@@ -197,21 +198,30 @@ static void conf_message(const char *fmt, ...)
 
 const char *conf_get_configname(void)
 {
-	char *name = getenv("KCONFIG_CONFIG");
+	const char *name = get_configpath();
+
+	if (!name)
+		name = getenv("KCONFIG_CONFIG");
 
 	return name ? name : ".config";
 }
 
 static const char *conf_get_autoconfig_name(void)
 {
-	char *name = getenv("KCONFIG_AUTOCONFIG");
+	const char *name = get_autoconfigpath();
+
+	if (!name)
+		name = getenv("KCONFIG_AUTOCONFIG");
 
 	return name ? name : "include/config/auto.conf";
 }
 
 static const char *conf_get_autoheader_name(void)
 {
-	char *name = getenv("KCONFIG_AUTOHEADER");
+	const char *name = get_autoheaderpath();
+
+	if (!name)
+		name = getenv("KCONFIG_AUTOHEADER");
 
 	return name ? name : "include/generated/autoconf.h";
 }

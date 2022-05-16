@@ -15,6 +15,11 @@
 #include <errno.h>
 
 #include "lkc.h"
+#include "confpath.h"
+
+path_template(configpath)
+path_template(autoconfigpath)
+path_template(autoheaderpath)
 
 static void conf(struct menu *menu);
 static void check_conf(struct menu *menu);
@@ -36,6 +41,9 @@ enum input_mode {
 	yes2modconfig,
 	mod2yesconfig,
 	mod2noconfig,
+	configpath,
+	autoconfigpath,
+	autoheaderpath,
 };
 static enum input_mode input_mode = oldaskconfig;
 static int input_mode_opt;
@@ -683,6 +691,9 @@ static const struct option long_opts[] = {
 	{"yes2modconfig", no_argument,       &input_mode_opt, yes2modconfig},
 	{"mod2yesconfig", no_argument,       &input_mode_opt, mod2yesconfig},
 	{"mod2noconfig",  no_argument,       &input_mode_opt, mod2noconfig},
+	{"configpath",    required_argument, &input_mode_opt, configpath},
+	{"autoconfigpath",required_argument, &input_mode_opt, autoconfigpath},
+	{"autoheaderpath",required_argument, &input_mode_opt, autoheaderpath},
 	{NULL, 0, NULL, 0}
 };
 
@@ -713,6 +724,11 @@ static void conf_usage(const char *progname)
 	printf("  --mod2yesconfig         Change answers from mod to yes if possible\n");
 	printf("  --mod2noconfig          Change answers from mod to no if possible\n");
 	printf("  (If none of the above is given, --oldaskconfig is the default)\n");
+
+	printf("Path options:\n");
+	printf("  --configpath            Specify the config path, default is '.config'\n");
+	printf("  --autoconfigpath        Specify the auto config path, default is 'include/config/auto.conf'\n");
+	printf("  --autoheaderpath        Specify the auto header path, default is 'include/generated/autoconf.h'\n");
 }
 
 int main(int ac, char **av)
@@ -734,6 +750,23 @@ int main(int ac, char **av)
 			conf_set_message_callback(NULL);
 			break;
 		case 0:
+			if (input_mode_opt >= configpath) {
+				switch (input_mode_opt) {
+				case configpath:
+					set_configpath(optarg);
+					break;
+				case autoconfigpath:
+					set_autoconfigpath(optarg);
+					break;
+				case autoheaderpath:
+					set_autoheaderpath(optarg);
+					break;
+				default:
+					break;
+				}
+				break;
+			}
+
 			input_mode = input_mode_opt;
 			switch (input_mode) {
 			case syncconfig:
