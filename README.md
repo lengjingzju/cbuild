@@ -17,6 +17,8 @@
 ```sh
 lengjing@lengjing:~/cbuild$ source scripts/build.env 
 ====================================
+ARCH=
+CROSS_COMPILE=
 ENV_TOP_DIR=/home/lengjing/cbuild
 ENV_TOP_OUT=/home/lengjing/cbuild/output
 USING_EXT_BUILD=y
@@ -24,7 +26,21 @@ USING_DEPS_BUILD=n
 ====================================
 ```
 
-在 `scripts/build.env` 中，导出了如下环境变量，用户也可以定义其它的环境变量，例如 CC 等。
+还可以指定 ARCH 和交叉编译器
+
+```sh
+lengjing@lengjing:~/cbuild$ source scripts/build.env arm64 arm-linux-gnueabihf- 
+====================================
+ARCH=arm64
+CROSS_COMPILE=arm-linux-gnueabihf-
+ENV_TOP_DIR=/home/lengjing/cbuild
+ENV_TOP_OUT=/home/lengjing/cbuild/output
+USING_EXT_BUILD=y
+USING_DEPS_BUILD=n
+====================================
+```
+
+`scripts/build.env` 中，导出的自定义环境变量
 
 ```sh
 ENV_TOP_DIR=$(pwd | sed 's:/cbuild.*::')/cbuild
@@ -227,7 +243,7 @@ make[1]: Leaving directory '/home/lengjing/cbuild/test-mod/test_hello'
 
 `scripts/inc.mod.mk` 可设置的变量(KERNELRELEASE 为空时)
 
-* MOD_MAKES: 用户指定一些模块自己的信息，例如ARCH=xxx
+* MOD_MAKES: 用户指定一些模块自己的信息，例如 XXXX=xxx
 * OUT_PATH: 编译输出目录，保持默认即可 (只在源码和编译输出分离时有效)
 * KERNAL_PATH: Linux 内核源码目录 (必须）
 * KERNAL_OUTPUT: Linux 内核编译输出目录 （`make -O $(KERNAL_OUTPUT)` 编译内核的情况下必须）
@@ -339,5 +355,5 @@ lengjing@lengjing:~/cbuild/test-deps$
 
 * Makefile_Name: make 运行的 Makefile 的名称 (可以为空)，不为空时 make 会运行 指定的 Makefile (`-f Makefile_Name`)
 * Target_Name: 当前包的名称ID
-* Other_Target_Names: 当前包的其它目标，多个目标使用空格隔开 (可以为空)，默认会加入 默认目标 和 clean目标 的规则
+* Other_Target_Names: 当前包的其它目标，多个目标使用空格隔开 (可以为空)，默认会加入 默认目标 和 clean目标的规则
 * Depend_Names: 当前包依赖的其它包的名称ID，多个依赖使用空格隔开(可以为空)，如果有循环依赖或未定义依赖，解析将会失败，会打印出未解析成功的条目
