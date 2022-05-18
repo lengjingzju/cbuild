@@ -174,7 +174,8 @@ def2_config  def_config
 
 ## 测试编译内核模块
 
-测试用例位于 `test-mod` (其中 test_hello 依赖于 test_hello_add 和 test_hello_sub)，如下测试
+测试用例1位于 `test-mod` (其中 test_hello 依赖于 test_hello_add 和 test_hello_sub)，
+测试用例2位于 `test-mod2` (一个 Makefile 同时编译出两个模块 hello_op 和 hello)，如下测试
 
 ```sh
 lengjing@lengjing:~/cbuild/test-conf$ cd ../test-mod
@@ -233,6 +234,31 @@ KERNELRELEASE=5.13.0-41-generic pwd=/usr/src/linux-headers-5.13.0-41-generic PWD
 Skipping BTF generation for /home/lengjing/cbuild/output/test-mod/test_hello/hello.ko due to unavailability of vmlinux
 make[2]: Leaving directory '/usr/src/linux-headers-5.13.0-41-generic'
 make[1]: Leaving directory '/home/lengjing/cbuild/test-mod/test_hello'
+
+
+lengjing@lengjing:~/cbuild/test-mod$ cd ../test-mod2
+lengjing@lengjing:~/cbuild/test-mod2$ make 
+KERNELRELEASE= pwd=/home/lengjing/cbuild/test-mod2 PWD=/home/lengjing/cbuild/test-mod2
+make[1]: Entering directory '/usr/src/linux-headers-5.13.0-41-generic'
+KERNELRELEASE=5.13.0-41-generic pwd=/usr/src/linux-headers-5.13.0-41-generic PWD=/home/lengjing/cbuild/test-mod2
+  CC [M]  /home/lengjing/cbuild/output/test-mod2/hello_main.o
+  CC [M]  /home/lengjing/cbuild/output/test-mod2/hello_add.o
+  CC [M]  /home/lengjing/cbuild/output/test-mod2/hello_sub.o
+  CC [M]  /home/lengjing/cbuild/output/test-mod2/hello_mul.o
+  CC [M]  /home/lengjing/cbuild/output/test-mod2/hello_div.o
+  LD [M]  /home/lengjing/cbuild/output/test-mod2/hello_op.o
+  CC [M]  /home/lengjing/cbuild/output/test-mod2/hello.o
+KERNELRELEASE=5.13.0-41-generic pwd=/usr/src/linux-headers-5.13.0-41-generic PWD=/home/lengjing/cbuild/test-mod2
+  MODPOST /home/lengjing/cbuild/output/test-mod2/Module.symvers
+  CC [M]  /home/lengjing/cbuild/output/test-mod2/hello.mod.o
+  LD [M]  /home/lengjing/cbuild/output/test-mod2/hello.ko
+  BTF [M] /home/lengjing/cbuild/output/test-mod2/hello.ko
+Skipping BTF generation for /home/lengjing/cbuild/output/test-mod2/hello.ko due to unavailability of vmlinux
+  CC [M]  /home/lengjing/cbuild/output/test-mod2/hello_op.mod.o
+  LD [M]  /home/lengjing/cbuild/output/test-mod2/hello_op.ko
+  BTF [M] /home/lengjing/cbuild/output/test-mod2/hello_op.ko
+Skipping BTF generation for /home/lengjing/cbuild/output/test-mod2/hello_op.ko due to unavailability of vmlinux
+make[1]: Leaving directory '/usr/src/linux-headers-5.13.0-41-generic'
 ```
 
 `scripts/inc.mod.mk` 支持的目标(KERNELRELEASE 为空时)
@@ -254,6 +280,8 @@ make[1]: Leaving directory '/home/lengjing/cbuild/test-mod/test_hello'
 `scripts/inc.mod.mk` 支持的目标(KERNELRELEASE 有值时)
 
 * MOD_NAME: 模块名称
+
+注: 如果用户设置 MOD_NAME 为空后，可以自己填写模块如何编译，例如一个 Makefile 同时编译出多个模块
 
 `scripts/inc.mod.mk` 可设置的变量(KERNELRELEASE 有值时)
 
@@ -285,7 +313,7 @@ make[1]: Leaving directory '/home/lengjing/cbuild/test-mod/test_hello'
 测试用例位于 `test-deps`，如下测试
 
 ```sh
-lengjing@lengjing:~/cbuild/test-mod$ cd ../test-deps
+lengjing@lengjing:~/cbuild/test-mod2$ cd ../test-deps
 lengjing@lengjing:~/cbuild/test-deps$ make deps
 Analyse depends OK.
 lengjing@lengjing:~/cbuild/test-deps$ make menuconfig 

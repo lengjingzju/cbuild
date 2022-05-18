@@ -1,12 +1,15 @@
 ifneq ($(KERNELRELEASE),)
 
 MOD_NAME       ?= hello
+
+ifneq ($(MOD_NAME),)
 SRCS           ?= $(shell find $(src) -name "*.c" | grep -v "scripts/" | grep -v "\.mod\.c" | xargs)
 OBJS            = $(patsubst $(src)/%,%,$(patsubst %.c,%.o,$(SRCS)))
 
 obj-m := $(MOD_NAME).o
 ifneq ($(words $(OBJS)), 1)
 $(MOD_NAME)-objs := $(OBJS)
+endif
 endif
 
 else
