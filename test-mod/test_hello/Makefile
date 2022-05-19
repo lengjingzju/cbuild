@@ -8,8 +8,12 @@ else
 ifneq ($(USING_EXT_BUILD), y)
 MOD_DEPS  = $(shell realpath ../test_hello_add ../test_hello_sub | xargs)
 else
+ifneq ($(USING_YOCTO_BUILD), y)
 OUT_PATH ?= $(shell pwd | sed "s:$(ENV_TOP_DIR):$(ENV_TOP_OUT):")
 MOD_DEPS  = $(patsubst %,$(dir $(OUT_PATH))%,test_hello_add test_hello_sub)
+else
+MOD_DEPS  = $(shell realpath ../test_hello_add/oe-workdir ../test_hello_sub/oe-workdir | xargs)
+endif
 endif
 
 $(info MOD_DEPS=$(MOD_DEPS))

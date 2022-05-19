@@ -3,8 +3,8 @@
 ## 特点
 
 * Linux 下纯粹的 Makefile 编译
-* 支持源码和编译输出分离和不分离
-* 支持自动分析 C 头文件作为编译依赖
+* 支持交叉编译，支持自动分析 C 头文件作为编译依赖
+* 一个 Makefile 同时支持 Yocto 编译方式、源码和编译输出分离模式和不分离模式
 * 提供编译静态库、共享库和可执行文件的模板 `inc.app.mk`
 * 提供kconfig配置参数的模板 `inc.conf.mk`
 * 提供编译外部内核模块的模板 `inc.mod.mk`
@@ -23,6 +23,7 @@ ENV_TOP_DIR=/home/lengjing/cbuild
 ENV_TOP_OUT=/home/lengjing/cbuild/output
 USING_EXT_BUILD=y
 USING_DEPS_BUILD=n
+USING_YOCTO_BUILD=n
 ====================================
 ```
 
@@ -37,6 +38,7 @@ ENV_TOP_DIR=/home/lengjing/cbuild
 ENV_TOP_OUT=/home/lengjing/cbuild/output
 USING_EXT_BUILD=y
 USING_DEPS_BUILD=n
+USING_YOCTO_BUILD=n
 ====================================
 ```
 
@@ -53,8 +55,10 @@ USING_DEPS_BUILD=n
 * ENV_TOP_OUT: 源码和编译输出分离时的编译输出根目录
 * USING_EXT_BUILD: 是否使用源码和编译输出分离，y 表示是
 * USING_DEPS_BUILD: 在 analyse_deps.py 自动生成的Makefile中使用，是否使能编译依赖，y 表示是
+* USING_YOCTO_BUILD: 是否使用 Yocto 编译，y 表示是 (使用 Yocto 编译时 USING_EXT_BUILD 必须为 y)
 
-注: 源码和编译输出分离时，某个包的编译输出目录是把包的源码目录的 ENV_TOP_DIR 部分换成了 ENV_TOP_OUT
+注: 源码和编译输出分离时，某个包的编译输出目录是把包的源码目录的 ENV_TOP_DIR 部分换成了 ENV_TOP_OUT (非 Yocto 编译)
+注: Yocto BitBake 任务无法直接使用 shell 自定义的环境变量，所以不需要 source 这个环境脚本
 
 ## 测试编译应用
 
@@ -271,27 +275,32 @@ make[1]: Leaving directory '/usr/src/linux-headers-5.13.0-41-generic'
 
 * MOD_MAKES: 用户指定一些模块自己的信息，例如 XXXX=xxx
 * OUT_PATH: 编译输出目录，保持默认即可 (只在源码和编译输出分离时有效)
-* KERNAL_PATH: Linux 内核源码目录 (必须）
-* KERNAL_OUTPUT: Linux 内核编译输出目录 （`make -O $(KERNAL_OUTPUT)` 编译内核的情况下必须）
+* KERNEL_SRC: Linux 内核源码目录 (必须）
+* KERNEL_OUT: Linux 内核编译输出目录 （`make -O $(KERNEL_OUT)` 编译内核的情况下必须）
 * MOD_DEPS: 当前内核模块依赖的其它内核模块的编译输出目录，多个目录使用空格隔开
 * MOD_PATH: 指定模块的安装路径前缀，则外部内核模块的安装路径为 `$(MOD_PATH)/lib/modules/<kernel_release>/extra/`
 
 
 `scripts/inc.mod.mk` 支持的目标(KERNELRELEASE 有值时)
 
-* MOD_NAME: 模块名称
-
-注: 如果用户设置 MOD_NAME 为空后，可以自己填写模块如何编译，例如一个 Makefile 同时编译出多个模块
+* MOD_NAME: 模块名称，可以是多个模块名称使用空格隔开
 
 `scripts/inc.mod.mk` 可设置的变量(KERNELRELEASE 有值时)
 
 * SRCS: 所有的 C 源码文件，默认是当前目录下的所有的 `*.c` 文件
 
+注：如果 MOD_NAME 含有多个模块名称，需要用户自己填写各个模块下的对象，例如
+
+```makefile
+MOD_NAME = mod1 mod2
+mod1-objs = a1.o b1.o c1.o
+mod2-objs = a2.o b2.o c2.o
+```
 
 不同的模块编译方式
 
-* 源码和编译输出同目录时编译命令: `make -C $(KERNAL_PATH) M=$(shell pwd) modules`
-* 源码和编译输出分离时编译命令: `make -C $(KERNAL_PATH) O=(KERNAL_OUTPUT) M=$(OUT_PATH) src=$(shell pwd) modules`
+* 源码和编译输出同目录时编译命令: `make -C $(KERNEL_SRC) M=$(shell pwd) modules`
+* 源码和编译输出分离时编译命令: `make -C $(KERNEL_SRC) O=(KERNEL_OUT) M=$(OUT_PATH) src=$(shell pwd) modules`
 
 注: 使用源码和编译输出分离时， 需要先将 Makefile 或 Kbuild 复制到 OUT_PATH 目录下，如果不想复制，需要修改内核源码的 `scripts/Makefile.modpost`
 
@@ -305,7 +314,7 @@ make[1]: Leaving directory '/usr/src/linux-headers-5.13.0-41-generic'
 模块编译过程说明
 
 1. 在当前目录运行 Makefile，此时 KERNELRELEASE 为空，执行这个分支下的第一个目标 modules
-2. 运行`make -C $(KERNAL_PATH) xxx` 时进入内核源码目录，在内核源码目录运行 src 的 Makefile，此时 KERNELRELEASE 有值，编译源文件
+2. 运行`make -C $(KERNEL_SRC) xxx` 时进入内核源码目录，在内核源码目录运行 src 的 Makefile，此时 KERNELRELEASE 有值，编译源文件
 3. 继续在内核源码目录运行 M 目录的 Makefile，生成模块和他的符号表
 
 ## 测试自动生成总编译
@@ -371,17 +380,140 @@ lengjing@lengjing:~/cbuild/test-deps$
 
 `scripts/analyse_deps.py` 参数
 
-* `-m <Makefile Name>` : 自动生成的 Makefile 文件名
-* `-k <Kconfig Name>` : 自动生成的 Kconfig 文件名
-* `-f <Depend Name>` : 含有依赖信息的文件名
-* `-d <Search Directories>` : 搜索的目录名，多个目录使用冒号隔开
-* `-i <Ignore Directories>` : 忽略的目录名，不会搜索指定目录名下的依赖文件，多个目录使用冒号隔开
+* `-m <Makefile Name>`: 自动生成的 Makefile 文件名
+* `-k <Kconfig Name>`: 自动生成的 Kconfig 文件名
+* `-f <Depend Name>`: 含有依赖信息的文件名
+* `-d <Search Directories>`: 搜索的目录名，多个目录使用冒号隔开
+* `-i <Ignore Directories>`: 忽略的目录名，不会搜索指定目录名下的依赖文件，多个目录使用冒号隔开
 
 注: 如果在当前目录下搜索到 `<Depend Name>`，不会再继续搜索当前目录的子目录
 
-依赖信息格式 `#DEPS(Makefile_Name) Target_Name(Other_Target_Names) : Depend_Names`
+依赖信息格式 `#DEPS(Makefile_Name) Target_Name(Other_Target_Names): Depend_Names`
 
 * Makefile_Name: make 运行的 Makefile 的名称 (可以为空)，不为空时 make 会运行 指定的 Makefile (`-f Makefile_Name`)
 * Target_Name: 当前包的名称ID
 * Other_Target_Names: 当前包的其它目标，多个目标使用空格隔开 (可以为空)，默认会加入 默认目标 和 clean目标的规则
-* Depend_Names: 当前包依赖的其它包的名称ID，多个依赖使用空格隔开(可以为空)，如果有循环依赖或未定义依赖，解析将会失败，会打印出未解析成功的条目
+* Depend_Names: 当前包依赖的其它包的名称ID，多个依赖使用空格隔开 (可以为空)，如果有循环依赖或未定义依赖，解析将会失败，会打印出未解析成功的条目
+
+## 测试 Yocto 编译
+
+### Yocto 快速开始
+
+* 安装编译环境
+
+```sh
+lengjing@lengjing:~/cbuild$ sudo apt install gawk wget git diffstat unzip \
+    texinfo gcc build-essential chrpath socat cpio \
+    python3 python3-pip python3-pexpect xz-utils \
+    debianutils iputils-ping python3-git python3-jinja2 \
+    libegl1-mesa libsdl1.2-dev pylint3 xterm \
+    python3-subunit mesa-common-dev zstd liblz4-tool qemu
+```
+
+* 拉取 Poky 工程
+
+```sh
+lengjing@lengjing:~/cbuild$ git clone git://git.yoctoproject.org/poky
+lengjing@lengjing:~/cbuild$ cd poky
+lengjing@lengjing:~/cbuild/poky$ git branch -a
+lengjing@lengjing:~/cbuild/poky$ git checkout -t origin/kirkstone -b my-kirkstone
+lengjing@lengjing:~/cbuild/poky$ cd ..
+```
+
+注：通过 [Yocto Releases Wiki](https://wiki.yoctoproject.org/wiki/Releases) 界面获取版本代号，上述命令拉取了4.0版本。
+
+* 构建镜像
+
+```shell
+lengjing@lengjing:~/cbuild$ source poky/oe-init-build-env               # 初始化环境
+lengjing@lengjing:~/cbuild/build$ bitbake core-image-minimal            # 构建最小镜像
+lengjing@lengjing:~/cbuild/build$ ls -al tmp/deploy/images/qemux86-64/  # 输出目录
+lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行仿真器
+```
+
+注: `source oe-init-build-env <dirname>`功能: 初始化环境，并将工具目录(`bitbake/bin/` 和 `scripts/`)加入到环境变量; 在当前目录自动创建并切换到工作目录(不指定时默认为 build)。
+
+### Yocto 配方模板
+
+* 编写配方文件 (xxx.bb)
+    * `recipetool create -o <xxx.bb> <package_src_dir>` 创建一个基本配方，井号线包含的部分是用户手动增加的
+    * 继承类时，编译应用使用 `inherit sanity`，编译模块使用 `inherit module`
+    * 包依赖其他包时使用 `DEPENDS += " package1 package2"` 说明
+
+```
+LICENSE = "CLOSED"
+LIC_FILES_CHKSUM = ""
+
+# No information for SRC_URI yet (only an external source tree was specified)
+SRC_URI = ""
+
+########################################
+#DEPENDS += " package1 package2"
+export OUT_PATH="${WORKDIR}"
+export ENV_TOP_DIR
+export USING_EXT_BUILD
+export USING_YOCTO_BUILD
+inherit sanity
+#inherit module
+########################################
+
+# NOTE: this is a Makefile-only piece of software, so we cannot generate much of the
+# recipe automatically - you will need to examine the Makefile yourself and ensure
+# that the appropriate arguments are passed in.
+
+do_configure () {
+ # Specify any needed configure commands here
+ :
+}
+
+do_compile () {
+ # You will almost certainly need to add additional arguments here
+ oe_runmake
+}
+
+do_install () {
+ # NOTE: unable to determine what to put here - there is a Makefile but no
+ # target named "install", so you will need to define this yourself
+ :
+}
+```
+
+* 编写配方附加文件 (xxx.bbappend)
+    * 配方附加文件指示了包的源码路径和 Makefile 路径
+
+```
+inherit externalsrc
+EXTERNALSRC = "${ENV_TOP_DIR}/<package_src>"
+EXTERNALSRC_BUILD = "${ENV_TOP_DIR}/<package_src>"
+```
+
+### 测试 Yocto 编译
+
+* `build/conf/local.conf` 配置文件中增加如下变量定义
+
+```
+ENV_TOP_DIR = "/home/lengjing/cbuild"
+USING_EXT_BUILD = "y"
+USING_YOCTO_BUILD = "y"
+```
+
+* 增加测试的层
+
+```sh
+lengjing@lengjing:~/cbuild/build$ bitbake-layers add-layer ../poky/meta-selftest 
+```
+
+* 将测试的配方放在层中
+
+```sh
+lengjing@lengjing:~/cbuild/build$ cp -rf ../recipes-cbuild ../poky/meta-selftest/ 
+```
+
+* bitbake 编译
+
+```sh
+lengjing@lengjing:~/cbuild/build$ bitbake test-app   # 编译应用
+lengjing@lengjing:~/cbuild/build$ bitbake test-hello # 编译内核模块
+lengjing@lengjing:~/cbuild/build$ bitbake test-mod2  # 编译内核模块
+```
+

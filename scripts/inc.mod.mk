@@ -1,21 +1,29 @@
 ifneq ($(KERNELRELEASE),)
 
 MOD_NAME       ?= hello
+obj-m          := $(patsubst %,%.o,$(MOD_NAME))
 
-ifneq ($(MOD_NAME),)
+ifeq ($(words $(MOD_NAME)), 1)
+
 SRCS           ?= $(shell find $(src) -name "*.c" | grep -v "scripts/" | grep -v "\.mod\.c" | xargs)
 OBJS            = $(patsubst $(src)/%,%,$(patsubst %.c,%.o,$(SRCS)))
-
-obj-m := $(MOD_NAME).o
 ifneq ($(words $(OBJS)), 1)
 $(MOD_NAME)-objs := $(OBJS)
-endif
 endif
 
 else
 
-KERNAL_PATH    ?= /lib/modules/$(shell uname -r)/build
-MOD_MAKES      += -C $(KERNAL_PATH) $(if $(KERNAL_OUTPUT),O=$(KERNAL_OUTPUT))
+# If multiple modules are compiled at the same time, user should
+# set objs under every module himself.
+
+endif
+
+########################################
+
+else
+
+KERNEL_SRC     ?= /lib/modules/$(shell uname -r)/build
+MOD_MAKES      += -C $(KERNEL_SRC) $(if $(KERNEL_OUT),O=$(KERNEL_OUT))
 
 #KBUILD_EXTRA_SYMBOLS
 #INSTALL_MOD_PATH
@@ -39,7 +47,7 @@ $(OUT_PATH)/Makefile: Makefile
 # Note:
 # Users should copy the Makefile to avoid compilation failures.
 # If they don't want to copy it, they should modify the
-# "$(KERNAL_PATH)/scripts/Makefile.modpost" as follow:
+# "$(KERNEL_SRC)/scripts/Makefile.modpost" as follow:
 #   -include $(if $(wildcard $(KBUILD_EXTMOD)/Kbuild), \
 #   -             $(KBUILD_EXTMOD)/Kbuild, $(KBUILD_EXTMOD)/Makefile)
 #   +include $(if $(wildcard $(src)/Kbuild), \
