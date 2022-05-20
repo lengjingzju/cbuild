@@ -17,8 +17,7 @@ SRC_URI = ""
 
 export OUT_PATH="${WORKDIR}"
 export ENV_TOP_DIR
-export USING_EXT_BUILD
-export USING_YOCTO_BUILD
+export ENV_BUILD_MODE
 #inherit sanity
 inherit module
 

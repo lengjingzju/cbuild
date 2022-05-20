@@ -6,7 +6,7 @@
 * 支持交叉编译，支持自动分析 C 头文件作为编译依赖
 * 一个 Makefile 同时支持 Yocto 编译方式、源码和编译输出分离模式和不分离模式
 * 提供编译静态库、共享库和可执行文件的模板 `inc.app.mk`
-* 提供kconfig配置参数的模板 `inc.conf.mk`
+* 提供 kconfig 配置参数的模板 `inc.conf.mk`
 * 提供编译外部内核模块的模板 `inc.mod.mk`
 * 提供根据目标依赖关系自动生成整个系统的配置和编译的脚本 `analyse_deps.py`
 
@@ -21,9 +21,7 @@ ARCH=
 CROSS_COMPILE=
 ENV_TOP_DIR=/home/lengjing/cbuild
 ENV_TOP_OUT=/home/lengjing/cbuild/output
-USING_EXT_BUILD=y
-USING_DEPS_BUILD=n
-USING_YOCTO_BUILD=n
+ENV_BUILD_MODE=external
 ====================================
 ```
 
@@ -36,9 +34,7 @@ ARCH=arm64
 CROSS_COMPILE=arm-linux-gnueabihf-
 ENV_TOP_DIR=/home/lengjing/cbuild
 ENV_TOP_OUT=/home/lengjing/cbuild/output
-USING_EXT_BUILD=y
-USING_DEPS_BUILD=n
-USING_YOCTO_BUILD=n
+ENV_BUILD_MODE=external
 ====================================
 ```
 
@@ -47,18 +43,14 @@ USING_YOCTO_BUILD=n
 ```sh
 ENV_TOP_DIR=$(pwd | sed 's:/cbuild.*::')/cbuild
 ENV_TOP_OUT=${ENV_TOP_DIR}/output
-USING_EXT_BUILD=y
-USING_DEPS_BUILD=n
+ENV_BUILD_MODE=external
 ```
 
 * ENV_TOP_DIR: 工程的根目录
 * ENV_TOP_OUT: 源码和编译输出分离时的编译输出根目录
-* USING_EXT_BUILD: 是否使用源码和编译输出分离，y 表示是
-* USING_DEPS_BUILD: 在 analyse_deps.py 自动生成的Makefile中使用，是否使能编译依赖，y 表示是
-* USING_YOCTO_BUILD: 是否使用 Yocto 编译，y 表示是 (使用 Yocto 编译时 USING_EXT_BUILD 必须为 y)
-
-注: 源码和编译输出分离时，某个包的编译输出目录是把包的源码目录的 ENV_TOP_DIR 部分换成了 ENV_TOP_OUT (非 Yocto 编译)
-注: Yocto BitBake 任务无法直接使用 shell 自定义的环境变量，所以不需要 source 这个环境脚本
+* ENV_BUILD_MODE: 设置编译模式: external, 源码和编译输出分离; internal, 编译输出到源码; yocto, Yocto 编译方式
+    * external 时，编译输出目录是把包的源码目录的 ENV_TOP_DIR 部分换成了 ENV_TOP_OUT
+    * yocto 时，编译输出目录由配方文件导出，由于 BitBake 任务无法直接使用 shell 自定义的环境变量，所以不需要 source 这个环境脚本
 
 ## 测试编译应用
 
@@ -381,6 +373,7 @@ lengjing@lengjing:~/cbuild/test-deps$
 `scripts/analyse_deps.py` 参数
 
 * `-m <Makefile Name>`: 自动生成的 Makefile 文件名
+    * 生成的 Makefile 中，使用了条件使能依赖规则，设置 `ENABLE_DEPENDS=y` 即可开启
 * `-k <Kconfig Name>`: 自动生成的 Kconfig 文件名
 * `-f <Depend Name>`: 含有依赖信息的文件名
 * `-d <Search Directories>`: 搜索的目录名，多个目录使用冒号隔开
@@ -394,6 +387,8 @@ lengjing@lengjing:~/cbuild/test-deps$
 * Target_Name: 当前包的名称ID
 * Other_Target_Names: 当前包的其它目标，多个目标使用空格隔开 (可以为空)，默认会加入 默认目标 和 clean目标的规则
 * Depend_Names: 当前包依赖的其它包的名称ID，多个依赖使用空格隔开 (可以为空)，如果有循环依赖或未定义依赖，解析将会失败，会打印出未解析成功的条目
+
+注: 有效的名称是由字母、数字、下划线、点号组成
 
 ## 测试 Yocto 编译
 
@@ -437,7 +432,11 @@ lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行
 
 * 编写配方文件 (xxx.bb)
     * `recipetool create -o <xxx.bb> <package_src_dir>` 创建一个基本配方，井号线包含的部分是用户手动增加的
-    * 继承类时，编译应用使用 `inherit sanity`，编译模块使用 `inherit module`
+    * 配方一般会继承类
+        * 使用 Makefile 编译应用继承 `inherit sanity`，使用 cmake 编译应用继承 `inherit cmake`
+        * 编译外部内核模块继承 `inherit module`
+        * 编译主机本地工具继承 `inherit native`
+        * 使用 menuconfig 需要继承 `inherit cml1`
     * 包依赖其他包时使用 `DEPENDS += " package1 package2"` 说明
 
 ```
@@ -451,8 +450,7 @@ SRC_URI = ""
 #DEPENDS += " package1 package2"
 export OUT_PATH="${WORKDIR}"
 export ENV_TOP_DIR
-export USING_EXT_BUILD
-export USING_YOCTO_BUILD
+export ENV_BUILD_MODE
 inherit sanity
 #inherit module
 ########################################
@@ -493,8 +491,7 @@ EXTERNALSRC_BUILD = "${ENV_TOP_DIR}/<package_src>"
 
 ```
 ENV_TOP_DIR = "/home/lengjing/cbuild"
-USING_EXT_BUILD = "y"
-USING_YOCTO_BUILD = "y"
+ENV_BUILD_MODE = "yocto"
 ```
 
 * 增加测试的层
@@ -515,5 +512,7 @@ lengjing@lengjing:~/cbuild/build$ cp -rf ../recipes-cbuild ../poky/meta-selftest
 lengjing@lengjing:~/cbuild/build$ bitbake test-app   # 编译应用
 lengjing@lengjing:~/cbuild/build$ bitbake test-hello # 编译内核模块
 lengjing@lengjing:~/cbuild/build$ bitbake test-mod2  # 编译内核模块
+lengjing@lengjing:~/cbuild/build$ bitbake test-conf  # 编译 kconfig 测试程序
+lengjing@lengjing:~/cbuild/build$ bitbake test-conf -c menuconfig # 修改配置
 ```
 

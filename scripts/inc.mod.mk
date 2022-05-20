@@ -25,10 +25,7 @@ else
 KERNEL_SRC     ?= /lib/modules/$(shell uname -r)/build
 MOD_MAKES      += -C $(KERNEL_SRC) $(if $(KERNEL_OUT),O=$(KERNEL_OUT))
 
-#KBUILD_EXTRA_SYMBOLS
-#INSTALL_MOD_PATH
-
-ifneq ($(USING_EXT_BUILD), y)
+ifeq ($(findstring $(ENV_BUILD_MODE),external yocto),)
 
 MOD_MAKES      += M=$(shell pwd)
 

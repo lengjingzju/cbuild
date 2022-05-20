@@ -9,18 +9,19 @@
 # this is not accurate with respect to the licensing of the software being built (it
 # will not be in most cases) you must specify the correct value before using this
 # recipe for anything other than initial testing/development!
-LICENSE = "CLOSED"
+LICENSE = "GPLv2"
 LIC_FILES_CHKSUM = ""
 
 # No information for SRC_URI yet (only an external source tree was specified)
 SRC_URI = ""
 
-DEPENDS += " test-hello-add test-hello-sub"
+DEPENDS += "flex-native bison-native"
 export OUT_PATH="${WORKDIR}"
 export ENV_TOP_DIR
 export ENV_BUILD_MODE
 #inherit sanity
-inherit module
+#inherit module
+inherit native
 
 # NOTE: this is a Makefile-only piece of software, so we cannot generate much of the
 # recipe automatically - you will need to examine the Makefile yourself and ensure
@@ -41,4 +42,6 @@ do_install () {
 	# target named "install", so you will need to define this yourself
 	:
 }
+
+BBCLASSEXTEND = "native"
 

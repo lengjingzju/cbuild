@@ -15,12 +15,13 @@ LIC_FILES_CHKSUM = ""
 # No information for SRC_URI yet (only an external source tree was specified)
 SRC_URI = ""
 
-DEPENDS += " test-hello-add test-hello-sub"
+DEPENDS += " kconfig-native"
 export OUT_PATH="${WORKDIR}"
 export ENV_TOP_DIR
 export ENV_BUILD_MODE
-#inherit sanity
-inherit module
+inherit sanity
+inherit cml1
+#inherit module
 
 # NOTE: this is a Makefile-only piece of software, so we cannot generate much of the
 # recipe automatically - you will need to examine the Makefile yourself and ensure
@@ -33,7 +34,8 @@ do_configure () {
 
 do_compile () {
 	# You will almost certainly need to add additional arguments here
-	oe_runmake
+	oe_runmake def_config
+	#make def_config
 }
 
 do_install () {

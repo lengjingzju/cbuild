@@ -1,4 +1,4 @@
-ifeq ($(USING_EXT_BUILD), y)
+ifeq ($(ENV_BUILD_MODE), external)
 OUT_PATH       ?= $(shell pwd | sed "s:$(ENV_TOP_DIR):$(ENV_TOP_OUT):")
 else
 OUT_PATH       ?= .

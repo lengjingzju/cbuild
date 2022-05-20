@@ -1,5 +1,5 @@
-ifeq ($(USING_EXT_BUILD), y)
-OUT_PATH       ?= $(ENV_TOP_OUT)/scripts/kconfig
+ifeq ($(ENV_BUILD_MODE), external)
+OUT_PATH       ?= $(shell pwd | sed 's:$(ENV_TOP_DIR):$(ENV_TOP_OUT):')
 else
 OUT_PATH       ?= .
 endif
@@ -15,8 +15,14 @@ DEPEND_OBJS     = $(patsubst %.o,%.d,$(AUTOGEN_OBJS) $(PARSER_OBJS) $(LXDIALOG_O
 
 HOSTCC         ?= gcc
 HOSTCFLAGS      = -I. -I./parser -I./lxdialog
-HOSTCFLAGS     += $(shell sh ./mconf-cfg.sh | grep "cflags=" | sed 's/cflags="\(.*\)"/\1/')
-HOSTLDFLAGS     = $(shell sh ./mconf-cfg.sh | grep "libs=" | sed 's/libs="\(.*\)"/\1/')
+
+ifneq ($(ENV_BUILD_MODE), yocto)
+HOSTCFLAGS     += $(shell sh mconf-cfg.sh | grep "cflags=" | sed 's/cflags="\(.*\)"/\1/')
+HOSTLDFLAGS     = $(shell sh mconf-cfg.sh | grep "libs=" | sed 's/libs="\(.*\)"/\1/')
+else
+HOSTCFLAGS     += -D_GNU_SOURCE -D_DEFAULT_SOURCE
+HOSTLDFLAGS     = -lncurses -ltinfo
+endif
 
 .PHONY: all clean
 all: $(OUT_PATH)/conf $(OUT_PATH)/mconf

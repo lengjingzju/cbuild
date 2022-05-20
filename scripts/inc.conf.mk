@@ -1,16 +1,17 @@
-ifeq ($(USING_EXT_BUILD), y)
+CONF_SRC         ?= $(ENV_TOP_DIR)/scripts/kconfig
+ifeq ($(ENV_BUILD_MODE), external)
+CONF_PATH        ?= $(patsubst $(ENV_TOP_DIR)/%,$(ENV_TOP_OUT)/%,$(CONF_SRC))
 OUT_PATH         ?= $(shell pwd | sed 's:$(ENV_TOP_DIR):$(ENV_TOP_OUT):')
-CONF_PATH        ?= $(ENV_TOP_OUT)/scripts/kconfig
-else
+else ifeq ($(ENV_BUILD_MODE), yocto)
+CONF_PATH        ?= $(CONF_SRC)/oe-workdir
 OUT_PATH         ?= .
-CONF_PATH        ?= $(ENV_TOP_DIR)/scripts/kconfig
+else
+CONF_PATH        ?= $(CONF_SRC)
+OUT_PATH         ?= .
 endif
 
-CONF_SRC         ?= $(ENV_TOP_DIR)/scripts/kconfig
 KCONFIG          ?= Kconfig
 CONF_SAVE_PATH   ?= config
-
-.PHONY: buildconfig menuconfig cleanconfig
 
 CONFIG_PATH       = $(OUT_PATH)/.config
 AUTOCONFIG_PATH   = $(OUT_PATH)/autoconfig/auto.conf
@@ -27,25 +28,42 @@ define gen_config_header
 		$(CONFIG_PATH) | grep "^#define"> $(AUTOHEADER_PATH)
 endef
 
-buildconfig:
+ifneq ($(ENV_BUILD_MODE), yocto)
+
+.PHONY: buildkconfig cleankconfig
+
+buildkconfig:
 	@make -C $(CONF_SRC)
 
-cleanconfig:
+cleankconfig:
 	@make -C $(CONF_SRC) clean
-	@rm -rf $(CONFIG_PATH) $(CONFIG_PATH).old $(dir $(AUTOCONFIG_PATH)) $(AUTOHEADER_PATH)
 
-menuconfig: buildconfig
+menuconfig: buildkconfig
+
+%_config: buildkconfig
+
+%_saveconfig: buildkconfig
+
+cleanconfig: cleankconfig
+
+endif
+
+.PHONY: menuconfig cleanconfig
+
+menuconfig:
 	@-mkdir -p $(OUT_PATH)
 	@$(CONF_PATH)/mconf $(CONF_OPTIONS)
 	@$(CONF_PATH)/conf $(CONF_OPTIONS) --silent --oldconfig
 
-%_config: $(CONF_SAVE_PATH)/%_config buildconfig
+%_config: $(CONF_SAVE_PATH)/%_config
 	@-mkdir -p $(OUT_PATH)
 	@cp -f $< $(CONFIG_PATH)
 	@$(CONF_PATH)/conf $(CONF_OPTIONS) --defconfig $<
 	@$(CONF_PATH)/conf $(CONF_OPTIONS) --silent --oldconfig
 
-%_saveconfig: $(CONFIG_PATH) buildconfig
+%_saveconfig: $(CONFIG_PATH)
 	@$(CONF_PATH)/conf $(CONF_OPTIONS) --savedefconfig=$(CONF_SAVE_PATH)/$(subst _saveconfig,_config,$@)
 	@echo Save .config to $(CONF_SAVE_PATH)/$(subst _saveconfig,_config,$@)
 
+cleanconfig:
+	@rm -rf $(CONFIG_PATH) $(CONFIG_PATH).old $(dir $(AUTOCONFIG_PATH)) $(AUTOHEADER_PATH)

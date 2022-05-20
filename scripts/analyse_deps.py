@@ -27,7 +27,7 @@ class Deps:
         with open(makefile[0], 'r') as fp:
             for per_line in fp:
                 # e.g. "#DEPS(mk.ext) a(clean install): b c"
-                ret = re.match(r'#DEPS\s*\(\s*([\w\-\.]*)\s*\)\s*(\w+)\s*\(([\s\w%]*)\)\s*:([\s\w]*)', per_line)
+                ret = re.match(r'#DEPS\s*\(\s*([\w\-\.]*)\s*\)\s*([\w\-\.]+)\s*\(([\s\w\-\.%]*)\)\s*:([\s\w\-\.]*)', per_line)
                 if ret:
                     item = {}
                     item['path'] = os.path.dirname(makefile[0])
@@ -99,7 +99,7 @@ class Deps:
 
     def gen_make(self, filename):
         with open(filename, 'w') as fp:
-            fp.write('ifeq ($(USING_DEPS_BUILD), y)\n')
+            fp.write('ifeq ($(ENABLE_DEPENDS), y)\n\n')
             for item in self.ItemList:
                 if item['deps']:
                     fp.write('ifeq ($(CONFIG_%s), y)\n' % (item['target'].upper()))
