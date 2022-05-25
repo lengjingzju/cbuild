@@ -3,6 +3,10 @@ ifneq ($(KERNELRELEASE),)
 MOD_NAME       ?= hello
 obj-m          := $(patsubst %,%.o,$(MOD_NAME))
 
+ifneq ($(PACKAGE_DEPS), )
+ccflags-y      += $(patsubst %,-I$(ENV_DEP_ROOT)/usr/include/%/,$(PACKAGE_DEPS))
+endif
+
 ifeq ($(words $(MOD_NAME)), 1)
 
 SRCS           ?= $(shell find $(src) -name "*.c" | grep -v "scripts/" | grep -v "\.mod\.c" | xargs)
@@ -53,13 +57,22 @@ $(OUT_PATH)/Makefile: Makefile
 
 endif
 
+export PACKAGE_DEPS ENV_DEP_ROOT
+
 modules:
-	@make $(MOD_MAKES) $(if $(MOD_DEPS), KBUILD_EXTRA_SYMBOLS="$(patsubst %,%/Module.symvers,$(patsubst %/,%,$(MOD_DEPS)))") modules
+	@make $(MOD_MAKES) $(if $(PACKAGE_DEPS), KBUILD_EXTRA_SYMBOLS="$(patsubst %,$(ENV_DEP_ROOT)/usr/include/%/Module.symvers,$(PACKAGE_DEPS))") modules
 
 modules_clean:
 	@make $(MOD_MAKES) clean
 
 modules_install:
-	@make $(MOD_MAKES) $(if $(MOD_PATH), INSTALL_MOD_PATH=$(MOD_PATH)) modules_install
+	@make $(MOD_MAKES) $(if $(ENV_INS_ROOT), INSTALL_MOD_PATH=$(ENV_INS_ROOT)) modules_install
+
+ifneq ($(INSTALL_HEADERS), )
+modules_install_hdrs:
+	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
+	@install $(OUT_PATH)/Module.symvers $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
+	@install $(INSTALL_HEADERS) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
+endif
 
 endif

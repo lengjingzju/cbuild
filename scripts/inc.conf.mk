@@ -3,7 +3,7 @@ ifeq ($(ENV_BUILD_MODE), external)
 CONF_PATH        ?= $(patsubst $(ENV_TOP_DIR)/%,$(ENV_TOP_OUT)/%,$(CONF_SRC))
 OUT_PATH         ?= $(shell pwd | sed 's:$(ENV_TOP_DIR):$(ENV_TOP_OUT):')
 else ifeq ($(ENV_BUILD_MODE), yocto)
-CONF_PATH        ?= $(CONF_SRC)/oe-workdir
+CONF_PATH        ?= $(CONF_SRC)/oe-workdir/build
 OUT_PATH         ?= .
 else
 CONF_PATH        ?= $(CONF_SRC)
@@ -28,9 +28,9 @@ define gen_config_header
 		$(CONFIG_PATH) | grep "^#define"> $(AUTOHEADER_PATH)
 endef
 
-ifneq ($(ENV_BUILD_MODE), yocto)
+.PHONY: buildkconfig cleankconfig menuconfig cleanconfig
 
-.PHONY: buildkconfig cleankconfig
+ifneq ($(ENV_BUILD_MODE), yocto)
 
 buildkconfig:
 	@make -C $(CONF_SRC)
@@ -38,32 +38,29 @@ buildkconfig:
 cleankconfig:
 	@make -C $(CONF_SRC) clean
 
-menuconfig: buildkconfig
+else
 
-%_config: buildkconfig
+buildkconfig:
+	@do_nothing=null
 
-%_saveconfig: buildkconfig
-
-cleanconfig: cleankconfig
-
+cleankconfig:
+	@do_nothing=null
 endif
 
-.PHONY: menuconfig cleanconfig
-
-menuconfig:
+menuconfig: buildkconfig
 	@-mkdir -p $(OUT_PATH)
 	@$(CONF_PATH)/mconf $(CONF_OPTIONS)
 	@$(CONF_PATH)/conf $(CONF_OPTIONS) --silent --oldconfig
 
-%_config: $(CONF_SAVE_PATH)/%_config
+%_config: $(CONF_SAVE_PATH)/%_config buildkconfig
 	@-mkdir -p $(OUT_PATH)
 	@cp -f $< $(CONFIG_PATH)
 	@$(CONF_PATH)/conf $(CONF_OPTIONS) --defconfig $<
 	@$(CONF_PATH)/conf $(CONF_OPTIONS) --silent --oldconfig
 
-%_saveconfig: $(CONFIG_PATH)
+%_saveconfig: $(CONFIG_PATH) buildkconfig
 	@$(CONF_PATH)/conf $(CONF_OPTIONS) --savedefconfig=$(CONF_SAVE_PATH)/$(subst _saveconfig,_config,$@)
 	@echo Save .config to $(CONF_SAVE_PATH)/$(subst _saveconfig,_config,$@)
 
-cleanconfig:
+cleanconfig: cleankconfig
 	@rm -rf $(CONFIG_PATH) $(CONFIG_PATH).old $(dir $(AUTOCONFIG_PATH)) $(AUTOHEADER_PATH)
