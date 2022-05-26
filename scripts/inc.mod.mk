@@ -71,8 +71,8 @@ modules_install:
 ifneq ($(INSTALL_HEADERS), )
 modules_install_hdrs:
 	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
-	@install $(OUT_PATH)/Module.symvers $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
-	@install $(INSTALL_HEADERS) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
+	@cp -fp $(OUT_PATH)/Module.symvers $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
+	@cp -fp $(INSTALL_HEADERS) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
 endif
 
 endif

@@ -65,7 +65,7 @@ endif
 ifneq ($(INSTALL_HEADERS), )
 install_hdrs:
 	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
-	@install $(INSTALL_HEADERS) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
+	@cp -fp $(INSTALL_HEADERS) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
 endif
 
 ifneq ($(INSTALL_LIBRARIES), )
