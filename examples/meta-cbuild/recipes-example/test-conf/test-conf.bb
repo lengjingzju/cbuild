@@ -17,12 +17,7 @@ SRC_URI = ""
 
 DEPENDS += "kconfig-native"
 
-export OUT_PATH = "${WORKDIR}/build"
-export ENV_INS_ROOT = "${WORKDIR}/image"
-export ENV_DEP_ROOT = "${WORKDIR}/recipe-sysroot"
-export ENV_TOP_DIR
-export ENV_BUILD_MODE
-
+inherit testenv
 inherit cml1
 inherit sanity
 

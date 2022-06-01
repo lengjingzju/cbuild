@@ -1,5 +1,5 @@
 ifeq ($(ENV_BUILD_MODE), external)
-OUT_PATH       ?= $(shell pwd | sed "s:$(ENV_TOP_DIR):$(ENV_TOP_OUT):")
+OUT_PATH       ?= $(shell pwd | sed "s:$(ENV_TOP_DIR):$(ENV_OUT_ROOT):")
 else
 OUT_PATH       ?= .
 endif
@@ -24,18 +24,21 @@ LDFLAGS        += -Wl,--gc-sections
 
 -include $(DEPS)
 
+.PHONY: clean_objs install_liba install_libso install_bin
+
 $(OBJS): $(OUT_PATH)/%.o: %.c
 	@-mkdir -p $(dir $@)
 	@$(CC) -c $(CFLAGS) -MM -MT $@ -MF $(patsubst %.o,%.d,$@) $<
 	@echo "\033[032m$(CC)\033[0m	$<"
-	@$(CC) -c $(CFLAGS) -o $@ $<
+	@$(CC) -c $(CFLAGS) -fPIC -o $@ $<
 
-.PHONY: install_liba install_libso install_bin install_hdrs install_libs install_bins clean_objs
+clean_objs:
+	@-rm -rf $(OBJS) $(DEPS)
 
 ifneq ($(LIB_NAME_A), )
 $(OUT_PATH)/$(LIB_NAME_A): $(OBJS)
 	@echo "\033[032mlib:\033[0m	\033[44m$@\033[0m"
-	@$(AR) r $@ $^
+	@$(AR) r $@ $^ -c
 
 install_liba:
 	@install -d $(ENV_INS_ROOT)/usr/lib
@@ -62,23 +65,3 @@ install_bin:
 	@install $(OUT_PATH)/$(BIN_NAME) $(ENV_INS_ROOT)/usr/bin
 endif
 
-ifneq ($(INSTALL_HEADERS), )
-install_hdrs:
-	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
-	@cp -fp $(INSTALL_HEADERS) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
-endif
-
-ifneq ($(INSTALL_LIBRARIES), )
-install_libs:
-	@install -d $(ENV_INS_ROOT)/usr/lib
-	@install $(INSTALL_LIBRARIES) $(ENV_INS_ROOT)/usr/lib
-endif
-
-ifneq ($(INSTALL_BINARIES), )
-install_bins:
-	@install -d $(ENV_INS_ROOT)/usr/bin
-	@install $(INSTALL_BINARIES) $(ENV_INS_ROOT)/usr/bin
-endif
-
-clean_objs:
-	@-rm -rf $(OBJS) $(DEPS)

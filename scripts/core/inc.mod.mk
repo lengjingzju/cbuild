@@ -11,8 +11,8 @@ ifeq ($(words $(MOD_NAME)), 1)
 
 SRCS           ?= $(shell find $(src) -name "*.c" | grep -v "scripts/" | grep -v "\.mod\.c" | xargs)
 OBJS            = $(patsubst $(src)/%,%,$(patsubst %.c,%.o,$(SRCS)))
-ifneq ($(words $(OBJS)), 1)
-$(MOD_NAME)-objs := $(OBJS)
+ifneq ($(words $(OBJS))-$(OBJS), 1-$(MOD_NAME).o)
+$(MOD_NAME)-y  := $(OBJS)
 endif
 
 else
@@ -27,7 +27,7 @@ endif
 else
 
 KERNEL_SRC     ?= /lib/modules/$(shell uname -r)/build
-MOD_MAKES      += -C $(KERNEL_SRC) $(if $(KERNEL_OUT),O=$(KERNEL_OUT))
+MOD_MAKES      += $(BUILD_JOBS) -s -C $(KERNEL_SRC) $(if $(KERNEL_OUT),O=$(KERNEL_OUT))
 
 ifeq ($(findstring $(ENV_BUILD_MODE),external yocto),)
 
@@ -35,7 +35,7 @@ MOD_MAKES      += M=$(shell pwd)
 
 else
 
-OUT_PATH       ?= $(shell pwd | sed "s:$(ENV_TOP_DIR):$(ENV_TOP_OUT):")
+OUT_PATH       ?= $(shell pwd | sed "s:$(ENV_TOP_DIR):$(ENV_OUT_ROOT):")
 MOD_MAKES      += M=$(OUT_PATH) src=$(shell pwd)
 
 modules modules_clean modules_install: $(OUT_PATH)/Makefile
@@ -60,7 +60,7 @@ endif
 export PACKAGE_DEPS ENV_DEP_ROOT
 
 modules:
-	@make $(MOD_MAKES) $(if $(PACKAGE_DEPS), KBUILD_EXTRA_SYMBOLS="$(patsubst %,$(ENV_DEP_ROOT)/usr/include/%/Module.symvers,$(PACKAGE_DEPS))") modules
+	@make $(MOD_MAKES) $(if $(PACKAGE_DEPS), KBUILD_EXTRA_SYMBOLS="$(patsubst %,$(ENV_DEP_ROOT)/usr/include/%/Module.symvers,$(patsubst %/private,,$(PACKAGE_DEPS)))") modules
 
 modules_clean:
 	@make $(MOD_MAKES) clean
@@ -68,11 +68,17 @@ modules_clean:
 modules_install:
 	@make $(MOD_MAKES) $(if $(ENV_INS_ROOT), INSTALL_MOD_PATH=$(ENV_INS_ROOT)) modules_install
 
-ifneq ($(INSTALL_HEADERS), )
+ifneq ($(INSTALL_HEADERS)$(INSTALL_PRIVATE_HEADERS), )
 modules_install_hdrs:
 	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
 	@cp -fp $(OUT_PATH)/Module.symvers $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
-	@cp -fp $(INSTALL_HEADERS) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
+ifneq ($(INSTALL_HEADERS), )
+	@cp -rfp $(INSTALL_HEADERS) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
+endif
+ifneq ($(INSTALL_PRIVATE_HEADERS), )
+	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private
+	@cp -rfp $(INSTALL_PRIVATE_HEADERS) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private
+endif
 endif
 
 endif

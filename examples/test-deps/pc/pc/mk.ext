@@ -5,3 +5,8 @@ all:
 clean:
 	@echo "ext.mk"
 	@make clean
+
+install:
+	@echo "ext.mk"
+	@make install
+

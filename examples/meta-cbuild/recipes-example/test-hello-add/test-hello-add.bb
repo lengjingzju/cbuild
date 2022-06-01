@@ -15,12 +15,7 @@ LIC_FILES_CHKSUM = ""
 # No information for SRC_URI yet (only an external source tree was specified)
 SRC_URI = ""
 
-export OUT_PATH = "${WORKDIR}/build"
-export ENV_INS_ROOT = "${WORKDIR}/image"
-export ENV_DEP_ROOT = "${WORKDIR}/recipe-sysroot"
-export ENV_TOP_DIR
-export ENV_BUILD_MODE
-
+inherit testenv
 inherit module
 
 # NOTE: this is a Makefile-only piece of software, so we cannot generate much of the

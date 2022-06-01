@@ -17,12 +17,7 @@ SRC_URI = ""
 
 DEPENDS += "test-hello-add test-hello-sub"
 
-export OUT_PATH = "${WORKDIR}/build"
-export ENV_INS_ROOT = "${WORKDIR}/image"
-export ENV_DEP_ROOT = "${WORKDIR}/recipe-sysroot"
-export ENV_TOP_DIR
-export ENV_BUILD_MODE
-
+inherit testenv
 inherit module
 
 # NOTE: this is a Makefile-only piece of software, so we cannot generate much of the

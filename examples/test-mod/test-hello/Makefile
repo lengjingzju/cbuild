@@ -1,7 +1,7 @@
 $(info KERNELRELEASE=$(KERNELRELEASE) pwd=$(shell pwd) PWD=$(PWD))
 
 ifneq ($(KERNELRELEASE),)
-MOD_NAME = hello
+MOD_NAME = hello_dep
 
 else
 
@@ -9,13 +9,12 @@ PACKAGE_NAME ?= test-hello
 PACKAGE_DEPS ?= test-hello-add test-hello-sub
 
 all: modules
+	@echo "Build $(PACKAGE_NAME) Done."
 
 clean: modules_clean
+	@echo "Clean $(PACKAGE_NAME) Done."
 
-ifneq ($(ENV_BUILD_MODE), yocto)
-all: install
-endif
 install: modules_install
 endif
 
-include $(ENV_TOP_DIR)/scripts/inc.mod.mk
+include $(ENV_TOP_DIR)/scripts/core/inc.mod.mk

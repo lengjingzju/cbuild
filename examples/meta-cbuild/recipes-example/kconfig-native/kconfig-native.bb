@@ -17,10 +17,7 @@ SRC_URI = ""
 
 DEPENDS += "flex-native bison-native"
 
-export OUT_PATH = "${WORKDIR}/build"
-export ENV_TOP_DIR
-export ENV_BUILD_MODE
-
+inherit testenv
 inherit native
 
 # NOTE: this is a Makefile-only piece of software, so we cannot generate much of the
@@ -37,10 +34,14 @@ do_compile () {
 	oe_runmake
 }
 
+install_dir = "${D}${prefix}/bin"
+
 do_install () {
 	# NOTE: unable to determine what to put here - there is a Makefile but no
 	# target named "install", so you will need to define this yourself
-	:
+	install -d ${install_dir}
+	install -m 0777 ${OUT_PATH}/conf ${install_dir}
+	install -m 0777 ${OUT_PATH}/mconf ${install_dir}
 }
 
 BBCLASSEXTEND = "native"

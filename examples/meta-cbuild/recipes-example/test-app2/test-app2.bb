@@ -18,12 +18,7 @@ SRC_URI = ""
 DEPENDS += "test-app"
 RDEPENDS_${PN} += "test-app"
 
-export OUT_PATH = "${WORKDIR}/build"
-export ENV_INS_ROOT = "${WORKDIR}/image"
-export ENV_DEP_ROOT = "${WORKDIR}/recipe-sysroot"
-export ENV_TOP_DIR
-export ENV_BUILD_MODE
-
+inherit testenv
 inherit sanity
 
 # NOTE: this is a Makefile-only piece of software, so we cannot generate much of the
@@ -46,5 +41,4 @@ do_install () {
 	oe_runmake install
 }
 
-FILES_${PN}-dev = "${includedir}"
-FILES_${PN} = "${libdir} ${bindir}"
+FILES_${PN} = "${bindir}"

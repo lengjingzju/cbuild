@@ -6,5 +6,8 @@ all:
 clean:
 	@echo target=$@ path=$(LOCAL_PATH)
 
+install:
+	@echo target=$@ path=$(LOCAL_PATH)
+
 default_config:
 	@echo target=$@ path=$(LOCAL_PATH)

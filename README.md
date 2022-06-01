@@ -6,6 +6,7 @@
 * 支持交叉编译，支持自动分析 C 头文件作为编译依赖
 * 一个 Makefile 同时支持 Yocto 编译方式、源码和编译输出分离模式和不分离模式
 * 提供编译静态库、共享库和可执行文件的模板 `inc.app.mk`
+* 提供安装编译输出的模板 `inc.ins.mk`
 * 提供 kconfig 配置参数的模板 `inc.conf.mk`
 * 提供编译外部内核模块的模板 `inc.mod.mk`
 * 提供根据目标依赖关系自动生成整个系统的配置和编译的脚本 `analyse_deps.py`
@@ -15,31 +16,34 @@
 初始化编译环境运行如下命令
 
 ```sh
-lengjing@lengjing:~/cbuild$ source scripts/build.env
-====================================
-ARCH=
-CROSS_COMPILE=
-ENV_TOP_DIR=/home/lengjing/cbuild
-ENV_TOP_OUT=/home/lengjing/cbuild/output
-ENV_INS_ROOT=/home/lengjing/cbuild/fakeroot
-ENV_DEP_ROOT=/home/lengjing/cbuild/fakeroot
-ENV_BUILD_MODE=external
-====================================
+lengjing@lengjing:~/cbuild$ source scripts/build.env 
+============================================================
+ARCH             : 
+CROSS_COMPILE    : 
+ENV_TOP_DIR      : /home/lengjing/cbuild
+ENV_TOP_OUT      : /home/lengjing/cbuild/output
+ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
+ENV_INS_ROOT     : /home/lengjing/cbuild/output/fakeroot
+ENV_DEP_ROOT     : /home/lengjing/cbuild/output/fakeroot
+ENV_BUILD_MODE   : external
+============================================================
 ```
 
 还可以指定 ARCH 和交叉编译器
 
 ```sh
 lengjing@lengjing:~/cbuild$ source scripts/build.env arm64 arm-linux-gnueabihf-
-====================================
-ARCH=arm64
-CROSS_COMPILE=arm-linux-gnueabihf-
-ENV_TOP_DIR=/home/lengjing/cbuild
-ENV_TOP_OUT=/home/lengjing/cbuild/output
-ENV_INS_ROOT=/home/lengjing/cbuild/fakeroot
-ENV_DEP_ROOT=/home/lengjing/cbuild/fakeroot
-ENV_BUILD_MODE=external
-====================================
+============================================================
+ARCH             : arm64
+CROSS_COMPILE    : arm-linux-gnueabihf-
+ENV_TOP_DIR      : /home/lengjing/cbuild
+ENV_TOP_OUT      : /home/lengjing/cbuild/output
+ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
+ENV_INS_ROOT     : /home/lengjing/cbuild/output/fakeroot
+ENV_DEP_ROOT     : /home/lengjing/cbuild/output/fakeroot
+ENV_BUILD_MODE   : external
+============================================================
+
 ```
 
 `scripts/build.env` 中，导出的自定义环境变量
@@ -47,17 +51,19 @@ ENV_BUILD_MODE=external
 ```sh
 ENV_TOP_DIR=$(pwd | sed 's:/cbuild.*::')/cbuild
 ENV_TOP_OUT=${ENV_TOP_DIR}/output
-ENV_INS_ROOT=${ENV_TOP_DIR}/fakeroot
+ENV_OUT_ROOT=${ENV_TOP_OUT}/objects
+ENV_INS_ROOT=${ENV_TOP_OUT}/fakeroot
 ENV_DEP_ROOT=${ENV_INS_ROOT}
 ENV_BUILD_MODE=external  # external internal yocto
 ```
 
 * ENV_TOP_DIR: 工程的根目录
-* ENV_TOP_OUT: 源码和编译输出分离时的编译输出根目录
-* ENV_INS_ROOT: 工程安装的根目录
+* ENV_TOP_OUT: 工程的输出根目录，编译输出、安装文件、生成镜像等都在此目录下定义
+* ENV_OUT_ROOT: 源码和编译输出分离时的编译输出根目录
+* ENV_INS_ROOT: 工程安装文件的根目录
 * ENV_DEP_ROOT: 工程搜索库和头文件的根目录
 * ENV_BUILD_MODE: 设置编译模式: external, 源码和编译输出分离; internal, 编译输出到源码; yocto, Yocto 编译方式
-    * external 时，编译输出目录是把包的源码目录的 ENV_TOP_DIR 部分换成了 ENV_TOP_OUT
+    * external 时，编译输出目录是把包的源码目录的 ENV_TOP_DIR 部分换成了 ENV_OUT_ROOT
 
 * yocto 时，由于 BitBake 任务无法直接使用当前 shell 的环境变量，所以自定义环境变量应由配方文件导出，不需要 source 这个环境脚本
 
@@ -72,28 +78,28 @@ lengjing@lengjing:~/cbuild/examples/test-app$ make
 gcc	add.c
 gcc	sub.c
 gcc	main.c
-lib:	/home/lengjing/cbuild/output/examples/test-app/libtest.a
-ar: creating /home/lengjing/cbuild/output/examples/test-app/libtest.a
-lib:	/home/lengjing/cbuild/output/examples/test-app/libtest.so
-bin:	/home/lengjing/cbuild/output/examples/test-app/test
----- build ok ----
+lib:	/home/lengjing/cbuild/output/objects/examples/test-app/libtest.a
+lib:	/home/lengjing/cbuild/output/objects/examples/test-app/libtest.so
+bin:	/home/lengjing/cbuild/output/objects/examples/test-app/test
+Build test-app Done.
 lengjing@lengjing:~/cbuild/examples/test-app$ vi include/sub.h  # 在此文件加上一个空行保存
-lengjing@lengjing:~/cbuild/examples/test-app$ make # 此时依赖此头文件的 C 源码会重新编译
+lengjing@lengjing:~/cbuild/examples/test-app$ make  # 此时依赖此头文件的 C 源码会重新编译
 gcc	sub.c
 gcc	main.c
-lib:	/home/lengjing/cbuild/output/examples/test-app/libtest.a
-lib:	/home/lengjing/cbuild/output/examples/test-app/libtest.so
-bin:	/home/lengjing/cbuild/output/examples/test-app/test
----- build ok ----
+lib:	/home/lengjing/cbuild/output/objects/examples/test-app/libtest.a
+lib:	/home/lengjing/cbuild/output/objects/examples/test-app/libtest.so
+bin:	/home/lengjing/cbuild/output/objects/examples/test-app/test
+Build test-app Done.
+lengjing@lengjing:~/cbuild/examples/test-app$ make install  # 安装文件
 lengjing@lengjing:~/cbuild/examples/test-app$ cd ../test-app2
-lengjing@lengjing:~/cbuild/examples/test-app2$ make
+lengjing@lengjing:~/cbuild/examples/test-app2$ make 
 gcc	main.c
-bin:	/home/lengjing/cbuild/output/examples/test-app2/test2
----- build ok ----
-lengjing@lengjing:~/cbuild/examples/test-app2$
+bin:	/home/lengjing/cbuild/output/objects/examples/test-app2/test2
+Build test-app2  Done.
+lengjing@lengjing:~/cbuild/examples/test-app2$ make install
 ```
 
-`scripts/inc.app.mk` 支持的目标
+`scripts/core/inc.app.mk` 支持的目标
 
 * LIB_NAME_A: 编译静态库时需要设置静态库名
 * LIB_NAME_SO: 编译动态库时需要设置动态库名
@@ -101,22 +107,31 @@ lengjing@lengjing:~/cbuild/examples/test-app2$
 * install_liba: 安装静态库
 * install_libso: 安装动态库
 * install_bin: 安装可执行文件
+
+`scripts/core/inc.ins.mk` 支持的目标
 * install_hdrs: 安装头文件集
-    * 用户需要设置被安装的头文件集变量 INSTALL_HEADERS
+    * 用户需要设置被安装的头文件集变量 INSTALL_HEADERS 或/与 INSTALL_PRIVATE_HEADERS
+    * INSTALL_HEADERS 指定的头文件的默认安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
+    * INSTALL_PRIVATE_HEADERS 指定的头文件的默认安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private`
 * install_libs: 安装库文件集
     * 用户需要设置被安装的库文件集变量 INSTALL_LIBRARIES
+    * 默认安装目录是 `$(ENV_INS_ROOT)/usr/lib`
 * install_bins: 安装可执行文件集
     * 用户需要设置被安装的可执行文件集变量 INSTALL_BINARIES
+    * 默认安装目录是 `$(ENV_INS_ROOT)/usr/bin`
+* install_bins: 安装可执行文件集
+    * 用户需要设置被安装的可执行文件集变量 INSTALL_DATAS
+    * 默认安装目录是 `$(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)`
 
-`scripts/inc.app.mk` 可设置的变量
+`scripts/core/inc.app.mk` 可设置的变量
 
 * PACKAGE_NAME: 包的名称
-    * 头文件默认安装到 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
 * PACKAGE_DEPS: 包的依赖
     * 默认将包依赖对应的路径加到当前包的头文件和库文件的搜索路径
 * OUT_PATH: 编译输出目录，保持默认即可
 * SRC_PATH: 包中源码所在的目录，默认是包的根目录，也有的包将源码放在 src 下
-* SRCS: 所有的 C 源码文件，默认是 SRC_PATH 下的所有的 `*.c` 文件，如果用户指定了 SRCS，不需要再指定 SRC_PATH
+* SRCS: 所有的 C 源码文件，默认是 SRC_PATH 下的所有的 `*.c` 文件
+    * 如果用户指定了 SRCS，不需要再指定 SRC_PATH
 * CFLAGS: 用户需要设置包自己的一些编译标记
 * LDFLAGS: 用户需要设置包自己的一些链接标记
 
@@ -125,15 +140,14 @@ lengjing@lengjing:~/cbuild/examples/test-app2$
 测试用例位于 `test-conf`，如下测试
 
 ```sh
-lengjing@lengjing:~/cbuild/examples/test-app2$ cd ../test-conf
-lengjing@lengjing:~/cbuild/examples/test-conf$ ls config
+lengjing@lengjing:~/cbuild/examples/test-app2$ cd ../test-conf/
+lengjing@lengjing:~/cbuild/examples/test-conf$ ls config/
 def_config
 lengjing@lengjing:~/cbuild/examples/test-conf$ make def_config  # 加载配置
-make[1]: Entering directory '/home/lengjing/cbuild/scripts/kconfig'
-bison	/home/lengjing/cbuild/output/scripts/kconfig/autogen/parser.tab.c
-gcc	/home/lengjing/cbuild/output/scripts/kconfig/autogen/parser.tab.c
-flex	/home/lengjing/cbuild/output/scripts/kconfig/autogen/lexer.lex.c
-gcc	/home/lengjing/cbuild/output/scripts/kconfig/autogen/lexer.lex.c
+bison	/home/lengjing/cbuild/output/objects/scripts/kconfig/autogen/parser.tab.c
+gcc	/home/lengjing/cbuild/output/objects/scripts/kconfig/autogen/parser.tab.c
+flex	/home/lengjing/cbuild/output/objects/scripts/kconfig/autogen/lexer.lex.c
+gcc	/home/lengjing/cbuild/output/objects/scripts/kconfig/autogen/lexer.lex.c
 gcc	parser/confdata.c
 gcc	parser/menu.c
 gcc	parser/util.c
@@ -141,7 +155,7 @@ gcc	parser/preprocess.c
 gcc	parser/expr.c
 gcc	parser/symbol.c
 gcc	conf.c
-gcc	/home/lengjing/cbuild/output/scripts/kconfig/conf
+gcc	/home/lengjing/cbuild/output/objects/scripts/kconfig/conf
 gcc	lxdialog/checklist.c
 gcc	lxdialog/inputbox.c
 gcc	lxdialog/util.c
@@ -149,43 +163,40 @@ gcc	lxdialog/textbox.c
 gcc	lxdialog/yesno.c
 gcc	lxdialog/menubox.c
 gcc	mconf.c
-gcc	/home/lengjing/cbuild/output/scripts/kconfig/mconf
-make[1]: Leaving directory '/home/lengjing/cbuild/scripts/kconfig'
+gcc	/home/lengjing/cbuild/output/objects/scripts/kconfig/mconf
 #
-# No change to /home/lengjing/cbuild/output/examples/test-conf/.config
+# No change to /home/lengjing/cbuild/output/objects/examples/test-conf/.config
 #
-lengjing@lengjing:~/cbuild/examples/test-conf$ ls -a ${ENV_TOP_OUT}/examples/test-conf
-.  ..  .config  .config.old  autoconfig  config.h
-lengjing@lengjing:~/cbuild/examples/test-conf$ make menuconfig  # 图形化界面修改配置
-make[1]: Entering directory '/home/lengjing/cbuild/scripts/kconfig'
-make[1]: Nothing to be done for 'all'.
-make[1]: Leaving directory '/home/lengjing/cbuild/scripts/kconfig'
-configuration written to /home/lengjing/cbuild/output/examples/test-conf/.config
+lengjing@lengjing:~/cbuild/examples/test-conf$ ls -a ${ENV_OUT_ROOT}/examples/test-conf
+.  ..  .config  autoconfig  config.h
+lengjing@lengjing:~/cbuild/examples/test-conf$ make menuconfig # 图形化界面修改配置
+configuration written to /home/lengjing/cbuild/output/objects/examples/test-conf/.config
 
 *** End of the configuration.
 *** Execute 'make' to start the build or try 'make help'.
 
-lengjing@lengjing:~/cbuild/examples/test-conf$ make def2_saveconfig  # 保存配置
-make[1]: Entering directory '/home/lengjing/cbuild/scripts/kconfig'
-make[1]: Nothing to be done for 'all'.
-make[1]: Leaving directory '/home/lengjing/cbuild/scripts/kconfig'
+lengjing@lengjing:~/cbuild/examples/test-conf$ make def2_saveconfig  # 保存新配置
 Save .config to config/def2_config
 lengjing@lengjing:~/cbuild/examples/test-conf$ ls config/
 def2_config  def_config
 ```
 
-`scripts/inc.conf.mk` 支持的目标
+`scripts/core/inc.conf.mk` 支持的目标
 
+* loadconfig: 加载默认配置
+    * 如果 .config 不存在，加载 DEF_CONFIG 指定的配置
 * menuconfig: 图形化配置工具
 * cleanconfig: 清理配置文件
 * xxx_config: 将 CONF_SAVE_PATH 下的 xxx_config 作为当前配置
 * xxx_saveconfig: 将当前配置保存到 CONF_SAVE_PATH 下的 xxx_config
 
-`scripts/inc.conf.mk` 可设置的变量
+`scripts/core/inc.conf.mk` 可设置的变量
 
 * OUT_PATH: 编译输出目录，保持默认即可
 * CONF_SRC: kconfig 工具的源码目录，目前是在 `scripts/kconfig`，和实际一致即可
 * CONF_PATH: kconfig 工具的编译输出目录，和实际一致即可
+* CONF_PREFIX: 设置 conf 运行的变量，主要是 `srctree=$(path_name)`
+    * Kconfig 文件中 source 其它配置参数文件的相对的目录是 srctree 指定的目录
 * KCONFIG: 配置参数文件，默认是包下的 Kconfig 文件
 * CONF_SAVE_PATH: 配置文件的获取和保存目录，默认是包下的 config 目录
 
@@ -206,148 +217,75 @@ def2_config  def_config
 lengjing@lengjing:~/cbuild/examples/test-conf$ cd ../test-mod
 lengjing@lengjing:~/cbuild/examples/test-mod$ make deps
 Analyse depends OK.
-lengjing@lengjing:~/cbuild/examples/test-mod$ make menuconfig
-make[1]: Entering directory '/home/lengjing/cbuild/scripts/kconfig'
-make[1]: Nothing to be done for 'all'.
-make[1]: Leaving directory '/home/lengjing/cbuild/scripts/kconfig'
-configuration written to /home/lengjing/cbuild/output/examples/test-mod/.config
+lengjing@lengjing:~/cbuild/examples/test-mod$ make menuconfig 
+configuration written to /home/lengjing/cbuild/output/objects/examples/test-mod/.config
 
 *** End of the configuration.
 *** Execute 'make' to start the build or try 'make help'.
 
 lengjing@lengjing:~/cbuild/examples/test-mod$ make all
-make[1]: Entering directory '/home/lengjing/cbuild/examples/test-mod/test-hello-add'
 KERNELRELEASE= pwd=/home/lengjing/cbuild/examples/test-mod/test-hello-add PWD=/home/lengjing/cbuild/examples/test-mod
-make[2]: Entering directory '/usr/src/linux-headers-5.13.0-41-generic'
-KERNELRELEASE=5.13.0-41-generic pwd=/usr/src/linux-headers-5.13.0-41-generic PWD=/home/lengjing/cbuild/examples/test-mod
-  CC [M]  /home/lengjing/cbuild/output/examples/test-mod/test-hello-add/hello_add.o
-KERNELRELEASE=5.13.0-41-generic pwd=/usr/src/linux-headers-5.13.0-41-generic PWD=/home/lengjing/cbuild/examples/test-mod
-  MODPOST /home/lengjing/cbuild/output/examples/test-mod/test-hello-add/Module.symvers
-  CC [M]  /home/lengjing/cbuild/output/examples/test-mod/test-hello-add/hello_add.mod.o
-  LD [M]  /home/lengjing/cbuild/output/examples/test-mod/test-hello-add/hello_add.ko
-  BTF [M] /home/lengjing/cbuild/output/examples/test-mod/test-hello-add/hello_add.ko
-Skipping BTF generation for /home/lengjing/cbuild/output/examples/test-mod/test-hello-add/hello_add.ko due to unavailability of vmlinux
-make[2]: Leaving directory '/usr/src/linux-headers-5.13.0-41-generic'
-make[2]: Entering directory '/usr/src/linux-headers-5.13.0-41-generic'
+KERNELRELEASE=5.13.0-44-generic pwd=/usr/src/linux-headers-5.13.0-44-generic PWD=/home/lengjing/cbuild/examples/test-mod
+KERNELRELEASE=5.13.0-44-generic pwd=/usr/src/linux-headers-5.13.0-44-generic PWD=/home/lengjing/cbuild/examples/test-mod
+Skipping BTF generation for /home/lengjing/cbuild/output/objects/examples/test-mod/test-hello-add/hello_add.ko due to unavailability of vmlinux
+Build test-hello-add Done.
+KERNELRELEASE= pwd=/home/lengjing/cbuild/examples/test-mod/test-hello-add PWD=/home/lengjing/cbuild/examples/test-mod
 arch/x86/Makefile:148: CONFIG_X86_X32 enabled but no binutils support
-  INSTALL /home/lengjing/cbuild/fakeroot/lib/modules/5.13.0-41-generic/extra/hello_add.ko
-  SIGN    /home/lengjing/cbuild/fakeroot/lib/modules/5.13.0-41-generic/extra/hello_add.ko
 At main.c:160:
 - SSL error:02001002:system library:fopen:No such file or directory: ../crypto/bio/bss_file.c:69
 - SSL error:2006D080:BIO routines:BIO_new_file:no such file: ../crypto/bio/bss_file.c:76
 sign-file: certs/signing_key.pem: No such file or directory
-  DEPMOD  /home/lengjing/cbuild/fakeroot/lib/modules/5.13.0-41-generic
 Warning: modules_install: missing 'System.map' file. Skipping depmod.
-make[2]: Leaving directory '/usr/src/linux-headers-5.13.0-41-generic'
-make[1]: Leaving directory '/home/lengjing/cbuild/examples/test-mod/test-hello-add'
-make[1]: Entering directory '/home/lengjing/cbuild/examples/test-mod/test-hello-sub'
 KERNELRELEASE= pwd=/home/lengjing/cbuild/examples/test-mod/test-hello-sub PWD=/home/lengjing/cbuild/examples/test-mod
-make[2]: Entering directory '/usr/src/linux-headers-5.13.0-41-generic'
-KERNELRELEASE=5.13.0-41-generic pwd=/usr/src/linux-headers-5.13.0-41-generic PWD=/home/lengjing/cbuild/examples/test-mod
-  CC [M]  /home/lengjing/cbuild/output/examples/test-mod/test-hello-sub/hello_sub.o
-KERNELRELEASE=5.13.0-41-generic pwd=/usr/src/linux-headers-5.13.0-41-generic PWD=/home/lengjing/cbuild/examples/test-mod
-  MODPOST /home/lengjing/cbuild/output/examples/test-mod/test-hello-sub/Module.symvers
-  CC [M]  /home/lengjing/cbuild/output/examples/test-mod/test-hello-sub/hello_sub.mod.o
-  LD [M]  /home/lengjing/cbuild/output/examples/test-mod/test-hello-sub/hello_sub.ko
-  BTF [M] /home/lengjing/cbuild/output/examples/test-mod/test-hello-sub/hello_sub.ko
-Skipping BTF generation for /home/lengjing/cbuild/output/examples/test-mod/test-hello-sub/hello_sub.ko due to unavailability of vmlinux
-make[2]: Leaving directory '/usr/src/linux-headers-5.13.0-41-generic'
-make[2]: Entering directory '/usr/src/linux-headers-5.13.0-41-generic'
+KERNELRELEASE=5.13.0-44-generic pwd=/usr/src/linux-headers-5.13.0-44-generic PWD=/home/lengjing/cbuild/examples/test-mod
+KERNELRELEASE=5.13.0-44-generic pwd=/usr/src/linux-headers-5.13.0-44-generic PWD=/home/lengjing/cbuild/examples/test-mod
+Skipping BTF generation for /home/lengjing/cbuild/output/objects/examples/test-mod/test-hello-sub/hello_sub.ko due to unavailability of vmlinux
+Build test-hello-sub Done.
+KERNELRELEASE= pwd=/home/lengjing/cbuild/examples/test-mod/test-hello-sub PWD=/home/lengjing/cbuild/examples/test-mod
 arch/x86/Makefile:148: CONFIG_X86_X32 enabled but no binutils support
-  INSTALL /home/lengjing/cbuild/fakeroot/lib/modules/5.13.0-41-generic/extra/hello_sub.ko
-  SIGN    /home/lengjing/cbuild/fakeroot/lib/modules/5.13.0-41-generic/extra/hello_sub.ko
 At main.c:160:
 - SSL error:02001002:system library:fopen:No such file or directory: ../crypto/bio/bss_file.c:69
 - SSL error:2006D080:BIO routines:BIO_new_file:no such file: ../crypto/bio/bss_file.c:76
 sign-file: certs/signing_key.pem: No such file or directory
-  DEPMOD  /home/lengjing/cbuild/fakeroot/lib/modules/5.13.0-41-generic
 Warning: modules_install: missing 'System.map' file. Skipping depmod.
-make[2]: Leaving directory '/usr/src/linux-headers-5.13.0-41-generic'
-make[1]: Leaving directory '/home/lengjing/cbuild/examples/test-mod/test-hello-sub'
-make[1]: Entering directory '/home/lengjing/cbuild/examples/test-mod/test-hello'
 KERNELRELEASE= pwd=/home/lengjing/cbuild/examples/test-mod/test-hello PWD=/home/lengjing/cbuild/examples/test-mod
-make[2]: Entering directory '/usr/src/linux-headers-5.13.0-41-generic'
-KERNELRELEASE=5.13.0-41-generic pwd=/usr/src/linux-headers-5.13.0-41-generic PWD=/home/lengjing/cbuild/examples/test-mod/test-hello
-  CC [M]  /home/lengjing/cbuild/output/examples/test-mod/test-hello/hello_div.o
-  CC [M]  /home/lengjing/cbuild/output/examples/test-mod/test-hello/hello_mul.o
-  CC [M]  /home/lengjing/cbuild/output/examples/test-mod/test-hello/hello_main.o
-  LD [M]  /home/lengjing/cbuild/output/examples/test-mod/test-hello/hello.o
-KERNELRELEASE=5.13.0-41-generic pwd=/usr/src/linux-headers-5.13.0-41-generic PWD=/home/lengjing/cbuild/examples/test-mod/test-hello
-  MODPOST /home/lengjing/cbuild/output/examples/test-mod/test-hello/Module.symvers
-  CC [M]  /home/lengjing/cbuild/output/examples/test-mod/test-hello/hello.mod.o
-  LD [M]  /home/lengjing/cbuild/output/examples/test-mod/test-hello/hello.ko
-  BTF [M] /home/lengjing/cbuild/output/examples/test-mod/test-hello/hello.ko
-Skipping BTF generation for /home/lengjing/cbuild/output/examples/test-mod/test-hello/hello.ko due to unavailability of vmlinux
-make[2]: Leaving directory '/usr/src/linux-headers-5.13.0-41-generic'
-make[2]: Entering directory '/usr/src/linux-headers-5.13.0-41-generic'
+KERNELRELEASE=5.13.0-44-generic pwd=/usr/src/linux-headers-5.13.0-44-generic PWD=/home/lengjing/cbuild/examples/test-mod/test-hello
+KERNELRELEASE=5.13.0-44-generic pwd=/usr/src/linux-headers-5.13.0-44-generic PWD=/home/lengjing/cbuild/examples/test-mod/test-hello
+Skipping BTF generation for /home/lengjing/cbuild/output/objects/examples/test-mod/test-hello/hello_dep.ko due to unavailability of vmlinux
+Build test-hello Done.
+KERNELRELEASE= pwd=/home/lengjing/cbuild/examples/test-mod/test-hello PWD=/home/lengjing/cbuild/examples/test-mod
 arch/x86/Makefile:148: CONFIG_X86_X32 enabled but no binutils support
-  INSTALL /home/lengjing/cbuild/fakeroot/lib/modules/5.13.0-41-generic/extra/hello.ko
-  SIGN    /home/lengjing/cbuild/fakeroot/lib/modules/5.13.0-41-generic/extra/hello.ko
 At main.c:160:
 - SSL error:02001002:system library:fopen:No such file or directory: ../crypto/bio/bss_file.c:69
 - SSL error:2006D080:BIO routines:BIO_new_file:no such file: ../crypto/bio/bss_file.c:76
 sign-file: certs/signing_key.pem: No such file or directory
-  DEPMOD  /home/lengjing/cbuild/fakeroot/lib/modules/5.13.0-41-generic
 Warning: modules_install: missing 'System.map' file. Skipping depmod.
-make[2]: Leaving directory '/usr/src/linux-headers-5.13.0-41-generic'
-make[1]: Leaving directory '/home/lengjing/cbuild/examples/test-mod/test-hello'
-
-
-lengjing@lengjing:~/cbuild/examples/test-mod$ cd ../test-mod2/
-lengjing@lengjing:~/cbuild/examples/test-mod2$ make
+lengjing@lengjing:~/cbuild/examples/test-mod$ 
+lengjing@lengjing:~/cbuild/examples/test-mod$ 
+lengjing@lengjing:~/cbuild/examples/test-mod$ cd ../test-mod2
+lengjing@lengjing:~/cbuild/examples/test-mod2$ make 
 KERNELRELEASE= pwd=/home/lengjing/cbuild/examples/test-mod2 PWD=/home/lengjing/cbuild/examples/test-mod2
-make[1]: Entering directory '/usr/src/linux-headers-5.13.0-41-generic'
-KERNELRELEASE=5.13.0-41-generic pwd=/usr/src/linux-headers-5.13.0-41-generic PWD=/home/lengjing/cbuild/examples/test-mod2
-  CC [M]  /home/lengjing/cbuild/output/examples/test-mod2/hello_main.o
-  CC [M]  /home/lengjing/cbuild/output/examples/test-mod2/hello_add.o
-  CC [M]  /home/lengjing/cbuild/output/examples/test-mod2/hello_sub.o
-  CC [M]  /home/lengjing/cbuild/output/examples/test-mod2/hello_mul.o
-  CC [M]  /home/lengjing/cbuild/output/examples/test-mod2/hello_div.o
-  LD [M]  /home/lengjing/cbuild/output/examples/test-mod2/hello_op.o
-  CC [M]  /home/lengjing/cbuild/output/examples/test-mod2/hello.o
-KERNELRELEASE=5.13.0-41-generic pwd=/usr/src/linux-headers-5.13.0-41-generic PWD=/home/lengjing/cbuild/examples/test-mod2
-  MODPOST /home/lengjing/cbuild/output/examples/test-mod2/Module.symvers
-  CC [M]  /home/lengjing/cbuild/output/examples/test-mod2/hello.mod.o
-  LD [M]  /home/lengjing/cbuild/output/examples/test-mod2/hello.ko
-  BTF [M] /home/lengjing/cbuild/output/examples/test-mod2/hello.ko
-Skipping BTF generation for /home/lengjing/cbuild/output/examples/test-mod2/hello.ko due to unavailability of vmlinux
-  CC [M]  /home/lengjing/cbuild/output/examples/test-mod2/hello_op.mod.o
-  LD [M]  /home/lengjing/cbuild/output/examples/test-mod2/hello_op.ko
-  BTF [M] /home/lengjing/cbuild/output/examples/test-mod2/hello_op.ko
-Skipping BTF generation for /home/lengjing/cbuild/output/examples/test-mod2/hello_op.ko due to unavailability of vmlinux
-make[1]: Leaving directory '/usr/src/linux-headers-5.13.0-41-generic'
-make[1]: Entering directory '/usr/src/linux-headers-5.13.0-41-generic'
-arch/x86/Makefile:148: CONFIG_X86_X32 enabled but no binutils support
-  INSTALL /home/lengjing/cbuild/fakeroot/lib/modules/5.13.0-41-generic/extra/hello.ko
-  SIGN    /home/lengjing/cbuild/fakeroot/lib/modules/5.13.0-41-generic/extra/hello.ko
-At main.c:160:
-- SSL error:02001002:system library:fopen:No such file or directory: ../crypto/bio/bss_file.c:69
-- SSL error:2006D080:BIO routines:BIO_new_file:no such file: ../crypto/bio/bss_file.c:76
-sign-file: certs/signing_key.pem: No such file or directory
-  INSTALL /home/lengjing/cbuild/fakeroot/lib/modules/5.13.0-41-generic/extra/hello_op.ko
-  SIGN    /home/lengjing/cbuild/fakeroot/lib/modules/5.13.0-41-generic/extra/hello_op.ko
-At main.c:160:
-- SSL error:02001002:system library:fopen:No such file or directory: ../crypto/bio/bss_file.c:69
-- SSL error:2006D080:BIO routines:BIO_new_file:no such file: ../crypto/bio/bss_file.c:76
-sign-file: certs/signing_key.pem: No such file or directory
-  DEPMOD  /home/lengjing/cbuild/fakeroot/lib/modules/5.13.0-41-generic
-Warning: modules_install: missing 'System.map' file. Skipping depmod.
-make[1]: Leaving directory '/usr/src/linux-headers-5.13.0-41-generic'
+KERNELRELEASE=5.13.0-44-generic pwd=/usr/src/linux-headers-5.13.0-44-generic PWD=/home/lengjing/cbuild/examples/test-mod2
+KERNELRELEASE=5.13.0-44-generic pwd=/usr/src/linux-headers-5.13.0-44-generic PWD=/home/lengjing/cbuild/examples/test-mod2
+Skipping BTF generation for /home/lengjing/cbuild/output/objects/examples/test-mod2/hello_op.ko due to unavailability of vmlinux
+Skipping BTF generation for /home/lengjing/cbuild/output/objects/examples/test-mod2/hello_sec.ko due to unavailability of vmlinux
+Build test-mod2 Done.
 ```
 
-`scripts/inc.mod.mk` 支持的目标(KERNELRELEASE 为空时)
+`scripts/core/inc.mod.mk` 支持的目标(KERNELRELEASE 为空时)
 
 * modules: 编译外部内核模块
 * modules_clean: 清理内核模块的编译输出
 * modules_install: 安装内核模块到指定位置
     * 外部内核模块默认的安装路径为 `$(ENV_INS_ROOT)/lib/modules/<kernel_release>/extra/`
 * modules_install_hdrs: 安装头文件集
-    * 用户需要设置被安装的头文件集变量 INSTALL_HEADERS
+    * 用户需要设置被安装的头文件集变量 INSTALL_HEADERS 或/与 INSTALL_PRIVATE_HEADERS
+    * INSTALL_HEADERS 指定的头文件的默认安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
+    * INSTALL_PRIVATE_HEADERS 指定的头文件的默认安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private`
 
-`scripts/inc.mod.mk` 可设置的变量(KERNELRELEASE 为空时)
+`scripts/core/inc.mod.mk` 可设置的变量(KERNELRELEASE 为空时)
 
 * PACKAGE_NAME: 包的名称
-    * 头文件默认安装到 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
 * PACKAGE_DEPS: 包的依赖
     * 默认将包依赖对应的路径加到当前包的头文件的搜索路径
 * MOD_MAKES: 用户指定一些模块自己的信息，例如 XXXX=xxx
@@ -355,11 +293,11 @@ make[1]: Leaving directory '/usr/src/linux-headers-5.13.0-41-generic'
 * KERNEL_SRC: Linux 内核源码目录 (必须）
 * KERNEL_OUT: Linux 内核编译输出目录 （`make -O $(KERNEL_OUT)` 编译内核的情况下必须）
 
-`scripts/inc.mod.mk` 支持的目标(KERNELRELEASE 有值时)
+`scripts/core/inc.mod.mk` 支持的目标(KERNELRELEASE 有值时)
 
 * MOD_NAME: 模块名称，可以是多个模块名称使用空格隔开
 
-`scripts/inc.mod.mk` 可设置的变量(KERNELRELEASE 有值时)
+`scripts/core/inc.mod.mk` 可设置的变量(KERNELRELEASE 有值时)
 
 * SRCS: 所有的 C 源码文件，默认是当前目录下的所有的 `*.c` 文件
 * `ccflags-y` `asflags-y` `ldflags-y`: 分别对应内核模块编译、汇编、链接时的参数
@@ -368,8 +306,8 @@ make[1]: Leaving directory '/usr/src/linux-headers-5.13.0-41-generic'
 
 ```makefile
 MOD_NAME = mod1 mod2
-mod1-objs = a1.o b1.o c1.o
-mod2-objs = a2.o b2.o c2.o
+mod1-y = a1.o b1.o c1.o
+mod2-y = a2.o b2.o c2.o
 ```
 
 不同的模块编译方式
@@ -390,72 +328,48 @@ mod2-objs = a2.o b2.o c2.o
 
 1. 在当前目录运行 Makefile，此时 KERNELRELEASE 为空，执行这个分支下的第一个目标 modules
 2. 运行`make -C $(KERNEL_SRC) xxx` 时进入内核源码目录，在内核源码目录运行 src 的 Makefile，此时 KERNELRELEASE 有值，编译源文件
-3. 继续在内核源码目录运行 M 目录的 Makefile，生成模块和他的符号表
+3. 继续在内核源码目录运行 M 目录的 Makefile，生成模块和它的符号表
 
 ## 测试自动生成总编译
 
 测试用例位于 `test-deps`，如下测试
 
 ```sh
-lengjing@lengjing:~/cbuild/examples/test-mod2$ cd ../test-deps/
+lengjing@lengjing:~/cbuild/examples/test-mod2$ cd ../test-deps
 lengjing@lengjing:~/cbuild/examples/test-deps$ make deps
 Analyse depends OK.
-lengjing@lengjing:~/cbuild/examples/test-deps$ make menuconfig
-make[1]: Entering directory '/home/lengjing/cbuild/scripts/kconfig'
-make[1]: Nothing to be done for 'all'.
-make[1]: Leaving directory '/home/lengjing/cbuild/scripts/kconfig'
-configuration written to /home/lengjing/cbuild/output/examples/test-deps/.config
+lengjing@lengjing:~/cbuild/examples/test-deps$ make menuconfig 
+configuration written to /home/lengjing/cbuild/output/objects/examples/test-deps/.config
 
 *** End of the configuration.
 *** Execute 'make' to start the build or try 'make help'.
 
 lengjing@lengjing:~/cbuild/examples/test-deps$ make all
-make[1]: Entering directory '/home/lengjing/cbuild/examples/test-deps/pc/pc'
 ext.mk
-make[2]: Entering directory '/home/lengjing/cbuild/examples/test-deps/pc/pc'
 target=all path=/home/lengjing/cbuild/examples/test-deps/pc/pc
-make[2]: Leaving directory '/home/lengjing/cbuild/examples/test-deps/pc/pc'
-make[1]: Leaving directory '/home/lengjing/cbuild/examples/test-deps/pc/pc'
-make[1]: Entering directory '/home/lengjing/cbuild/examples/test-deps/pe/pe'
-target=all path=/home/lengjing/cbuild/examples/test-deps/pe/pe
-make[1]: Leaving directory '/home/lengjing/cbuild/examples/test-deps/pe/pe'
-make[1]: Entering directory '/home/lengjing/cbuild/examples/test-deps/pd/pd'
-target=all path=/home/lengjing/cbuild/examples/test-deps/pd/pd
-make[1]: Leaving directory '/home/lengjing/cbuild/examples/test-deps/pd/pd'
-make[1]: Entering directory '/home/lengjing/cbuild/examples/test-deps/pb/pb'
-target=all path=/home/lengjing/cbuild/examples/test-deps/pb/pb
-make[1]: Leaving directory '/home/lengjing/cbuild/examples/test-deps/pb/pb'
-make[1]: Entering directory '/home/lengjing/cbuild/examples/test-deps/pa/pa'
-target=all path=/home/lengjing/cbuild/examples/test-deps/pa/pa
-make[1]: Leaving directory '/home/lengjing/cbuild/examples/test-deps/pa/pa'
-lengjing@lengjing:~/cbuild/examples/test-deps$ make clean
-make[1]: Entering directory '/home/lengjing/cbuild/scripts/kconfig'
-make[1]: Leaving directory '/home/lengjing/cbuild/scripts/kconfig'
-make[1]: Entering directory '/home/lengjing/cbuild/examples/test-deps/pc/pc'
 ext.mk
-make[2]: Entering directory '/home/lengjing/cbuild/examples/test-deps/pc/pc'
+target=install path=/home/lengjing/cbuild/examples/test-deps/pc/pc
+target=all path=/home/lengjing/cbuild/examples/test-deps/pe/pe
+target=install path=/home/lengjing/cbuild/examples/test-deps/pe/pe
+target=all path=/home/lengjing/cbuild/examples/test-deps/pd/pd
+target=install path=/home/lengjing/cbuild/examples/test-deps/pd/pd
+target=all path=/home/lengjing/cbuild/examples/test-deps/pb/pb
+target=install path=/home/lengjing/cbuild/examples/test-deps/pb/pb
+target=all path=/home/lengjing/cbuild/examples/test-deps/pa/pa
+target=install path=/home/lengjing/cbuild/examples/test-deps/pa/pa
+lengjing@lengjing:~/cbuild/examples/test-deps$ make clean
+ext.mk
 target=clean path=/home/lengjing/cbuild/examples/test-deps/pc/pc
-make[2]: Leaving directory '/home/lengjing/cbuild/examples/test-deps/pc/pc'
-make[1]: Leaving directory '/home/lengjing/cbuild/examples/test-deps/pc/pc'
-make[1]: Entering directory '/home/lengjing/cbuild/examples/test-deps/pe/pe'
 target=clean path=/home/lengjing/cbuild/examples/test-deps/pe/pe
-make[1]: Leaving directory '/home/lengjing/cbuild/examples/test-deps/pe/pe'
-make[1]: Entering directory '/home/lengjing/cbuild/examples/test-deps/pd/pd'
 target=clean path=/home/lengjing/cbuild/examples/test-deps/pd/pd
-make[1]: Leaving directory '/home/lengjing/cbuild/examples/test-deps/pd/pd'
-make[1]: Entering directory '/home/lengjing/cbuild/examples/test-deps/pb/pb'
 target=clean path=/home/lengjing/cbuild/examples/test-deps/pb/pb
-make[1]: Leaving directory '/home/lengjing/cbuild/examples/test-deps/pb/pb'
-make[1]: Entering directory '/home/lengjing/cbuild/examples/test-deps/pa/pa'
 target=clean path=/home/lengjing/cbuild/examples/test-deps/pa/pa
-make[1]: Leaving directory '/home/lengjing/cbuild/examples/test-deps/pa/pa'
 rm -f auto.mk Kconfig
 ```
 
 `scripts/analyse_deps.py` 参数
 
 * `-m <Makefile Name>`: 自动生成的 Makefile 文件名
-    * 生成的 Makefile 中，使用了条件使能依赖规则，设置 `ENABLE_DEPENDS=y` 即可开启
 * `-k <Kconfig Name>`: 自动生成的 Kconfig 文件名
 * `-f <Depend Name>`: 含有依赖信息的文件名
 * `-d <Search Directories>`: 搜索的目录名，多个目录使用冒号隔开
@@ -465,9 +379,13 @@ rm -f auto.mk Kconfig
 
 依赖信息格式 `#DEPS(Makefile_Name) Target_Name(Other_Target_Names): Depend_Names`
 
-* Makefile_Name: make 运行的 Makefile 的名称 (可以为空)，不为空时 make 会运行 指定的 Makefile (`-f Makefile_Name`)
+* Makefile_Name: make 运行的 Makefile 的名称 (可以为空)，不为空时 make 会运行指定的 Makefile (`-f Makefile_Name`)
+    * Makefile 中必须包含 all clean install 三个目标，默认会加入 all install 和 clean 目标的规则
 * Target_Name: 当前包的名称ID
-* Other_Target_Names: 当前包的其它目标，多个目标使用空格隔开 (可以为空)，默认会加入 默认目标 和 clean目标的规则
+* Other_Target_Names: 当前包的其它目标，多个目标使用空格隔开 (可以为空)
+    * 忽略 Other_Target_Names 中的 all install clean 目标
+    * jobserver 目标表示 make 后加上 `$(BUILD_JOBS)`，用户需要 `export BUILD_JOBS=-j8` 才会启动多线程编译
+        * 某些包的 Makefile 包含 make 指令时不要加上 jobserver 目标，例如编译外部内核模块
 * Depend_Names: 当前包依赖的其它包的名称ID，多个依赖使用空格隔开 (可以为空)，如果有循环依赖或未定义依赖，解析将会失败，会打印出未解析成功的条目
 
 注: 有效的名称是由字母、数字、下划线、点号组成
@@ -512,20 +430,35 @@ lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行
 
 ### Yocto 配方模板
 
+* 编写类文件 (xxx.bbclass)
+    * 可以在类文件中 `meta-xxx/classes/xxx.bbclass` 文件中定义环境变量，在配方文件中继承 `inherit xxx`
+    * 例如 testenv.bbclass
+        ```sh
+        export CONF_PATH = "${STAGING_BINDIR_NATIVE}"
+        export OUT_PATH = "${WORKDIR}/build"
+        export ENV_INS_ROOT = "${WORKDIR}/image"
+        export ENV_DEP_ROOT = "${WORKDIR}/recipe-sysroot"
+        export ENV_BUILD_MODE
+        ```
+
 * 编写配方文件 (xxx.bb)
     * `recipetool create -o <xxx.bb> <package_src_dir>` 创建一个基本配方，例子中手动增加的条目说明如下
     * 包依赖
         * 包依赖其他包时需要使用 `DEPENDS += "package1 package2"` 说明
         * 链接其它包时 (`LDFLAGS += -lname1 -lname2`) 需要增加 `RDEPENDS_${PN} += "package1 package2"` 说明
-    * 导出变量
-        * 需要在配方中导出必要的变量，效果等同非 yocto 编译时的 `source scripts/build.env`
-    * 继承类
+    * 编译继承类
+        * 使用 menuconfig 需要继承 `inherit cml1`
         * 使用 Makefile 编译应用继承 `inherit sanity`，使用 cmake 编译应用继承 `inherit cmake`
         * 编译外部内核模块继承 `inherit module`
         * 编译主机本地工具继承 `inherit native`
-        * 使用 menuconfig 需要继承 `inherit cml1`
     * 安装和打包
-        * `FILES_${PN}-dev = "${includedir}"` `FILES_${PN} = "${libdir} ${bindir}"` 防止 `do_package()` 任务出错
+        * 继承 `inherit sanity` 或 `inherit cmake` 时需要按实际情况指定打包的目录，否则 do_package 任务出错
+            * includedir 指 xxx/usr/include 
+            * base_libdir 指 xxx/lib;  libdir指 xxx/usr/lib;  bindir指 xxx/usr/bin; datadir 指 xxx/usr/share
+            ```
+            FILES_${PN}-dev = "${includedir}"
+            FILES_${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
+            ```
 
 ```
 LICENSE = "CLOSED"
@@ -544,6 +477,7 @@ export ENV_DEP_ROOT = "${WORKDIR}/recipe-sysroot"
 export ENV_TOP_DIR
 export ENV_BUILD_MODE
 
+inherit testenv
 #inherit cml1
 inherit sanity
 #inherit cmake
@@ -573,7 +507,7 @@ do_install () {
 
 
 FILES_${PN}-dev = "${includedir}"
-FILES_${PN} = "${libdir} ${bindir}"
+FILES_${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
 
 ```
 

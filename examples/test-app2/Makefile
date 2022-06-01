@@ -9,17 +9,13 @@ LDFLAGS += -ltest
 
 all clean install:
 
-include $(ENV_TOP_DIR)/scripts/inc.app.mk
+include $(ENV_TOP_DIR)/scripts/core/inc.app.mk
 
 all: $(OUT_PATH)/$(BIN_NAME)
-	@echo "\033[32m---- build ok ----\033[0m"
+	@echo "Build $(PACKAGE_NAME) Done."
 
 clean: clean_objs
 	@rm -f $(OUT_PATH)/$(BIN_NAME)
-	@echo "\033[32m---- clean ok ----\033[0m"
+	@echo "Clean $(PACKAGE_NAME) Done."
 
-ifneq ($(ENV_BUILD_MODE), yocto)
-all: install
-endif
 install: install_bin
-

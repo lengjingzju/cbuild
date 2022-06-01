@@ -1,1 +1,1 @@
-include $(ENV_TOP_DIR)/scripts/inc.conf.mk
+include $(ENV_TOP_DIR)/scripts/core/inc.conf.mk

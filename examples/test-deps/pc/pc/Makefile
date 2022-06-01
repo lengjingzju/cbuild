@@ -5,3 +5,6 @@ all:
 
 clean:
 	@echo target=$@ path=$(LOCAL_PATH)
+
+install:
+	@echo target=$@ path=$(LOCAL_PATH)
