@@ -431,7 +431,7 @@ lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行
 ### Yocto 配方模板
 
 * 编写类文件 (xxx.bbclass)
-    * 可以在类文件中 `meta-xxx/classes/xxx.bbclass` 文件中定义环境变量，在配方文件中继承 `inherit xxx`
+    * 可以在类文件中 `meta-xxx/classes/xxx.bbclass` 定义环境变量，在配方文件中继承 `inherit xxx`
     * 例如 testenv.bbclass
         ```sh
         export CONF_PATH = "${STAGING_BINDIR_NATIVE}"
