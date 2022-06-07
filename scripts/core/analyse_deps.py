@@ -59,6 +59,7 @@ class Deps:
     def sort_items(self):
         temp = self.ItemList
         self.ItemList = []
+        finally_flag = True
         while temp:
             lista = []
             listb = []
@@ -74,6 +75,12 @@ class Deps:
                         if itemb['deps'] and itema['target'] in itemb['deps']:
                             itemb['count'] -= 1
                 self.ItemList += lista
+                temp = listb
+            elif finally_flag:
+                finally_flag = False
+                for itemb in listb:
+                    if itemb['deps'] and 'finally' in itemb['deps']:
+                        itemb['count'] -= 1
                 temp = listb
             else:
                 print('----ERROR: deps are wrong!----')
@@ -93,7 +100,12 @@ class Deps:
                 fp.write('\tbool "%s (%s)"\n' % (item['target'], item['path']))
                 fp.write('\tdefault y\n')
                 if item['deps']:
-                    fp.write('\tdepends on %s\n' % (' && '.join([t.upper() for t in item['deps']])))
+                    if 'finally' in item['deps']:
+                        deps = [i for i in item['deps'] if i != 'finally']
+                        if deps:
+                            fp.write('\tdepends on %s\n' % (' && '.join([t.upper() for t in deps])))
+                    else:
+                        fp.write('\tdepends on %s\n' % (' && '.join([t.upper() for t in item['deps']])))
                 fp.write('\n')
 
 
@@ -110,11 +122,19 @@ class Deps:
 
                 fp.write('ifeq ($(CONFIG_%s), y)\n\n' % (item['target'].upper()))
                 fp.write('ALL_TARGETS += %s\n' % (item['target']))
+
+                deps = []
                 if item['deps']:
-                    fp.write('%s: %s\n' % (item['target'], ' '.join(item['deps'])))
+                    if 'finally' in item['deps']:
+                        deps = [i for i in item['deps'] if i != 'finally']
+                    else:
+                        deps = [i for i in item['deps']]
+                if deps:
+                    fp.write('%s: %s\n' % (item['target'], ' '.join(deps)))
                 else:
                     fp.write('%s:\n' % (item['target']))
                 fp.write('\t%s\n' % (make))
+
                 fp.write('\t%s install\n\n' % (make))
                 phony.append(item['target'])
 

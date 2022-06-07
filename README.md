@@ -384,9 +384,10 @@ rm -f auto.mk Kconfig
 * Target_Name: 当前包的名称ID
 * Other_Target_Names: 当前包的其它目标，多个目标使用空格隔开 (可以为空)
     * 忽略 Other_Target_Names 中的 all install clean 目标
-    * jobserver 目标表示 make 后加上 `$(BUILD_JOBS)`，用户需要 `export BUILD_JOBS=-j8` 才会启动多线程编译
+    * `jobserver` 关键字是特殊的虚拟目标，表示 make 后加上 `$(BUILD_JOBS)`，用户需要 `export BUILD_JOBS=-j8` 才会启动多线程编译
         * 某些包的 Makefile 包含 make 指令时不要加上 jobserver 目标，例如编译外部内核模块
 * Depend_Names: 当前包依赖的其它包的名称ID，多个依赖使用空格隔开 (可以为空)，如果有循环依赖或未定义依赖，解析将会失败，会打印出未解析成功的条目
+    * `finally` 关键字是特殊的虚拟依赖，表示此包编译顺序在所有其它包之后，一般用于最后生成文件系统和系统镜像
 
 注: 有效的名称是由字母、数字、下划线、点号组成
 
