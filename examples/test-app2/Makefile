@@ -1,5 +1,5 @@
-PACKAGE_NAME ?= test-app2 
-PACKAGE_DEPS ?= test-app 
+PACKAGE_NAME ?= test-app2
+PACKAGE_DEPS ?= test-app
 
 BIN_NAME = test2
 
@@ -7,15 +7,15 @@ LDFLAGS += -ltest
 
 .PHONY: all clean install
 
-all clean install:
+all:
+	@echo "Build $(PACKAGE_NAME) Done."
 
 include $(ENV_TOP_DIR)/scripts/core/inc.app.mk
 
-all: $(OUT_PATH)/$(BIN_NAME)
-	@echo "Build $(PACKAGE_NAME) Done."
+all: $(BIN_TARGETS)
 
 clean: clean_objs
-	@rm -f $(OUT_PATH)/$(BIN_NAME)
+	@rm -f $(BIN_TARGETS)
 	@echo "Clean $(PACKAGE_NAME) Done."
 
 install: install_bin

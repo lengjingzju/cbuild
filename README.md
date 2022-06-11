@@ -5,6 +5,7 @@
 * Linux 下纯粹的 Makefile 编译
 * 支持交叉编译，支持自动分析 C 头文件作为编译依赖
 * 一个 Makefile 同时支持 Yocto 编译方式、源码和编译输出分离模式和不分离模式
+* 一个 Makefile 支持生成多个库、可执行文件或模块
 * 提供编译静态库、共享库和可执行文件的模板 `inc.app.mk`
 * 提供安装编译输出的模板 `inc.ins.mk`
 * 提供 kconfig 配置参数的模板 `inc.conf.mk`
@@ -70,7 +71,8 @@ ENV_BUILD_MODE=external  # external internal yocto
 ## 测试编译应用
 
 测试用例1位于 `test-app`
-测试用例2位于 `test-app2` (`test-app2` 依赖 `test-app`)，如下测试
+测试用例2位于 `test-app2` (`test-app2` 依赖 `test-app`)，
+测试用例3位于 `test-app3` (`test-app3` 一个 Makefile 生成多个库)，如下测试
 
 ```sh
 lengjing@lengjing:~/cbuild$ cd examples/test-app
@@ -97,16 +99,40 @@ gcc	main.c
 bin:	/home/lengjing/cbuild/output/objects/examples/test-app2/test2
 Build test-app2  Done.
 lengjing@lengjing:~/cbuild/examples/test-app2$ make install
+lengjing@lengjing:~/cbuild/examples/test-app2$ cd ../test-app3/
+lengjing@lengjing:~/cbuild/examples/test-app3$ make 
+gcc	add.c
+lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libadd.a
+lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libadd.so
+gcc	sub.c
+lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libsub.a
+lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libsub.so
+gcc	mul.c
+lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libmul.a
+lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libmul.so
+gcc	div.c
+lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libdiv.a
+lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libdiv.so
+Build test-app3 Done.
+lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 ```
 
 `scripts/core/inc.app.mk` 支持的目标
 
-* LIB_NAME_A: 编译静态库时需要设置静态库名
-* LIB_NAME_SO: 编译动态库时需要设置动态库名
+* LIBA_NAME: 编译静态库时需要设置静态库名
+* LIBSO_NAME: 编译动态库时需要设置动态库名
 * BIN_NAME: 编译可执行文件时需要设置可执行文件名
 * install_liba: 安装静态库
 * install_libso: 安装动态库
 * install_bin: 安装可执行文件
+
+`scripts/core/inc.app.mk` 提供的函数
+
+* `$(eval $(call add-liba-build,静态库名,源文件列表))`: 创建编译静态库规则
+* `$(eval $(call add-libso-build,动态库名,源文件列表))`: 创建编译动态库规则
+* `$(eval $(call add-bin-build,可执行文件名,源文件列表))`: 创建编译可执行文件规则
+
+注: 提供上述函数的原因是可以在一个 Makefile 中编译出多个库或可执行文件
 
 `scripts/core/inc.ins.mk` 支持的目标
 * install_hdrs: 安装头文件集
@@ -116,10 +142,12 @@ lengjing@lengjing:~/cbuild/examples/test-app2$ make install
 * install_libs: 安装库文件集
     * 用户需要设置被安装的库文件集变量 INSTALL_LIBRARIES
     * 默认安装目录是 `$(ENV_INS_ROOT)/usr/lib`
+    * 编译生成的库文件会加入到 `LIB_TARGETS` 变量，可以将它赋值给 INSTALL_LIBRARIES
 * install_bins: 安装可执行文件集
     * 用户需要设置被安装的可执行文件集变量 INSTALL_BINARIES
     * 默认安装目录是 `$(ENV_INS_ROOT)/usr/bin`
-* install_bins: 安装可执行文件集
+    * 编译生成的可执行文件会加入到 `BIN_TARGETS` 变量，可以将它赋值给 INSTALL_BINARIES
+* install_datas: 安装可执行文件集
     * 用户需要设置被安装的可执行文件集变量 INSTALL_DATAS
     * 默认安装目录是 `$(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)`
 

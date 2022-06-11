@@ -35,27 +35,30 @@ $(OBJS): $(OUT_PATH)/%.o: %.c
 clean_objs:
 	@-rm -rf $(OBJS) $(DEPS)
 
-ifneq ($(LIB_NAME_A), )
-$(OUT_PATH)/$(LIB_NAME_A): $(OBJS)
+ifneq ($(LIBA_NAME), )
+LIB_TARGETS += $(OUT_PATH)/$(LIBA_NAME)
+$(OUT_PATH)/$(LIBA_NAME): $(OBJS)
 	@echo "\033[032mlib:\033[0m	\033[44m$@\033[0m"
 	@$(AR) r $@ $^ -c
 
 install_liba:
 	@install -d $(ENV_INS_ROOT)/usr/lib
-	@install $(OUT_PATH)/$(LIB_NAME_A) $(ENV_INS_ROOT)/usr/lib
+	@install $(OUT_PATH)/$(LIBA_NAME) $(ENV_INS_ROOT)/usr/lib
 endif
 
-ifneq ($(LIB_NAME_SO), )
-$(OUT_PATH)/$(LIB_NAME_SO): $(OBJS)
+ifneq ($(LIBSO_NAME), )
+LIB_TARGETS += $(OUT_PATH)/$(LIBSO_NAME)
+$(OUT_PATH)/$(LIBSO_NAME): $(OBJS)
 	@echo "\033[032mlib:\033[0m	\033[44m$@\033[0m"
 	@$(CC) -shared -fPIC -o $@ $^
 
 install_libso:
 	@install -d $(ENV_INS_ROOT)/usr/lib
-	@install $(OUT_PATH)/$(LIB_NAME_SO) $(ENV_INS_ROOT)/usr/lib
+	@install $(OUT_PATH)/$(LIBSO_NAME) $(ENV_INS_ROOT)/usr/lib
 endif
 
 ifneq ($(BIN_NAME), )
+BIN_TARGETS += $(OUT_PATH)/$(BIN_NAME)
 $(OUT_PATH)/$(BIN_NAME): $(OBJS)
 	@echo "\033[032mbin:\033[0m	\033[44m$@\033[0m"
 	@$(CC) -o $@ $^ $(LDFLAGS)
@@ -64,4 +67,25 @@ install_bin:
 	@install -d $(ENV_INS_ROOT)/usr/bin
 	@install $(OUT_PATH)/$(BIN_NAME) $(ENV_INS_ROOT)/usr/bin
 endif
+
+define add-liba-build
+LIB_TARGETS += $$(OUT_PATH)/$(1)
+$$(OUT_PATH)/$(1): $$(patsubst %.c,$$(OUT_PATH)/%.o,$(2))
+	@echo "\033[032mlib:\033[0m	\033[44m$$@\033[0m"
+	@$$(AR) r $$@ $$^ -c
+endef
+
+define add-libso-build
+LIB_TARGETS += $$(OUT_PATH)/$(1)
+$$(OUT_PATH)/$(1): $$(patsubst %.c,$$(OUT_PATH)/%.o,$(2))
+	@echo "\033[032mlib:\033[0m	\033[44m$$@\033[0m"
+	@$$(CC) -shared -fPIC -o $$@ $$^
+endef
+
+define add-bin-build
+BIN_TARGETS += $$(OUT_PATH)/$(1)
+$$(OUT_PATH)/$(1): $$(patsubst %.c,$$(OUT_PATH)/%.o,$(2))
+	@echo "\033[032mbin:\033[0m	\033[44m$$@\033[0m"
+	@$$(CC) -o $$@ $$^ $$(LDFLAGS)
+endef
 
