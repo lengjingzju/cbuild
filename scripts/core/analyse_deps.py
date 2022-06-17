@@ -133,8 +133,9 @@ class Deps:
                     fp.write('%s: %s\n' % (item['target'], ' '.join(deps)))
                 else:
                     fp.write('%s:\n' % (item['target']))
+                if item['targets'] and 'prepare' in item['targets']:
+                    fp.write('\t%s prepare\n' % (make))
                 fp.write('\t%s\n' % (make))
-
                 fp.write('\t%s install\n\n' % (make))
                 phony.append(item['target'])
 
@@ -144,7 +145,7 @@ class Deps:
                 phony.append(item['target'] + '_clean')
 
                 for t in item['targets']:
-                    if t != 'all' and t != 'clean' and t != 'install' and t != 'jobserver':
+                    if t != 'all' and t != 'clean' and t != 'install' and t != 'prepare' and t != 'jobserver':
                         fp.write('%s_%s:\n' % (item['target'], t))
                         fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, item['target']))
                         phony.append('%s_%s' % (item['target'], t))
@@ -162,6 +163,8 @@ class Deps:
                     make += ' -f %s' % (item['make'])
 
                 fp.write('ifeq ($(CONFIG_%s), y)\n' % (item['target'].upper()))
+                if item['targets'] and 'prepare' in item['targets']:
+                    fp.write('\t%s prepare\n' % (make))
                 fp.write('\t%s\n' % (make))
                 fp.write('\t%s install\n' % (make))
                 fp.write('endif\n')

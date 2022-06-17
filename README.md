@@ -3,14 +3,15 @@
 ## 特点
 
 * Linux 下纯粹的 Makefile 编译
-* 支持交叉编译，支持自动分析 C 头文件作为编译依赖
+* 支持 C / C++ / 汇编混合编译
+* 支持交叉编译，支持自动分析头文件作为编译依赖
 * 一个 Makefile 同时支持 Yocto 编译方式、源码和编译输出分离模式和不分离模式
 * 一个 Makefile 支持生成多个库、可执行文件或模块
 * 提供编译静态库、共享库和可执行文件的模板 `inc.app.mk`
 * 提供安装编译输出的模板 `inc.ins.mk`
 * 提供 kconfig 配置参数的模板 `inc.conf.mk`
 * 提供编译外部内核模块的模板 `inc.mod.mk`
-* 提供根据目标依赖关系自动生成整个系统的配置和编译的脚本 `analyse_deps.py`
+* 提供根据目标依赖关系自动生成整个系统的配置和编译顺序的脚本 `analyse_deps.py`
 
 ## 初始化编译环境
 
@@ -66,7 +67,7 @@ ENV_BUILD_MODE=external  # external internal yocto
 * ENV_BUILD_MODE: 设置编译模式: external, 源码和编译输出分离; internal, 编译输出到源码; yocto, Yocto 编译方式
     * external 时，编译输出目录是把包的源码目录的 ENV_TOP_DIR 部分换成了 ENV_OUT_ROOT
 
-* yocto 时，由于 BitBake 任务无法直接使用当前 shell 的环境变量，所以自定义环境变量应由配方文件导出，不需要 source 这个环境脚本
+注: yocto 编译时，由于 BitBake 任务无法直接使用当前 shell 的环境变量，所以自定义环境变量应由配方文件导出，不需要 source 这个环境脚本
 
 ## 测试编译应用
 
@@ -131,6 +132,7 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 * `$(eval $(call add-liba-build,静态库名,源文件列表))`: 创建编译静态库规则
 * `$(eval $(call add-libso-build,动态库名,源文件列表))`: 创建编译动态库规则
 * `$(eval $(call add-bin-build,可执行文件名,源文件列表))`: 创建编译可执行文件规则
+* `$(eval $(call add-bin-build,可执行文件名,源文件列表,链接参数))`: 创建编译可执行文件规则
 
 注: 提供上述函数的原因是可以在一个 Makefile 中编译出多个库或可执行文件
 
@@ -147,8 +149,8 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
     * 用户需要设置被安装的可执行文件集变量 INSTALL_BINARIES
     * 默认安装目录是 `$(ENV_INS_ROOT)/usr/bin`
     * 编译生成的可执行文件会加入到 `BIN_TARGETS` 变量，可以将它赋值给 INSTALL_BINARIES
-* install_datas: 安装可执行文件集
-    * 用户需要设置被安装的可执行文件集变量 INSTALL_DATAS
+* install_datas: 安装数据文件集
+    * 用户需要设置被安装的数据文件集变量 INSTALL_DATAS
     * 默认安装目录是 `$(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)`
 
 `scripts/core/inc.app.mk` 可设置的变量
@@ -158,7 +160,7 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
     * 默认将包依赖对应的路径加到当前包的头文件和库文件的搜索路径
 * OUT_PATH: 编译输出目录，保持默认即可
 * SRC_PATH: 包中源码所在的目录，默认是包的根目录，也有的包将源码放在 src 下
-* SRCS: 所有的 C 源码文件，默认是 SRC_PATH 下的所有的 `*.c` 文件
+* SRCS: 所有的 C 源码文件，默认是 SRC_PATH 下的所有的 `*.c *.cpp *.S` 文件
     * 如果用户指定了 SRCS，不需要再指定 SRC_PATH
 * CFLAGS: 用户需要设置包自己的一些编译标记
 * LDFLAGS: 用户需要设置包自己的一些链接标记
@@ -168,7 +170,7 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 测试用例位于 `test-conf`，如下测试
 
 ```sh
-lengjing@lengjing:~/cbuild/examples/test-app2$ cd ../test-conf/
+lengjing@lengjing:~/cbuild/examples/test-app3$ cd ../test-conf/
 lengjing@lengjing:~/cbuild/examples/test-conf$ ls config/
 def_config
 lengjing@lengjing:~/cbuild/examples/test-conf$ make def_config  # 加载配置
@@ -217,6 +219,8 @@ def2_config  def_config
 * cleanconfig: 清理配置文件
 * xxx_config: 将 CONF_SAVE_PATH 下的 xxx_config 作为当前配置
 * xxx_saveconfig: 将当前配置保存到 CONF_SAVE_PATH 下的 xxx_config
+* xxx_defonfig: 将 CONF_SAVE_PATH 下的 xxx_defconfig 作为当前配置
+* xxx_savedefconfig: 将当前配置保存到 CONF_SAVE_PATH 下的 xxx_defconfig
 
 `scripts/core/inc.conf.mk` 可设置的变量
 
@@ -343,7 +347,7 @@ mod2-y = a2.o b2.o c2.o
 * 源码和编译输出同目录时编译命令: `make -C $(KERNEL_SRC) M=$(shell pwd) modules`
 * 源码和编译输出分离时编译命令: `make -C $(KERNEL_SRC) O=(KERNEL_OUT) M=$(OUT_PATH) src=$(shell pwd) modules`
 
-注: 使用源码和编译输出分离时， 需要先将 Makefile 或 Kbuild 复制到 OUT_PATH 目录下，如果不想复制，需要修改内核源码的 `scripts/Makefile.modpost`
+注: 使用源码和编译输出分离时， 需要先将 Makefile 或 Kbuild 复制到 OUT_PATH 目录下，如果不想复制，需要修改内核源码的 `scripts/Makefile.modpost`，最新 linux-5.19 已合并此补丁
 
 ```makefile
 -include $(if $(wildcard $(KBUILD_EXTMOD)/Kbuild), \
@@ -414,10 +418,11 @@ rm -f auto.mk Kconfig
     * 忽略 Other_Target_Names 中的 all install clean 目标
     * `jobserver` 关键字是特殊的虚拟目标，表示 make 后加上 `$(BUILD_JOBS)`，用户需要 `export BUILD_JOBS=-j8` 才会启动多线程编译
         * 某些包的 Makefile 包含 make 指令时不要加上 jobserver 目标，例如编译外部内核模块
+    * `prepare` 关键字是特殊的虚拟目标，表示 make 前运行 make prepare，一般用于当 .config 不存在时加载默认配置到 .config
 * Depend_Names: 当前包依赖的其它包的名称ID，多个依赖使用空格隔开 (可以为空)，如果有循环依赖或未定义依赖，解析将会失败，会打印出未解析成功的条目
     * `finally` 关键字是特殊的虚拟依赖，表示此包编译顺序在所有其它包之后，一般用于最后生成文件系统和系统镜像
 
-注: 有效的名称是由字母、数字、下划线、点号组成
+注: 有效的名称是由字母、数字、下划线、点号组成，Other_Target_Names 还可以使用 `%` 作为通配符
 
 ## 测试 Yocto 编译
 
@@ -488,6 +493,9 @@ lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行
             FILES_${PN}-dev = "${includedir}"
             FILES_${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
             ```
+        * 忽略某些警告和错误
+            * `INSANE_SKIP_${PN} += "dev-so"` 忽略安装的文件是符号链接的错误
+            * 更多信息参考 [insane.bbclass](https://docs.yoctoproject.org/ref-manual/classes.html?highlight=sanity#insane-bbclass)
 
 ```
 LICENSE = "CLOSED"
@@ -534,7 +542,7 @@ do_install () {
  oe_runmake install
 }
 
-
+INSANE_SKIP_${PN} += "dev-so"
 FILES_${PN}-dev = "${includedir}"
 FILES_${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
 

@@ -38,5 +38,6 @@ do_install () {
 	oe_runmake install
 }
 
+#INSANE_SKIP_${PN} += "dev-so"
 FILES_${PN}-dev = "${includedir}"
 FILES_${PN} = "${libdir} ${bindir}"

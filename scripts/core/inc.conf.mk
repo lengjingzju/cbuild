@@ -69,9 +69,19 @@ endif
 	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --defconfig $<
 	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --oldconfig
 
+%_defconfig: $(CONF_SAVE_PATH)/%_defconfig buildkconfig
+	@-mkdir -p $(OUT_PATH)
+	@cp -f $< $(CONFIG_PATH)
+	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --defconfig $<
+	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --oldconfig
+
 %_saveconfig: $(CONFIG_PATH) buildkconfig
 	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --savedefconfig=$(CONF_SAVE_PATH)/$(subst _saveconfig,_config,$@)
 	@echo Save .config to $(CONF_SAVE_PATH)/$(subst _saveconfig,_config,$@)
+
+%_savedefconfig: $(CONFIG_PATH) buildkconfig
+	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --savedefconfig=$(CONF_SAVE_PATH)/$(subst _savedefconfig,_defconfig,$@)
+	@echo Save .config to $(CONF_SAVE_PATH)/$(subst _savedefconfig,_defconfig,$@)
 
 cleanconfig: cleankconfig
 	@rm -rf $(CONFIG_PATH) $(CONFIG_PATH).old $(dir $(AUTOCONFIG_PATH)) $(AUTOHEADER_PATH)
