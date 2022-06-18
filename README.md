@@ -13,6 +13,47 @@
 * 提供编译外部内核模块的模板 `inc.mod.mk`
 * 提供根据目标依赖关系自动生成整个系统的配置和编译顺序的脚本 `analyse_deps.py`
 
+## 开源贡献
+
+本工程目前已向 Linux 内核社区贡献了2次提交，已合并到 Linux 内核主线
+
+* [kconfig: fix failing to generate auto.conf](https://git.kernel.org/pub/scm/linux/kernel/git/masahiroy/linux-kbuild.git/commit/?h=fixes&id=1b9e740a81f91ae338b29ed70455719804957b80)
+
+```sh
+commit 1b9e740a81f91ae338b29ed70455719804957b80
+Author: Jing Leng <jleng@ambarella.com>
+Date:   Fri Feb 11 17:27:36 2022 +0800
+
+    kconfig: fix failing to generate auto.conf
+
+    When the KCONFIG_AUTOCONFIG is specified (e.g. export \
+    KCONFIG_AUTOCONFIG=output/config/auto.conf), the directory of
+    include/config/ will not be created, so kconfig can't create deps
+    files in it and auto.conf can't be generated.
+```
+
+* [kbuild: Fix include path in scripts/Makefile.modpost](https://git.kernel.org/pub/scm/linux/kernel/git/masahiroy/linux-kbuild.git/commit/?h=fixes&id=23a0cb8e3225122496bfa79172005c587c2d64bf)
+
+```sh
+commit 23a0cb8e3225122496bfa79172005c587c2d64bf
+Author: Jing Leng <jleng@ambarella.com>
+Date:   Tue May 17 18:51:28 2022 +0800
+
+    kbuild: Fix include path in scripts/Makefile.modpost
+
+    When building an external module, if users don't need to separate the
+    compilation output and source code, they run the following command:
+    "make -C $(LINUX_SRC_DIR) M=$(PWD)". At this point, "$(KBUILD_EXTMOD)"
+    and "$(src)" are the same.
+
+    If they need to separate them, they run "make -C $(KERNEL_SRC_DIR)
+    O=$(KERNEL_OUT_DIR) M=$(OUT_DIR) src=$(PWD)". Before running the
+    command, they need to copy "Kbuild" or "Makefile" to "$(OUT_DIR)" to
+    prevent compilation failure.
+
+    So the kernel should change the included path to avoid the copy operation.
+```
+
 ## 初始化编译环境
 
 初始化编译环境运行如下命令
