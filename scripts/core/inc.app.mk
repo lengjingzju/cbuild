@@ -57,6 +57,7 @@ $(patsubst %.S,$(OUT_PATH)/%.o,$(SSRCS)): $(OUT_PATH)/%.o: %.S
 	@$(CC) -c $(CFLAGS) -fPIC -o $@ $<
 endif
 
+$(OBJS): $(MAKEFILE_LIST)
 -include $(DEPS)
 
 .PHONY: clean_objs install_liba install_libso install_bin
