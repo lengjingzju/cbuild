@@ -447,6 +447,8 @@ rm -f auto.mk Kconfig
 * `-f <Depend Name>`: 含有依赖信息的文件名
 * `-d <Search Directories>`: 搜索的目录名，多个目录使用冒号隔开
 * `-i <Ignore Directories>`: 忽略的目录名，不会搜索指定目录名下的依赖文件，多个目录使用冒号隔开
+* `-t <Max Tier Depth>`: 设置 menuconfig 菜单的最大层数，0 表示菜单平铺，1表示2层菜单，...
+* `-w <Keyword Directories>`: 用于 menuconfig 菜单，如果路径中的目录匹配设置值，则这个路径的层数减1，设置的多个目录使用冒号隔开
 
 注: 如果在当前目录下搜索到 `<Depend Name>`，不会再继续搜索当前目录的子目录
 

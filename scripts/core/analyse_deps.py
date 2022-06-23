@@ -91,23 +91,47 @@ class Deps:
 
         return 0
 
-    def gen_kconfig(self, filename):
+    def __write_one_kconfig(self, fp, item):
+        fp.write('config %s\n' % (item['target'].upper()))
+        fp.write('\tbool "%s (%s)"\n' % (item['target'], item['spath']))
+        fp.write('\tdefault y\n')
+        if item['deps']:
+            if 'finally' in item['deps']:
+                deps = [i for i in item['deps'] if i != 'finally']
+                if deps:
+                    fp.write('\tdepends on %s\n' % (' && '.join([t.upper() for t in deps])))
+            else:
+                fp.write('\tdepends on %s\n' % (' && '.join([t.upper() for t in item['deps']])))
+        fp.write('\n')
+
+    def gen_kconfig(self, filename, max_depth, keywords):
         with open(filename, 'w') as fp:
+            cur_dirs = []
+            cur_depth = -1
             fp.write('mainmenu "Build Configuration"\n\n')
-
             for item in self.ItemList:
-                fp.write('config %s\n' % (item['target'].upper()))
-                fp.write('\tbool "%s (%s)"\n' % (item['target'], item['path']))
-                fp.write('\tdefault y\n')
-                if item['deps']:
-                    if 'finally' in item['deps']:
-                        deps = [i for i in item['deps'] if i != 'finally']
-                        if deps:
-                            fp.write('\tdepends on %s\n' % (' && '.join([t.upper() for t in deps])))
+                dirs = item['spath'].split('/')
+                if keywords:
+                    dirs = [ var for var in item['spath'].split('/') if var not in keywords]
+                depth = len(dirs) - 1
+                while cur_depth >= 0:
+                    if depth < cur_depth or dirs[cur_depth] != cur_dirs[cur_depth]:
+                        cur_dirs.pop()
+                        cur_depth -= 1
+                        fp.write('endmenu\n\n')
                     else:
-                        fp.write('\tdepends on %s\n' % (' && '.join([t.upper() for t in item['deps']])))
-                fp.write('\n')
+                        break
+                while depth > cur_depth + 1 and cur_depth < max_depth - 1:
+                    cur_depth += 1
+                    cur_dirs.append(dirs[cur_depth])
+                    fp.write('menu "%s"\n\n' % (dirs[cur_depth]))
+                    #print("%d %s %s" % (cur_depth, dirs[cur_depth], item['spath']))
+                self.__write_one_kconfig(fp, item)
 
+            while cur_depth >= 0:
+                cur_dirs.pop()
+                cur_depth -= 1
+                fp.write('endmenu\n\n')
 
     def gen_make(self, filename):
         with open(filename, 'w') as fp:
@@ -196,6 +220,14 @@ def parse_options():
             dest='ignore_dirs',
             help='Specify the ignore directorys.')
 
+    parser.add_argument('-t', '--maxtier',
+            dest='max_depth',
+            help='Specify the max tier depth for menuconfig')
+
+    parser.add_argument('-w', '--keyword',
+            dest='keywords',
+            help='Specify the filter keywords to decrease menuconfig depth')
+
     args = parser.parse_args()
     if not args.makefile_out or not args.kconfig_out or \
             not args.search_file or not args.search_dirs:
@@ -212,8 +244,15 @@ def do_analysis(args):
     search_file = args.search_file
     search_dirs = [s.strip() for s in args.search_dirs.split(':')]
     ignore_dirs = []
+    max_depth = 0
+    keywords = []
+
     if args.ignore_dirs:
         ignore_dirs = [s.strip() for s in args.ignore_dirs.split(':')]
+    if args.max_depth:
+        max_depth = int(args.max_depth)
+    if args.keywords:
+        keywords = [s.strip() for s in args.keywords.split(':')]
 
     deps = Deps()
     deps.search_make(search_file, search_dirs, ignore_dirs)
@@ -227,7 +266,7 @@ def do_analysis(args):
         print('ERROR: can not find any targets in %s in %s.' % (search_file, ':'.join(search_dirs)))
         sys.exit(1)
 
-    deps.gen_kconfig(kconfig_out)
+    deps.gen_kconfig(kconfig_out, max_depth, keywords)
     if deps.sort_items() == -1:
         print('ERROR: sort_items() failed.')
         sys.exit(1)
