@@ -38,22 +38,22 @@ else
 
 OUT_PATH       ?= $(shell pwd | sed "s:$(ENV_TOP_DIR):$(ENV_OUT_ROOT):")
 MOD_MAKES      += M=$(OUT_PATH) src=$(shell pwd)
+KBUILD_MK       = $(if $(wildcard Kbuild),Kbuild,Makefile)
 
-modules modules_clean modules_install: $(OUT_PATH)/Makefile
+modules modules_clean modules_install: $(OUT_PATH)/$(KBUILD_MK)
 
-$(OUT_PATH)/Makefile: Makefile
+$(OUT_PATH)/$(KBUILD_MK): $(KBUILD_MK)
 	@-mkdir -p $(dir $@)
 	@-cp -f $< $@
 
 #
 # Note:
-# Users should copy the Makefile to avoid compilation failures.
+# Users should copy the Kbuild or Makefile to avoid compilation failures.
 # If they don't want to copy it, they should modify the
 # "$(KERNEL_SRC)/scripts/Makefile.modpost" as follow:
 #   -include $(if $(wildcard $(KBUILD_EXTMOD)/Kbuild), \
 #   -             $(KBUILD_EXTMOD)/Kbuild, $(KBUILD_EXTMOD)/Makefile)
-#   +include $(if $(wildcard $(src)/Kbuild), \
-#   +             $(src)/Kbuild, $(src)/Makefile)
+#   +include $(if $(wildcard $(src)/Kbuild), $(src)/Kbuild, $(src)/Makefile)
 #
 
 endif

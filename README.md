@@ -283,7 +283,7 @@ def2_config  def_config
 
 ## 测试编译内核模块
 
-测试用例1位于 `test-mod` (其中 test_hello 依赖于 test_hello_add 和 test_hello_sub)，
+测试用例1位于 `test-mod` (其中 test_hello 依赖于 test_hello_add 和 test_hello_sub)，其中 test_hello_sub 采用 Makefile 和 Kbuild 分离的模式
 测试用例2位于 `test-mod2` (一个 Makefile 同时编译出两个模块 hello_op 和 hello)，如下测试
 
 ```sh
@@ -361,7 +361,7 @@ Build test-mod2 Done.
 * PACKAGE_NAME: 包的名称
 * PACKAGE_DEPS: 包的依赖
     * 默认将包依赖对应的路径加到当前包的头文件的搜索路径
-* MOD_MAKES: 用户指定一些模块自己的信息，例如 XXXX=xxx
+* MOD_MAKES: 用户指定一些模块自己的信息，例如 XXXX=xxxx
 * OUT_PATH: 编译输出目录，保持默认即可 (只在源码和编译输出分离时有效)
 * KERNEL_SRC: Linux 内核源码目录 (必须）
 * KERNEL_OUT: Linux 内核编译输出目录 （`make -O $(KERNEL_OUT)` 编译内核的情况下必须）
@@ -388,20 +388,19 @@ mod2-y = a2.o b2.o c2.o
 * 源码和编译输出同目录时编译命令: `make -C $(KERNEL_SRC) M=$(shell pwd) modules`
 * 源码和编译输出分离时编译命令: `make -C $(KERNEL_SRC) O=(KERNEL_OUT) M=$(OUT_PATH) src=$(shell pwd) modules`
 
-注: 使用源码和编译输出分离时， 需要先将 Makefile 或 Kbuild 复制到 OUT_PATH 目录下，如果不想复制，需要修改内核源码的 `scripts/Makefile.modpost`，最新 linux-5.19 已合并此补丁
+注: 使用源码和编译输出分离时， 需要先将 Kbuild 或 Makefile 复制到 OUT_PATH 目录下，如果不想复制，需要修改内核源码的 `scripts/Makefile.modpost`，最新 linux-5.19 已合并此补丁
 
 ```makefile
 -include $(if $(wildcard $(KBUILD_EXTMOD)/Kbuild), \
 -             $(KBUILD_EXTMOD)/Kbuild, $(KBUILD_EXTMOD)/Makefile)
-+include $(if $(wildcard $(src)/Kbuild), \
-+             $(src)/Kbuild, $(src)/Makefile)
++include $(if $(wildcard $(src)/Kbuild), $(src)/Kbuild, $(src)/Makefile)
 ```
 
 模块编译过程说明
 
 1. 在当前目录运行 Makefile，此时 KERNELRELEASE 为空，执行这个分支下的第一个目标 modules
-2. 运行`make -C $(KERNEL_SRC) xxx` 时进入内核源码目录，在内核源码目录运行 src 的 Makefile，此时 KERNELRELEASE 有值，编译源文件
-3. 继续在内核源码目录运行 M 目录的 Makefile，生成模块和它的符号表
+2. 运行`make -C $(KERNEL_SRC) xxx` 时进入内核源码目录，在内核源码目录运行 src 的 Kbuild 或 Makefile，此时 KERNELRELEASE 有值，编译源文件
+3. 继续在内核源码目录运行 M 目录的 Kbuild 或 Makefile，生成模块和它的符号表
 
 ## 测试自动生成总编译
 
