@@ -1,0 +1,2 @@
+config BUILD_PE
+    bool "Build PE"

@@ -1,0 +1,2 @@
+config BUILD_PA
+    bool "Build PA"

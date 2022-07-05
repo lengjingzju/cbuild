@@ -11,7 +11,8 @@
 * 提供安装编译输出的模板 `inc.ins.mk`
 * 提供 kconfig 配置参数的模板 `inc.conf.mk`
 * 提供编译外部内核模块的模板 `inc.mod.mk`
-* 提供根据目标依赖关系自动生成整个系统的配置和编译顺序的脚本 `analyse_deps.py`
+* 提供根据目标依赖关系自动生成编译开关配置和编译顺序的脚本 `analyse_deps.py`
+* 提供自动收集配置生成总配置的脚本 `analyse_kconf.py`
 
 ## 开源贡献
 
@@ -59,10 +60,10 @@ Date:   Tue May 17 18:51:28 2022 +0800
 初始化编译环境运行如下命令
 
 ```sh
-lengjing@lengjing:~/cbuild$ source scripts/build.env 
+lengjing@lengjing:~/cbuild$ source scripts/build.env
 ============================================================
-ARCH             : 
-CROSS_COMPILE    : 
+ARCH             :
+CROSS_COMPILE    :
 ENV_TOP_DIR      : /home/lengjing/cbuild
 ENV_TOP_OUT      : /home/lengjing/cbuild/output
 ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
@@ -136,13 +137,13 @@ bin:	/home/lengjing/cbuild/output/objects/examples/test-app/test
 Build test-app Done.
 lengjing@lengjing:~/cbuild/examples/test-app$ make install  # 安装文件
 lengjing@lengjing:~/cbuild/examples/test-app$ cd ../test-app2
-lengjing@lengjing:~/cbuild/examples/test-app2$ make 
+lengjing@lengjing:~/cbuild/examples/test-app2$ make
 gcc	main.c
 bin:	/home/lengjing/cbuild/output/objects/examples/test-app2/test2
 Build test-app2  Done.
 lengjing@lengjing:~/cbuild/examples/test-app2$ make install
 lengjing@lengjing:~/cbuild/examples/test-app2$ cd ../test-app3/
-lengjing@lengjing:~/cbuild/examples/test-app3$ make 
+lengjing@lengjing:~/cbuild/examples/test-app3$ make
 gcc	add.c
 lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libadd.a
 lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libadd.so
@@ -290,7 +291,7 @@ def2_config  def_config
 lengjing@lengjing:~/cbuild/examples/test-conf$ cd ../test-mod
 lengjing@lengjing:~/cbuild/examples/test-mod$ make deps
 Analyse depends OK.
-lengjing@lengjing:~/cbuild/examples/test-mod$ make menuconfig 
+lengjing@lengjing:~/cbuild/examples/test-mod$ make menuconfig
 configuration written to /home/lengjing/cbuild/output/objects/examples/test-mod/.config
 
 *** End of the configuration.
@@ -333,10 +334,10 @@ At main.c:160:
 - SSL error:2006D080:BIO routines:BIO_new_file:no such file: ../crypto/bio/bss_file.c:76
 sign-file: certs/signing_key.pem: No such file or directory
 Warning: modules_install: missing 'System.map' file. Skipping depmod.
-lengjing@lengjing:~/cbuild/examples/test-mod$ 
-lengjing@lengjing:~/cbuild/examples/test-mod$ 
+lengjing@lengjing:~/cbuild/examples/test-mod$
+lengjing@lengjing:~/cbuild/examples/test-mod$
 lengjing@lengjing:~/cbuild/examples/test-mod$ cd ../test-mod2
-lengjing@lengjing:~/cbuild/examples/test-mod2$ make 
+lengjing@lengjing:~/cbuild/examples/test-mod2$ make
 KERNELRELEASE= pwd=/home/lengjing/cbuild/examples/test-mod2 PWD=/home/lengjing/cbuild/examples/test-mod2
 KERNELRELEASE=5.13.0-44-generic pwd=/usr/src/linux-headers-5.13.0-44-generic PWD=/home/lengjing/cbuild/examples/test-mod2
 KERNELRELEASE=5.13.0-44-generic pwd=/usr/src/linux-headers-5.13.0-44-generic PWD=/home/lengjing/cbuild/examples/test-mod2
@@ -410,7 +411,7 @@ mod2-y = a2.o b2.o c2.o
 lengjing@lengjing:~/cbuild/examples/test-mod2$ cd ../test-deps
 lengjing@lengjing:~/cbuild/examples/test-deps$ make deps
 Analyse depends OK.
-lengjing@lengjing:~/cbuild/examples/test-deps$ make menuconfig 
+lengjing@lengjing:~/cbuild/examples/test-deps$ make menuconfig
 configuration written to /home/lengjing/cbuild/output/objects/examples/test-deps/.config
 
 *** End of the configuration.
@@ -429,6 +430,7 @@ target=all path=/home/lengjing/cbuild/examples/test-deps/pb/pb
 target=install path=/home/lengjing/cbuild/examples/test-deps/pb/pb
 target=all path=/home/lengjing/cbuild/examples/test-deps/pa/pa
 target=install path=/home/lengjing/cbuild/examples/test-deps/pa/pa
+lengjing@lengjing:~/cbuild/examples/test-deps$ make config # 打开自动生成的总参数配置界面
 lengjing@lengjing:~/cbuild/examples/test-deps$ make clean
 ext.mk
 target=clean path=/home/lengjing/cbuild/examples/test-deps/pc/pc
@@ -439,17 +441,27 @@ target=clean path=/home/lengjing/cbuild/examples/test-deps/pa/pa
 rm -f auto.mk Kconfig
 ```
 
-`scripts/analyse_deps.py` 参数
+`scripts/bin/analyse_deps.py` 参数
 
 * `-m <Makefile Name>`: 自动生成的 Makefile 文件名
 * `-k <Kconfig Name>`: 自动生成的 Kconfig 文件名
-* `-f <Depend Name>`: 含有依赖信息的文件名
+* `-f <Search Depend Name>`: 要搜索的依赖文件名(含有依赖信息)
 * `-d <Search Directories>`: 搜索的目录名，多个目录使用冒号隔开
 * `-i <Ignore Directories>`: 忽略的目录名，不会搜索指定目录名下的依赖文件，多个目录使用冒号隔开
 * `-t <Max Tier Depth>`: 设置 menuconfig 菜单的最大层数，0 表示菜单平铺，1表示2层菜单，...
 * `-w <Keyword Directories>`: 用于 menuconfig 菜单，如果路径中的目录匹配设置值，则这个路径的层数减1，设置的多个目录使用冒号隔开
 
-注: 如果在当前目录下搜索到 `<Depend Name>`，不会再继续搜索当前目录的子目录
+`scripts/bin/analyse_kconf.py` 参数
+
+* `-k <Kconfig Name>`: 自动生成的 Kconfig 文件名
+* `-m <Search Kconfig Name>`: 要搜索的配置文件名(含有配置信息)
+* `-f <Search Depend Name>`: 同 analyse_deps.py
+* `-d <Search Directories>`: 同 analyse_deps.py
+* `-i <Ignore Directories>`: 同 analyse_deps.py
+* `-t <Max Tier Depth>`: 同 analyse_deps.py
+* `-w <Keyword Directories>`: 同 analyse_deps.py
+
+注: 如果在当前目录下搜索到 `<Search Depend Name>`，不会再继续搜索当前目录的子目录
 
 依赖信息格式 `#DEPS(Makefile_Name) Target_Name(Other_Target_Names): Depend_Names`
 
@@ -529,7 +541,7 @@ lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行
         * 编译主机本地工具继承 `inherit native`
     * 安装和打包
         * 继承 `inherit sanity` 或 `inherit cmake` 时需要按实际情况指定打包的目录，否则 do_package 任务出错
-            * includedir 指 xxx/usr/include 
+            * includedir 指 xxx/usr/include
             * base_libdir 指 xxx/lib;  libdir指 xxx/usr/lib;  bindir指 xxx/usr/bin; datadir 指 xxx/usr/share
             ```
             FILES_${PN}-dev = "${includedir}"

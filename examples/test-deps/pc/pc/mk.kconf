@@ -1,0 +1,2 @@
+config BUILD_PC
+    bool "Build PC"

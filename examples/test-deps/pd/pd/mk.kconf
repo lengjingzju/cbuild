@@ -1,0 +1,2 @@
+config BUILD_PD
+    bool "Build PD"
