@@ -25,10 +25,12 @@ class Deps:
 
     def add_item(self, makefile):
         with open(makefile[0], 'r') as fp:
+            dep_flag = False
             for per_line in fp:
                 # e.g. "#DEPS(mk.ext) a(clean install): b c"
                 ret = re.match(r'#DEPS\s*\(\s*([\w\-\.]*)\s*\)\s*([\w\-\.]+)\s*\(([\s\w\-\.%]*)\)\s*:([\s\w\-\.]*)', per_line)
                 if ret:
+                    dep_flag = True
                     item = {}
                     item['path'] = os.path.dirname(makefile[0])
                     item['spath'] = makefile[1]
@@ -52,8 +54,7 @@ class Deps:
 
                     #print('[Add] %s: %s: %s' % (item['path'], item['target'], ' '.join(item['deps'])))
                     self.ItemList.append(item)
-                    return
-            else:
+            if not dep_flag:
                 print('WARNING: ignore: %s' % makefile[0])
 
     def sort_items(self):

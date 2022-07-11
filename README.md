@@ -461,7 +461,7 @@ rm -f auto.mk Kconfig
 * `-t <Max Tier Depth>`: 同 analyse_deps.py
 * `-w <Keyword Directories>`: 同 analyse_deps.py
 
-注: 如果在当前目录下搜索到 `<Search Depend Name>`，不会再继续搜索当前目录的子目录
+注: 如果在当前目录下搜索到 `<Search Depend Name>`，不会再继续搜索当前目录的子目录; `<Search Depend Name>` 中可以包含多条依赖信息
 
 依赖信息格式 `#DEPS(Makefile_Name) Target_Name(Other_Target_Names): Depend_Names`
 
@@ -536,6 +536,7 @@ lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行
         * 链接其它包时 (`LDFLAGS += -lname1 -lname2`) 需要增加 `RDEPENDS_${PN} += "package1 package2"` 说明
     * 编译继承类
         * 使用 menuconfig 需要继承 `inherit cml1`
+            * 如果是 `make -f wrapper.mk menuconfig`，需要设置 `KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"`
         * 使用 Makefile 编译应用继承 `inherit sanity`，使用 cmake 编译应用继承 `inherit cmake`
         * 编译外部内核模块继承 `inherit module`
         * 编译主机本地工具继承 `inherit native`
@@ -558,17 +559,11 @@ LIC_FILES_CHKSUM = ""
 # No information for SRC_URI yet (only an external source tree was specified)
 SRC_URI = ""
 
-
 #DEPENDS += "package1 package2"
 #RDEPENDS_${PN} += "package1 package2"
 
-export OUT_PATH = "${WORKDIR}/build"
-export ENV_INS_ROOT = "${WORKDIR}/image"
-export ENV_DEP_ROOT = "${WORKDIR}/recipe-sysroot"
-export ENV_TOP_DIR
-export ENV_BUILD_MODE
-
 inherit testenv
+#KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"
 #inherit cml1
 inherit sanity
 #inherit cmake
