@@ -61,6 +61,8 @@ class Deps:
         temp = self.ItemList
         self.ItemList = []
         finally_flag = True
+        all_targets = [item['target'] for item in temp]
+
         while temp:
             lista = []
             listb = []
@@ -84,10 +86,19 @@ class Deps:
                         itemb['count'] -= 1
                 temp = listb
             else:
-                print('----ERROR: deps are wrong!----')
+                remainder_deps = []
+                print('--------remainder deps--------')
                 for itemb in listb:
                     print('%s: %s: %s' % (itemb['path'], itemb['target'], ' '.join(itemb['deps'])))
+                    remainder_deps += [dep for dep in itemb['deps'] if dep != 'finally' and dep not in all_targets]
                 print('------------------------------')
+                if remainder_deps:
+                    remainder_deps = list(set(remainder_deps))
+                    print('ERROR: deps (%s) are not found!' % (' '.join(remainder_deps)))
+                else:
+                    print('ERROR: circular deps!')
+                print('------------------------------')
+
                 return -1
 
         return 0
