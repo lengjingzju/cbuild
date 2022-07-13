@@ -547,11 +547,13 @@ lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行
         * 继承 `inherit sanity` 或 `inherit cmake` 时需要按实际情况指定打包的目录，否则 do_package 任务出错
             * includedir 指 xxx/usr/include
             * base_libdir 指 xxx/lib;  libdir指 xxx/usr/lib;  bindir指 xxx/usr/bin; datadir 指 xxx/usr/share
+            * 更多目录信息参考poky工程的 `meta/conf/bitbake.conf` 文件
             ```
             FILES_${PN}-dev = "${includedir}"
             FILES_${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
             ```
         * 忽略某些警告和错误
+            * `ALLOW_EMPTY_${PN} = "1"` 忽略包安装的文件只有头文件或为空，生成镜像时 do_rootfs 错误
             * `INSANE_SKIP_${PN} += "dev-so"` 忽略安装的文件是符号链接的错误
             * 更多信息参考 [insane.bbclass](https://docs.yoctoproject.org/ref-manual/classes.html?highlight=sanity#insane-bbclass)
 
@@ -594,6 +596,7 @@ do_install () {
  oe_runmake install
 }
 
+ALLOW_EMPTY_${PN} = "1"
 INSANE_SKIP_${PN} += "dev-so"
 FILES_${PN}-dev = "${includedir}"
 FILES_${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
