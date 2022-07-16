@@ -67,8 +67,8 @@ CROSS_COMPILE    :
 ENV_TOP_DIR      : /home/lengjing/cbuild
 ENV_TOP_OUT      : /home/lengjing/cbuild/output
 ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
-ENV_INS_ROOT     : /home/lengjing/cbuild/output/fakeroot
-ENV_DEP_ROOT     : /home/lengjing/cbuild/output/fakeroot
+ENV_INS_ROOT     : /home/lengjing/cbuild/output/sysroot
+ENV_DEP_ROOT     : /home/lengjing/cbuild/output/sysroot
 ENV_BUILD_MODE   : external
 ============================================================
 ```
@@ -83,8 +83,8 @@ CROSS_COMPILE    : arm-linux-gnueabihf-
 ENV_TOP_DIR      : /home/lengjing/cbuild
 ENV_TOP_OUT      : /home/lengjing/cbuild/output
 ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
-ENV_INS_ROOT     : /home/lengjing/cbuild/output/fakeroot
-ENV_DEP_ROOT     : /home/lengjing/cbuild/output/fakeroot
+ENV_INS_ROOT     : /home/lengjing/cbuild/output/sysroot
+ENV_DEP_ROOT     : /home/lengjing/cbuild/output/sysroot
 ENV_BUILD_MODE   : external
 ============================================================
 
@@ -96,7 +96,7 @@ ENV_BUILD_MODE   : external
 ENV_TOP_DIR=$(pwd | sed 's:/cbuild.*::')/cbuild
 ENV_TOP_OUT=${ENV_TOP_DIR}/output
 ENV_OUT_ROOT=${ENV_TOP_OUT}/objects
-ENV_INS_ROOT=${ENV_TOP_OUT}/fakeroot
+ENV_INS_ROOT=${ENV_TOP_OUT}/sysroot
 ENV_DEP_ROOT=${ENV_INS_ROOT}
 ENV_BUILD_MODE=external  # external internal yocto
 ```
@@ -173,6 +173,7 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 
 * `$(eval $(call add-liba-build,静态库名,源文件列表))`: 创建编译静态库规则
 * `$(eval $(call add-libso-build,动态库名,源文件列表))`: 创建编译动态库规则
+* `$(eval $(call add-libso-build,动态库名,源文件列表,链接参数))`: 创建编译动态库规则
 * `$(eval $(call add-bin-build,可执行文件名,源文件列表))`: 创建编译可执行文件规则
 * `$(eval $(call add-bin-build,可执行文件名,源文件列表,链接参数))`: 创建编译可执行文件规则
 
@@ -198,14 +199,14 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 `scripts/core/inc.app.mk` 可设置的变量
 
 * PACKAGE_NAME: 包的名称
-* PACKAGE_DEPS: 包的依赖
+* PACKAGE_DEPS: 包的依赖(多个依赖空格隔开)
     * 默认将包依赖对应的路径加到当前包的头文件和库文件的搜索路径
 * OUT_PATH: 编译输出目录，保持默认即可
 * SRC_PATH: 包中源码所在的目录，默认是包的根目录，也有的包将源码放在 src 下
 * SRCS: 所有的 C 源码文件，默认是 SRC_PATH 下的所有的 `*.c *.cpp *.S` 文件
     * 如果用户指定了 SRCS，不需要再指定 SRC_PATH
-* CFLAGS: 用户需要设置包自己的一些编译标记
-* LDFLAGS: 用户需要设置包自己的一些链接标记
+* CFLAGS: 用户需要设置包自己的一些全局编译标记
+* LDFLAGS: 用户需要设置包自己的一些全局链接标记
 
 ## 测试kconfig
 
@@ -360,7 +361,7 @@ Build test-mod2 Done.
 `scripts/core/inc.mod.mk` 可设置的变量(KERNELRELEASE 为空时)
 
 * PACKAGE_NAME: 包的名称
-* PACKAGE_DEPS: 包的依赖
+* PACKAGE_DEPS: 包的依赖(多个依赖空格隔开)
     * 默认将包依赖对应的路径加到当前包的头文件的搜索路径
 * MOD_MAKES: 用户指定一些模块自己的信息，例如 XXXX=xxxx
 * OUT_PATH: 编译输出目录，保持默认即可 (只在源码和编译输出分离时有效)
@@ -536,7 +537,7 @@ lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行
     * `recipetool create -o <xxx.bb> <package_src_dir>` 创建一个基本配方，例子中手动增加的条目说明如下
     * 包依赖
         * 包依赖其他包时需要使用 `DEPENDS += "package1 package2"` 说明
-        * 链接其它包时 (`LDFLAGS += -lname1 -lname2`) 需要增加 `RDEPENDS_${PN} += "package1 package2"` 说明
+        * 链接其它包时 (`LDFLAGS += -lname1 -lname2`) 需要增加 `RDEPENDS:${PN} += "package1 package2"` 说明
     * 编译继承类
         * 使用 menuconfig 需要继承 `inherit cml1`
             * 如果是 `make -f wrapper.mk menuconfig`，需要设置 `KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"`
@@ -549,13 +550,13 @@ lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行
             * base_libdir 指 xxx/lib;  libdir指 xxx/usr/lib;  bindir指 xxx/usr/bin; datadir 指 xxx/usr/share
             * 更多目录信息参考poky工程的 `meta/conf/bitbake.conf` 文件
             ```
-            FILES_${PN}-dev = "${includedir}"
-            FILES_${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
+            FILES:${PN}-dev = "${includedir}"
+            FILES:${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
             ```
         * 忽略某些警告和错误
-            * `ALLOW_EMPTY_${PN} = "1"` 忽略包安装的文件只有头文件或为空，生成镜像时 do_rootfs 错误
-            * `INSANE_SKIP_${PN} += "dev-so"` 忽略安装的文件是符号链接的错误
-            * 更多信息参考 [insane.bbclass](https://docs.yoctoproject.org/ref-manual/classes.html?highlight=sanity#insane-bbclass)
+            * `ALLOW_EMPTY:${PN} = "1"` 忽略包安装的文件只有头文件或为空，生成镜像时 do_rootfs 错误
+            * `INSANE_SKIP:${PN} += "dev-so"` 忽略安装的文件是符号链接的错误
+                * 更多信息参考 [insane.bbclass](https://docs.yoctoproject.org/ref-manual/classes.html?highlight=sanity#insane-bbclass)
 
 ```
 LICENSE = "CLOSED"
@@ -565,7 +566,7 @@ LIC_FILES_CHKSUM = ""
 SRC_URI = ""
 
 #DEPENDS += "package1 package2"
-#RDEPENDS_${PN} += "package1 package2"
+#RDEPENDS:${PN} += "package1 package2"
 
 inherit testenv
 #KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"
@@ -596,10 +597,10 @@ do_install () {
  oe_runmake install
 }
 
-ALLOW_EMPTY_${PN} = "1"
-INSANE_SKIP_${PN} += "dev-so"
-FILES_${PN}-dev = "${includedir}"
-FILES_${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
+ALLOW_EMPTY:${PN} = "1"
+INSANE_SKIP:${PN} += "dev-so"
+FILES:${PN}-dev = "${includedir}"
+FILES:${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
 
 ```
 
@@ -611,6 +612,8 @@ inherit externalsrc
 EXTERNALSRC = "${ENV_TOP_DIR}/<package_src>"
 EXTERNALSRC_BUILD = "${ENV_TOP_DIR}/<package_src>"
 ```
+
+注: [从3.4版本开始，对变量的覆盖样式语法由下滑线 `_` 变成了冒号 `:`](https://docs.yoctoproject.org/migration-guides/migration-3.4.html#override-syntax-changes)
 
 ### 测试 Yocto 编译
 
@@ -631,6 +634,7 @@ lengjing@lengjing:~/cbuild/build$ bitbake-layers add-layer ../examples/meta-cbui
 
 ```sh
 lengjing@lengjing:~/cbuild/build$ bitbake test-app2  # 编译应用
+lengjing@lengjing:~/cbuild/build$ bitbake test-app3  # 编译应用
 lengjing@lengjing:~/cbuild/build$ bitbake test-hello # 编译内核模块
 lengjing@lengjing:~/cbuild/build$ bitbake test-mod2  # 编译内核模块
 lengjing@lengjing:~/cbuild/build$ bitbake test-conf  # 编译 kconfig 测试程序

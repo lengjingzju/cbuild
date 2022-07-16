@@ -44,5 +44,6 @@ do_install () {
 	install -m 0777 ${OUT_PATH}/mconf ${install_dir}
 }
 
-BBCLASSEXTEND = "native"
+INSANE_SKIP += "native-last"
+#BBCLASSEXTEND = "native"
 

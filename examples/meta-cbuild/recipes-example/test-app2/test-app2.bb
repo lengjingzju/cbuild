@@ -16,7 +16,7 @@ LIC_FILES_CHKSUM = ""
 SRC_URI = ""
 
 DEPENDS += "test-app"
-RDEPENDS_${PN} += "test-app"
+RDEPENDS:${PN} += "test-app"
 
 inherit testenv
 inherit sanity
@@ -41,4 +41,4 @@ do_install () {
 	oe_runmake install
 }
 
-FILES_${PN} = "${bindir}"
+FILES:${PN} = "${bindir}"

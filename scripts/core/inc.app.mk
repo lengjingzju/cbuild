@@ -80,7 +80,7 @@ ifneq ($(LIBSO_NAME), )
 LIB_TARGETS += $(OUT_PATH)/$(LIBSO_NAME)
 $(OUT_PATH)/$(LIBSO_NAME): $(OBJS)
 	@echo "\033[032mlib:\033[0m	\033[44m$@\033[0m"
-	@$(if $(CPPSRCS),$(CXX),$(CC)) -shared -fPIC -o $@ $^
+	@$(if $(CPPSRCS),$(CXX),$(CC)) -shared -fPIC -o $@ $^ $(LDFLAGS)
 
 install_libso:
 	@install -d $(ENV_INS_ROOT)/usr/lib
@@ -109,7 +109,7 @@ define add-libso-build
 LIB_TARGETS += $$(OUT_PATH)/$(1)
 $$(OUT_PATH)/$(1): $$(call translate_obj,$(2))
 	@echo "\033[032mlib:\033[0m	\033[44m$$@\033[0m"
-	@$$(if $$(filter %.cpp,$(2)),$$(CXX),$$(CC)) -shared -fPIC -o $$@ $$^
+	@$$(if $$(filter %.cpp,$(2)),$$(CXX),$$(CC)) -shared -fPIC -o $$@ $$^ $$(LDFLAGS) $(3)
 endef
 
 define add-bin-build

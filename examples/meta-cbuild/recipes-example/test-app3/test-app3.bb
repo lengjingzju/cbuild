@@ -38,5 +38,5 @@ do_install () {
 	oe_runmake install
 }
 
-FILES_${PN}-dev = "${includedir}"
-FILES_${PN} = "${libdir}"
+FILES:${PN}-dev = "${includedir}"
+FILES:${PN} = "${libdir}"
