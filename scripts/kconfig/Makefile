@@ -39,7 +39,7 @@ $(AUTOGEN_BISON): autogen/parser.y
 	@echo "\033[32mbison\033[0m	$@"
 	@bison -o $(basename $@).c --defines=$(basename $@).h -t -l $<
 
-$(AUTOGEN_FLEX): autogen/lexer.l
+$(AUTOGEN_FLEX): autogen/lexer.l $(AUTOGEN_BISON)
 	@-mkdir -p $(dir $@)
 	@echo "\033[32mflex\033[0m	$@"
 	@flex -o $@ -L $<
