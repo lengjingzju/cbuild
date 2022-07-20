@@ -12,6 +12,20 @@ $(patsubst %.c,%.o,\
 ))))
 endef
 
+define all_ver_obj
+$(strip \
+	$(if $(word 4,$(1)), \
+		$(if $(word 4,$(1)),$(word 1,$(1)).$(word 2,$(1)).$(word 3,$(1)).$(word 4,$(1))) \
+		$(if $(word 2,$(1)),$(word 1,$(1)).$(word 2,$(1))) \
+		$(word 1,$(1)) \
+		,\
+		$(if $(word 3,$(1)),$(word 1,$(1)).$(word 2,$(1)).$(word 3,$(1))) \
+		$(if $(word 2,$(1)),$(word 1,$(1)).$(word 2,$(1))) \
+		$(word 1,$(1)) \
+	)
+)
+endef
+
 SRC_PATH       ?= .
 SRCS           ?= $(shell find $(SRC_PATH) -name "*.c" -o -name "*.cpp" -o -name "*.S" \
                   | grep -v "scripts/" | sed "s/\(\.\/\)\(.*\)/\2/g" | xargs)
@@ -73,18 +87,35 @@ $(OUT_PATH)/$(LIBA_NAME): $(OBJS)
 
 install_liba:
 	@install -d $(ENV_INS_ROOT)/usr/lib
-	@install $(OUT_PATH)/$(LIBA_NAME) $(ENV_INS_ROOT)/usr/lib
+	@cp -rf $(OUT_PATH)/$(LIBA_NAME) $(ENV_INS_ROOT)/usr/lib
 endif
 
 ifneq ($(LIBSO_NAME), )
-LIB_TARGETS += $(OUT_PATH)/$(LIBSO_NAME)
-$(OUT_PATH)/$(LIBSO_NAME): $(OBJS)
+LIBSO_NAMES := $(call all_ver_obj,$(LIBSO_NAME))
+LIB_TARGETS += $(patsubst %,$(OUT_PATH)/%,$(LIBSO_NAMES))
+
+$(OUT_PATH)/$(firstword $(LIBSO_NAMES)): $(OBJS)
 	@echo "\033[032mlib:\033[0m	\033[44m$@\033[0m"
-	@$(if $(CPPSRCS),$(CXX),$(CC)) -shared -fPIC -o $@ $^ $(LDFLAGS)
+	@$(if $(CPPSRCS),$(CXX),$(CC)) -shared -fPIC -o $@ $^ $(LDFLAGS) -Wl,-soname=$(firstword $(LIBSO_NAME))
+
+ifneq ($(word 2,$(LIBSO_NAMES)), )
+$(OUT_PATH)/$(word 2,$(LIBSO_NAMES)): $(OUT_PATH)/$(word 1,$(LIBSO_NAMES))
+	@cd $(OUT_PATH) && ln -sf $(patsubst $(OUT_PATH)/%,%,$<) $(patsubst $(OUT_PATH)/%,%,$@)
+endif
+
+ifneq ($(word 3,$(LIBSO_NAMES)), )
+$(OUT_PATH)/$(word 3,$(LIBSO_NAMES)): $(OUT_PATH)/$(word 2,$(LIBSO_NAMES))
+	@cd $(OUT_PATH) && ln -sf $(patsubst $(OUT_PATH)/%,%,$<) $(patsubst $(OUT_PATH)/%,%,$@)
+endif
+
+ifneq ($(word 4,$(LIBSO_NAMES)), )
+$(OUT_PATH)/$(word 4,$(LIBSO_NAMES)): $(OUT_PATH)/$(word 3,$(LIBSO_NAMES))
+	@cd $(OUT_PATH) && ln -sf $(patsubst $(OUT_PATH)/%,%,$<) $(patsubst $(OUT_PATH)/%,%,$@)
+endif
 
 install_libso:
 	@install -d $(ENV_INS_ROOT)/usr/lib
-	@install $(OUT_PATH)/$(LIBSO_NAME) $(ENV_INS_ROOT)/usr/lib
+	@cp -rf $(patsubst %,$(OUT_PATH)/%,$(LIBSO_NAMES)) $(ENV_INS_ROOT)/usr/lib
 endif
 
 ifneq ($(BIN_NAME), )
@@ -95,7 +126,7 @@ $(OUT_PATH)/$(BIN_NAME): $(OBJS)
 
 install_bin:
 	@install -d $(ENV_INS_ROOT)/usr/bin
-	@install $(OUT_PATH)/$(BIN_NAME) $(ENV_INS_ROOT)/usr/bin
+	@cp -rf $(OUT_PATH)/$(BIN_NAME) $(ENV_INS_ROOT)/usr/bin
 endif
 
 define add-liba-build
@@ -106,10 +137,28 @@ $$(OUT_PATH)/$(1): $$(call translate_obj,$(2))
 endef
 
 define add-libso-build
-LIB_TARGETS += $$(OUT_PATH)/$(1)
-$$(OUT_PATH)/$(1): $$(call translate_obj,$(2))
+libso_names := $(call all_ver_obj,$(1))
+LIB_TARGETS += $(patsubst %,$(OUT_PATH)/%,$(call all_ver_obj,$(1)))
+
+$$(OUT_PATH)/$$(firstword $$(libso_names)): $$(call translate_obj,$(2))
 	@echo "\033[032mlib:\033[0m	\033[44m$$@\033[0m"
-	@$$(if $$(filter %.cpp,$(2)),$$(CXX),$$(CC)) -shared -fPIC -o $$@ $$^ $$(LDFLAGS) $(3)
+	@$$(if $$(filter %.cpp,$(2)),$$(CXX),$$(CC)) -shared -fPIC -o $$@ $$^ $$(LDFLAGS) $(3) -Wl,-soname=$$(firstword $(1))
+
+ifneq ($$(word 2,$$(libso_names)), )
+$$(OUT_PATH)/$$(word 2,$$(libso_names)): $$(OUT_PATH)/$$(word 1,$$(libso_names))
+	@cd $$(OUT_PATH) && ln -sf $$(patsubst $$(OUT_PATH)/%,%,$$<) $$(patsubst $$(OUT_PATH)/%,%,$$@)
+endif
+
+ifneq ($$(word 3,$$(libso_names)), )
+$$(OUT_PATH)/$$(word 3,$$(libso_names)): $$(OUT_PATH)/$$(word 2,$$(libso_names))
+	@cd $$(OUT_PATH) && ln -sf $$(patsubst $$(OUT_PATH)/%,%,$$<) $$(patsubst $$(OUT_PATH)/%,%,$$@)
+endif
+
+ifneq ($$(word 4,$$(libso_names)), )
+$$(OUT_PATH)/$$(word 4,$$(libso_names)): $$(OUT_PATH)/$$(word 3,$$(libso_names))
+	@cd $$(OUT_PATH) && ln -sf $$(patsubst $$(OUT_PATH)/%,%,$$<) $$(patsubst $$(OUT_PATH)/%,%,$$@)
+endif
+
 endef
 
 define add-bin-build

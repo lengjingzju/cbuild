@@ -132,7 +132,7 @@ lengjing@lengjing:~/cbuild/examples/test-app$ make  # 此时依赖此头文件�
 gcc	sub.c
 gcc	main.c
 lib:	/home/lengjing/cbuild/output/objects/examples/test-app/libtest.a
-lib:	/home/lengjing/cbuild/output/objects/examples/test-app/libtest.so
+lib:	/home/lengjing/cbuild/output/objects/examples/test-app/libtest.so.1.2.3
 bin:	/home/lengjing/cbuild/output/objects/examples/test-app/test
 Build test-app Done.
 lengjing@lengjing:~/cbuild/examples/test-app$ make install  # 安装文件
@@ -146,13 +146,13 @@ lengjing@lengjing:~/cbuild/examples/test-app2$ cd ../test-app3/
 lengjing@lengjing:~/cbuild/examples/test-app3$ make
 gcc	add.c
 lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libadd.a
-lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libadd.so
+lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libadd.so.1.2.3
 gcc	sub.c
 lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libsub.a
-lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libsub.so
+lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libsub.so.1.2
 gcc	mul.c
 lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libmul.a
-lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libmul.so
+lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libmul.so.1
 gcc	div.c
 lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libdiv.a
 lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libdiv.so
@@ -164,6 +164,11 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 
 * LIBA_NAME: 编译静态库时需要设置静态库名
 * LIBSO_NAME: 编译动态库时需要设置动态库名
+    * LIBSO_NAME 可以设置为 `库名 主版本号 次版本号 补丁版本号` 格式，例如
+        * `LIBSO_NAME = libtest.so 1 2 3` 编译生成动态库 libtest.so.1.2.3，并创建符号链接 libtest.so 和 libtest.so.1
+        * `LIBSO_NAME = libtest.so 1 2`   编译生成动态库 libtest.so.1.2  ，并创建符号链接 libtest.so 和 libtest.so.1
+        * `LIBSO_NAME = libtest.so 1`     编译生成动态库 libtest.so.1    ，并创建符号链接 libtest.so
+        * `LIBSO_NAME = libtest.so`       编译生成动态库 libtest.so
 * BIN_NAME: 编译可执行文件时需要设置可执行文件名
 * install_liba: 安装静态库
 * install_libso: 安装动态库
@@ -173,6 +178,7 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 
 * `$(eval $(call add-liba-build,静态库名,源文件列表))`: 创建编译静态库规则
 * `$(eval $(call add-libso-build,动态库名,源文件列表))`: 创建编译动态库规则
+    * 动态库名可以设置为 `库名 主版本号 次版本号 补丁版本号` 格式，参考 LIBSO_NAME 的说明
 * `$(eval $(call add-libso-build,动态库名,源文件列表,链接参数))`: 创建编译动态库规则
 * `$(eval $(call add-bin-build,可执行文件名,源文件列表))`: 创建编译可执行文件规则
 * `$(eval $(call add-bin-build,可执行文件名,源文件列表,链接参数))`: 创建编译可执行文件规则

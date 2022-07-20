@@ -17,11 +17,11 @@ all:
 include $(ENV_TOP_DIR)/scripts/core/inc.app.mk
 
 $(eval $(call add-liba-build,libadd.a,$(add-srcs)))
-$(eval $(call add-libso-build,libadd.so,$(add-srcs)))
+$(eval $(call add-libso-build,libadd.so 1 2 3,$(add-srcs)))
 $(eval $(call add-liba-build,libsub.a,$(sub-srcs)))
-$(eval $(call add-libso-build,libsub.so,$(sub-srcs)))
+$(eval $(call add-libso-build,libsub.so 1 2,$(sub-srcs)))
 $(eval $(call add-liba-build,libmul.a,$(mul-srcs)))
-$(eval $(call add-libso-build,libmul.so,$(mul-srcs)))
+$(eval $(call add-libso-build,libmul.so 1,$(mul-srcs)))
 $(eval $(call add-liba-build,libdiv.a,$(div-srcs)))
 $(eval $(call add-libso-build,libdiv.so,$(div-srcs)))
 

@@ -2,7 +2,7 @@ PACKAGE_NAME ?= test-app
 
 BIN_NAME = test
 LIBA_NAME = libtest.a
-LIBSO_NAME = libtest.so
+LIBSO_NAME = libtest.so 1 2 3
 INSTALL_HEADERS = include/add.h include/sub.h
 
 .PHONY: all clean install

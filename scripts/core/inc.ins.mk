@@ -21,18 +21,18 @@ endif
 ifneq ($(INSTALL_LIBRARIES), )
 install_libs:
 	@install -d $(ENV_INS_ROOT)/usr/lib
-	@install $(INSTALL_LIBRARIES) $(ENV_INS_ROOT)/usr/lib
+	@cp -rf $(INSTALL_LIBRARIES) $(ENV_INS_ROOT)/usr/lib
 endif
 
 ifneq ($(INSTALL_BINARIES), )
 install_bins:
 	@install -d $(ENV_INS_ROOT)/usr/bin
-	@install $(INSTALL_BINARIES) $(ENV_INS_ROOT)/usr/bin
+	@cp -rf $(INSTALL_BINARIES) $(ENV_INS_ROOT)/usr/bin
 endif
 
 ifneq ($(INSTALL_DATAS), )
 install_datas:
 	@install -d $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
-	@cp -rfp $(INSTALL_DATAS) $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
+	@cp -rf $(INSTALL_DATAS) $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
 endif
 
