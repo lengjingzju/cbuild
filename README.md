@@ -173,6 +173,10 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 * install_liba: 安装静态库
 * install_libso: 安装动态库
 * install_bin: 安装可执行文件
+* install_hdr: 安装头文件集
+    * 用户需要设置被安装的头文件集变量 INSTALL_HEADER 或/与 INSTALL_PRIVATE_HEADER
+    * INSTALL_HEADER 指定的头文件的默认安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
+    * INSTALL_PRIVATE_HEADER 指定的头文件的默认安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private`
 
 `scripts/core/inc.app.mk` 提供的函数
 

@@ -32,6 +32,9 @@ SRCS           ?= $(shell find $(SRC_PATH) -name "*.c" -o -name "*.cpp" -o -name
 OBJS            = $(call translate_obj,$(SRCS))
 DEPS            = $(patsubst %.o,%.d,$(OBJS))
 
+ifneq ($(SRC_PATH), .)
+CFLAGS         += -I./include/
+endif
 CFLAGS         += -I$(SRC_PATH)/ -I$(SRC_PATH)/include/ -I$(OUT_PATH)/
 
 ifneq ($(PACKAGE_DEPS), )
@@ -127,6 +130,18 @@ $(OUT_PATH)/$(BIN_NAME): $(OBJS)
 install_bin:
 	@install -d $(ENV_INS_ROOT)/usr/bin
 	@cp -rf $(OUT_PATH)/$(BIN_NAME) $(ENV_INS_ROOT)/usr/bin
+endif
+
+ifneq ($(INSTALL_HEADER)$(INSTALL_PRIVATE_HEADER), )
+install_hdr:
+ifneq ($(INSTALL_HEADER), )
+	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
+	@cp -rfp $(INSTALL_HEADER) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
+endif
+ifneq ($(INSTALL_PRIVATE_HEADER), )
+	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private
+	@cp -rfp $(INSTALL_PRIVATE_HEADER) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private
+endif
 endif
 
 define add-liba-build

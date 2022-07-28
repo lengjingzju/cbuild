@@ -14,7 +14,7 @@ ifneq ($(INSTALL_HEADERS), )
 endif
 ifneq ($(INSTALL_PRIVATE_HEADERS), )
 	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private
-	@cp -rfp $(INSTALL_HEADERS) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private
+	@cp -rfp $(INSTALL_PRIVATE_HEADERS) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private
 endif
 endif
 
