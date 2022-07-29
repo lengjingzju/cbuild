@@ -51,7 +51,7 @@ endif
 menuconfig: buildkconfig
 	@-mkdir -p $(OUT_PATH)
 	@$(CONF_PREFIX) $(CONF_PATH)/mconf $(CONF_OPTIONS)
-	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --oldconfig
+	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --syncconfig
 
 ifneq ($(DEF_CONFIG), )
 loadconfig: buildkconfig
@@ -59,7 +59,7 @@ loadconfig: buildkconfig
 	@if [ ! -e $(AUTOHEADER_PATH) ]; then \
 		cp -f $(CONF_SAVE_PATH)/$(DEF_CONFIG) $(CONFIG_PATH); \
 		$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --defconfig $(CONF_SAVE_PATH)/$(DEF_CONFIG); \
-		$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --oldconfig; \
+		$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --syncconfig; \
 	fi
 endif
 
@@ -67,13 +67,13 @@ endif
 	@-mkdir -p $(OUT_PATH)
 	@cp -f $< $(CONFIG_PATH)
 	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --defconfig $<
-	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --oldconfig
+	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --syncconfig
 
 %_defconfig: $(CONF_SAVE_PATH)/%_defconfig buildkconfig
 	@-mkdir -p $(OUT_PATH)
 	@cp -f $< $(CONFIG_PATH)
 	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --defconfig $<
-	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --oldconfig
+	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --syncconfig
 
 %_saveconfig: $(CONFIG_PATH) buildkconfig
 	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --savedefconfig=$(CONF_SAVE_PATH)/$(subst _saveconfig,_config,$@)
