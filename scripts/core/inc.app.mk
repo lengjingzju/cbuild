@@ -32,15 +32,14 @@ SRCS           ?= $(shell find $(SRC_PATH) -name "*.c" -o -name "*.cpp" -o -name
 OBJS            = $(call translate_obj,$(SRCS))
 DEPS            = $(patsubst %.o,%.d,$(OBJS))
 
-ifneq ($(SRC_PATH), .)
-CFLAGS         += -I./include/
-endif
-CFLAGS         += -I$(SRC_PATH)/ -I$(SRC_PATH)/include/ -I$(OUT_PATH)/
+CFLAGS         += $(if $(filter-out .,$(SRC_PATH)),-I./include/) -I$(SRC_PATH)/ -I$(SRC_PATH)/include/ -I$(OUT_PATH)/
 
+comma          :=,
 ifneq ($(PACKAGE_DEPS), )
 CFLAGS         += $(patsubst %,-I$(ENV_DEP_ROOT)%,/usr/include/ /usr/local/include/)
 CFLAGS         += $(patsubst %,-I$(ENV_DEP_ROOT)/usr/include/%/,$(PACKAGE_DEPS))
 LDFLAGS        += $(patsubst %,-L$(ENV_DEP_ROOT)%,/lib/ /usr/lib/ /usr/local/lib/)
+LDFLAGS        += $(patsubst %,-Wl$(comma)-rpath-link=$(ENV_DEP_ROOT)%,/lib/ /usr/lib/ /usr/local/lib/)
 endif
 
 CFLAGS         += -ffunction-sections -fdata-sections -O2
@@ -99,7 +98,8 @@ LIB_TARGETS += $(patsubst %,$(OUT_PATH)/%,$(LIBSO_NAMES))
 
 $(OUT_PATH)/$(firstword $(LIBSO_NAMES)): $(OBJS)
 	@echo "\033[032mlib:\033[0m	\033[44m$@\033[0m"
-	@$(if $(CPPSRCS),$(CXX),$(CC)) -shared -fPIC -o $@ $^ $(LDFLAGS) -Wl,-soname=$(firstword $(LIBSO_NAME))
+	@$(if $(CPPSRCS),$(CXX),$(CC)) -shared -fPIC -o $@ $^ $(LDFLAGS) \
+		$(if $(findstring -soname=,$(LDFLAGS)),,-Wl$(comma)-soname=$(if $(word 2,$(LIBSO_NAME)),$(firstword $(LIBSO_NAME)).$(word 2,$(LIBSO_NAME)),$(LIBSO_NAME)))
 
 ifneq ($(word 2,$(LIBSO_NAMES)), )
 $(OUT_PATH)/$(word 2,$(LIBSO_NAMES)): $(OUT_PATH)/$(word 1,$(LIBSO_NAMES))
@@ -157,7 +157,8 @@ LIB_TARGETS += $(patsubst %,$(OUT_PATH)/%,$(call all_ver_obj,$(1)))
 
 $$(OUT_PATH)/$$(firstword $$(libso_names)): $$(call translate_obj,$(2))
 	@echo "\033[032mlib:\033[0m	\033[44m$$@\033[0m"
-	@$$(if $$(filter %.cpp,$(2)),$$(CXX),$$(CC)) -shared -fPIC -o $$@ $$^ $$(LDFLAGS) $(3) -Wl,-soname=$$(firstword $(1))
+	@$$(if $$(filter %.cpp,$(2)),$$(CXX),$$(CC)) -shared -fPIC -o $$@ $$^ $$(LDFLAGS) $(3) \
+		$$(if $$(findstring -soname=,$(3)),,-Wl$$(comma)-soname=$$(if $$(word 2,$(1)),$$(firstword $(1)).$$(word 2,$(1)),$(1)))
 
 ifneq ($$(word 2,$$(libso_names)), )
 $$(OUT_PATH)/$$(word 2,$$(libso_names)): $$(OUT_PATH)/$$(word 1,$$(libso_names))

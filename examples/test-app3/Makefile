@@ -24,6 +24,7 @@ $(eval $(call add-liba-build,libmul.a,$(mul-srcs)))
 $(eval $(call add-libso-build,libmul.so 1,$(mul-srcs)))
 $(eval $(call add-liba-build,libdiv.a,$(div-srcs)))
 $(eval $(call add-libso-build,libdiv.so,$(div-srcs)))
+$(eval $(call add-libso-build,libadd2.so 1 2 3,$(add-srcs),-Wl$(comma)-soname=libadd2.so))
 
 INSTALL_HEADERS = include/add.h include/sub.h include/mul.h include/div.h
 INSTALL_LIBRARIES = $(LIB_TARGETS)

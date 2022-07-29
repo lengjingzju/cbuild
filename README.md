@@ -156,6 +156,7 @@ lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libmul.so.1
 gcc	div.c
 lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libdiv.a
 lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libdiv.so
+lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libadd2.so.1.2.3
 Build test-app3 Done.
 lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 ```
@@ -169,6 +170,8 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
         * `LIBSO_NAME = libtest.so 1 2`   编译生成动态库 libtest.so.1.2  ，并创建符号链接 libtest.so 和 libtest.so.1
         * `LIBSO_NAME = libtest.so 1`     编译生成动态库 libtest.so.1    ，并创建符号链接 libtest.so
         * `LIBSO_NAME = libtest.so`       编译生成动态库 libtest.so
+    * 如果 LIBSO_NAME 带版本号，默认指定的 soname 是 `libxxxx.so.x`，可以通过 LDFLAGS 覆盖默认值
+        * 例如 `LDFLAGS += -Wl,-soname=libxxxx.so`
 * BIN_NAME: 编译可执行文件时需要设置可执行文件名
 * install_liba: 安装静态库
 * install_libso: 安装动态库
@@ -184,6 +187,7 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 * `$(eval $(call add-libso-build,动态库名,源文件列表))`: 创建编译动态库规则
     * 动态库名可以设置为 `库名 主版本号 次版本号 补丁版本号` 格式，参考 LIBSO_NAME 的说明
 * `$(eval $(call add-libso-build,动态库名,源文件列表,链接参数))`: 创建编译动态库规则
+    * 注意函数中有逗号要用变量覆盖: `$(eval $(call add-libso-build,动态库名,源文件列表,-Wl$(comma)-soname=libxxxx.so))`
 * `$(eval $(call add-bin-build,可执行文件名,源文件列表))`: 创建编译可执行文件规则
 * `$(eval $(call add-bin-build,可执行文件名,源文件列表,链接参数))`: 创建编译可执行文件规则
 
