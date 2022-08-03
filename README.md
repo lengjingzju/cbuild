@@ -464,6 +464,7 @@ rm -f auto.mk Kconfig
 
 * `-m <Makefile Name>`: 自动生成的 Makefile 文件名
 * `-k <Kconfig Name>`: 自动生成的 Kconfig 文件名
+    * 还会在 Kconfig 同目录生成 Target 文件，列出所有包的文件路径、包名和依赖
 * `-f <Search Depend Name>`: 要搜索的依赖文件名(含有依赖信息)
 * `-d <Search Directories>`: 搜索的目录名，多个目录使用冒号隔开
 * `-i <Ignore Directories>`: 忽略的目录名，不会搜索指定目录名下的依赖文件，多个目录使用冒号隔开

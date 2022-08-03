@@ -145,6 +145,14 @@ class Deps:
                 cur_depth -= 1
                 fp.write('endmenu\n\n')
 
+    def gen_target(self, filename):
+        with open(filename, 'w') as fp:
+            for item in self.ItemList:
+                if item['deps']:
+                    fp.write('%s:\t%s:\t%s\n' % (item['path'], item['target'], ' '.join(item['deps'])))
+                else:
+                    fp.write('%s:\t%s:\n' % (item['path'], item['target'],))
+
     def gen_make(self, filename):
         with open(filename, 'w') as fp:
             for item in self.ItemList:
@@ -253,6 +261,7 @@ def parse_options():
 def do_analysis(args):
     makefile_out = args.makefile_out
     kconfig_out = args.kconfig_out
+    target_out = os.path.join(os.path.dirname(kconfig_out), 'Target')
     search_file = args.search_file
     search_dirs = [s.strip() for s in args.search_dirs.split(':')]
     ignore_dirs = []
@@ -279,6 +288,7 @@ def do_analysis(args):
         sys.exit(1)
 
     deps.gen_kconfig(kconfig_out, max_depth, keywords)
+    deps.gen_target(target_out)
     if deps.sort_items() == -1:
         print('ERROR: sort_items() failed.')
         sys.exit(1)
