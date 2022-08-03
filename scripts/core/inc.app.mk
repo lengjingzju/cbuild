@@ -51,18 +51,18 @@ CSRCS           = $(filter %.c,$(SRCS))
 ifneq ($(CSRCS), )
 $(patsubst %.c,$(OUT_PATH)/%.o,$(CSRCS)): $(OUT_PATH)/%.o: %.c
 	@-mkdir -p $(dir $@)
-	@$(CC) -c $(CFLAGS) -MM -MT $@ -MF $(patsubst %.o,%.d,$@) $<
+	@$(CC) -c $(CFLAGS) $(CFLAGS_$(patsubst %.c,%.o,$<)) -MM -MT $@ -MF $(patsubst %.o,%.d,$@) $<
 	@echo "\033[032m$(CC)\033[0m	$<"
-	@$(CC) -c $(CFLAGS) -fPIC -o $@ $<
+	@$(CC) -c $(CFLAGS) $(CFLAGS_$(patsubst %.c,%.o,$<)) -fPIC -o $@ $<
 endif
 
 CPPSRCS         = $(filter %.cpp,$(SRCS))
 ifneq ($(CPPSRCS), )
 $(patsubst %.cpp,$(OUT_PATH)/%.o,$(CPPSRCS)): $(OUT_PATH)/%.o: %.cpp
 	@-mkdir -p $(dir $@)
-	@$(CXX) -c $(CFLAGS) -MM -MT $@ -MF $(patsubst %.o,%.d,$@) $<
+	@$(CXX) -c $(CFLAGS) $(CFLAGS_$(patsubst %.cpp,%.o,$<)) -MM -MT $@ -MF $(patsubst %.o,%.d,$@) $<
 	@echo "\033[032m$(CXX)\033[0m	$<"
-	@$(CXX) -c $(CFLAGS) -fPIC -o $@ $<
+	@$(CXX) -c $(CFLAGS) $(CFLAGS_$(patsubst %.cpp,%.o,$<)) -fPIC -o $@ $<
 endif
 
 SSRCS           = $(filter %.S,$(SRCS))
@@ -70,7 +70,7 @@ ifneq ($(SSRCS), )
 $(patsubst %.S,$(OUT_PATH)/%.o,$(SSRCS)): $(OUT_PATH)/%.o: %.S
 	@-mkdir -p $(dir $@)
 	@echo "\033[032m$(CC)\033[0m	$<"
-	@$(CC) -c $(CFLAGS) -fPIC -o $@ $<
+	@$(CC) -c $(CFLAGS) $(CFLAGS_$(patsubst %.S,%.o,$<)) -fPIC -o $@ $<
 endif
 
 $(OBJS): $(MAKEFILE_LIST)

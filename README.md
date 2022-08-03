@@ -4,7 +4,7 @@
 
 * Linux 下纯粹的 Makefile 编译
 * 支持 C / C++ / 汇编混合编译
-* 支持交叉编译，支持自动分析头文件和编译脚本文件作为编译依赖
+* 支持交叉编译，支持自动分析头文件和编译脚本文件作为编译依赖，支持分别指定源文件的 CFLAGS
 * 一个 Makefile 同时支持 Yocto 编译方式、源码和编译输出分离模式和不分离模式
 * 一个 Makefile 支持生成多个库、可执行文件或模块
 * 提供编译静态库、共享库和可执行文件的模板 `inc.app.mk`
@@ -219,8 +219,9 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 * SRC_PATH: 包中源码所在的目录，默认是包的根目录，也有的包将源码放在 src 下
 * SRCS: 所有的 C 源码文件，默认是 SRC_PATH 下的所有的 `*.c *.cpp *.S` 文件
     * 如果用户指定了 SRCS，不需要再指定 SRC_PATH
-* CFLAGS: 用户需要设置包自己的一些全局编译标记
-* LDFLAGS: 用户需要设置包自己的一些全局链接标记
+* CFLAGS: 用户可以设置包自己的一些全局编译标记
+* LDFLAGS: 用户可以设置包自己的一些全局链接标记
+* CFLAGS_xxx.o: 用户可以单独为指定源码 xxx.c 设置编译标记
 
 ## 测试kconfig
 
@@ -289,7 +290,7 @@ def2_config  def_config
 * KCONFIG: 配置参数文件，默认是包下的 Kconfig 文件
 * CONF_SAVE_PATH: 配置文件的获取和保存目录，默认是包下的 config 目录
 
-注: 目录下的 Kconfig 文件也说明了如何写配置参数
+注: 目录下的 [Kconfig](./examples/test-conf/Kconfig) 文件也说明了如何写配置参数
 
 `scripts/kconfig` 工程说明
 
