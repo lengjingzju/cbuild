@@ -36,3 +36,6 @@ install_datas:
 	@cp -rf $(INSTALL_DATAS) $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
 endif
 
+install_datas_%:
+	@install -d $(ENV_INS_ROOT)/usr/share/$(patsubst install_datas_%,%,$@)
+	@cp -rf $(INSTALL_DATAS_$(patsubst install_datas_%,%,$@)) $(ENV_INS_ROOT)/usr/share/$(patsubst install_datas_%,%,$@)

@@ -178,8 +178,8 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 * install_bin: 安装可执行文件
 * install_hdr: 安装头文件集
     * 用户需要设置被安装的头文件集变量 INSTALL_HEADER 或/与 INSTALL_PRIVATE_HEADER
-    * INSTALL_HEADER 指定的头文件的默认安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
-    * INSTALL_PRIVATE_HEADER 指定的头文件的默认安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private`
+    * INSTALL_HEADER 指定的头文件的安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
+    * INSTALL_PRIVATE_HEADER 指定的头文件的安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private`
 
 `scripts/core/inc.app.mk` 提供的函数
 
@@ -196,19 +196,22 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 `scripts/core/inc.ins.mk` 支持的目标
 * install_hdrs: 安装头文件集
     * 用户需要设置被安装的头文件集变量 INSTALL_HEADERS 或/与 INSTALL_PRIVATE_HEADERS
-    * INSTALL_HEADERS 指定的头文件的默认安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
-    * INSTALL_PRIVATE_HEADERS 指定的头文件的默认安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private`
+    * INSTALL_HEADERS 指定的头文件的安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
+    * INSTALL_PRIVATE_HEADERS 指定的头文件的安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private`
 * install_libs: 安装库文件集
     * 用户需要设置被安装的库文件集变量 INSTALL_LIBRARIES
-    * 默认安装目录是 `$(ENV_INS_ROOT)/usr/lib`
+    * 安装目录是 `$(ENV_INS_ROOT)/usr/lib`
     * 编译生成的库文件会加入到 `LIB_TARGETS` 变量，可以将它赋值给 INSTALL_LIBRARIES
 * install_bins: 安装可执行文件集
     * 用户需要设置被安装的可执行文件集变量 INSTALL_BINARIES
-    * 默认安装目录是 `$(ENV_INS_ROOT)/usr/bin`
+    * 安装目录是 `$(ENV_INS_ROOT)/usr/bin`
     * 编译生成的可执行文件会加入到 `BIN_TARGETS` 变量，可以将它赋值给 INSTALL_BINARIES
 * install_datas: 安装数据文件集
     * 用户需要设置被安装的数据文件集变量 INSTALL_DATAS
-    * 默认安装目录是 `$(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)`
+    * 安装目录是 `$(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)`
+* install_datas_xxx: 安装数据文件集到特定文件夹xxx
+    * 用户需要设置被安装的数据文件集变量 INSTALL_DATAS_xxx
+    * 安装目录是 `$(ENV_INS_ROOT)/usr/share/xxx`
 
 `scripts/core/inc.app.mk` 可设置的变量
 
@@ -370,8 +373,8 @@ Build test-mod2 Done.
     * 外部内核模块默认的安装路径为 `$(ENV_INS_ROOT)/lib/modules/<kernel_release>/extra/`
 * modules_install_hdrs: 安装头文件集
     * 用户需要设置被安装的头文件集变量 INSTALL_HEADERS 或/与 INSTALL_PRIVATE_HEADERS
-    * INSTALL_HEADERS 指定的头文件的默认安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
-    * INSTALL_PRIVATE_HEADERS 指定的头文件的默认安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private`
+    * INSTALL_HEADERS 指定的头文件的安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
+    * INSTALL_PRIVATE_HEADERS 指定的头文件的安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private`
 
 `scripts/core/inc.mod.mk` 可设置的变量(KERNELRELEASE 为空时)
 
