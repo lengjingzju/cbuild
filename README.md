@@ -551,6 +551,31 @@ lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行
         export ENV_DEP_ROOT = "${WORKDIR}/recipe-sysroot"
         export ENV_BUILD_MODE
         ```
+    * 例如 kconfig.bbclass
+        ```py
+        inherit terminal
+
+        KCONFIG_CONFIG_COMMAND ??= "menuconfig"
+
+        python do_setrecompile () {
+            if hasattr(bb.build, 'write_taint'):
+                bb.build.write_taint('do_compile', d)
+        }
+
+        do_setrecompile[nostamp] = "1"
+        addtask setrecompile
+
+        python do_menuconfig() {
+            oe_terminal("sh -c \"make %s; if [ \\$? -ne 0 ]; then echo 'Command failed.'; printf 'Press any key to continue... '; read r; fi\"" % d.getVar('KCONFIG_CONFIG_COMMAND'),
+                        d.getVar('PN') + ' Configuration', d)
+        }
+
+        do_menuconfig[depends] += "kconfig-native:do_populate_sysroot"
+        do_menuconfig[nostamp] = "1"
+        do_menuconfig[dirs] = "${B}"
+        do_menuconfig[postfuncs] += "do_setrecompile"
+        addtask menuconfig after do_configure
+        ```
 
 * 编写配方文件 (xxx.bb)
     * `recipetool create -o <xxx.bb> <package_src_dir>` 创建一个基本配方，例子中手动增加的条目说明如下
@@ -558,7 +583,7 @@ lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行
         * 包依赖其他包时需要使用 `DEPENDS += "package1 package2"` 说明
         * 链接其它包时 (`LDFLAGS += -lname1 -lname2`) 需要增加 `RDEPENDS:${PN} += "package1 package2"` 说明
     * 编译继承类
-        * 使用 menuconfig 需要继承 `inherit cml1`
+        * 使用 menuconfig 需要继承 `inherit kconfig`
             * 如果是 `make -f wrapper.mk menuconfig`，需要设置 `KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"`
         * 使用 Makefile 编译应用继承 `inherit sanity`，使用 cmake 编译应用继承 `inherit cmake`
         * 编译外部内核模块继承 `inherit module`
@@ -589,7 +614,7 @@ SRC_URI = ""
 
 inherit testenv
 #KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"
-#inherit cml1
+#inherit kconfig
 inherit sanity
 #inherit cmake
 #inherit module
@@ -895,9 +920,11 @@ python do_menuconfig() {
 
 所以我们需要继承cml1类 `inherit cml1` 来加上 menuconfig 任务，如果我们的 Makefile 不是默认名称，我们还需要修改 `KCONFIG_CONFIG_COMMAND` 变量，例如 `KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"`。
 
+但是cml1类不支持.config文件放在和运行编译的工作目录的不同的目录，如果.config文件和运行编译的工作目录不同，包不会使用新的参数重新编译，此种情况我们可以继承自定义的类 `inherit kconfig`
+
 ### 如何禁止编译在源码创建 oe-workdir 和 oe-logs 符号链接
 
-答：查看Poky工程的 meta/classes/cml1.bbclass 的源码有个 `EXTERNALSRC_SYMLINKS ?= "oe-workdir:${WORKDIR} oe-logs:${T}"` 的变量，在输出目录的 `conf/local.conf` 将此变量置空 `EXTERNALSRC_SYMLINKS ?= ""` 即可禁止创建。
+答：查看Poky工程的 meta/classes/externalsrc.bbclass 的源码有个 `EXTERNALSRC_SYMLINKS ?= "oe-workdir:${WORKDIR} oe-logs:${T}"` 的变量，在输出目录的 `conf/local.conf` 将此变量置空 `EXTERNALSRC_SYMLINKS ?= ""` 即可禁止创建。
 * oe-workdir: 指向包输出的根目录 `${WORKDIR}`
 * oe-logs: 指向包输出的日志和脚本目录 `${WORKDIR}/temp`
 
@@ -947,7 +974,7 @@ FILES:${PN} = "${libdir}/lib*.so.*.*.*"
 
 答：自定义任务至少需要3个内容：任务函数、执行目录和任务声明。如果任务依赖其它包，还需要设置依赖。
 
-* dirs 和 depends 属性参考  [设置任务属性](https://docs.yoctoproject.org/bitbake/bitbake-user-manual/bitbake-user-manual-metadata.html?highlight=nostamp#variable-flags) ，其中dirs列出的最后一个目录用作任务的 [当前工作目录](https://docs.yoctoproject.org/ref-manual/variables.html#term-B)
+* dirs 、depends 和 postfuncs 属性参考  [设置任务属性](https://docs.yoctoproject.org/bitbake/bitbake-user-manual/bitbake-user-manual-metadata.html?highlight=nostamp#variable-flags) ，其中dirs列出的最后一个目录用作任务的 [当前工作目录](https://docs.yoctoproject.org/ref-manual/variables.html#term-B)
 * [addtask](https://docs.yoctoproject.org/bitbake/bitbake-user-manual/bitbake-user-manual-metadata.html?highlight=addtask#promoting-a-function-to-a-task) 还可以增加 `before` （执行其它任务时先执行此任务） 和 `after` （执行此任务时先执行其它任务） 说明
 
 ```sh
@@ -968,6 +995,7 @@ do_user_defined_config () {
 do_user_defined_config[dirs] = "${B}"
 do_user_defined_config[nostamp] = "1"
 do_user_defined_config[depends] += "kconfig-native:do_populate_sysroot"
+do_user_defined_config[postfuncs] += "do_setrecompile"
 addtask user_defined_config
 ```
 

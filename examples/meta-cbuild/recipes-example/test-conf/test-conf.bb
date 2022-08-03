@@ -18,7 +18,7 @@ SRC_URI = ""
 DEPENDS += "kconfig-native"
 
 inherit testenv
-inherit cml1
+inherit kconfig
 inherit sanity
 
 # NOTE: this is a Makefile-only piece of software, so we cannot generate much of the
