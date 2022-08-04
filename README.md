@@ -554,8 +554,8 @@ lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行
     * 例如 kconfig.bbclass
         ```py
         inherit terminal
-
         KCONFIG_CONFIG_COMMAND ??= "menuconfig"
+        KCONFIG_CONFIG_PATH ??= "${B}/.config"
 
         python do_setrecompile () {
             if hasattr(bb.build, 'write_taint'):
@@ -566,14 +566,29 @@ lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行
         addtask setrecompile
 
         python do_menuconfig() {
+            config = d.getVar('KCONFIG_CONFIG_PATH')
+
+            try:
+                mtime = os.path.getmtime(config)
+            except OSError:
+                mtime = 0
+
             oe_terminal("sh -c \"make %s; if [ \\$? -ne 0 ]; then echo 'Command failed.'; printf 'Press any key to continue... '; read r; fi\"" % d.getVar('KCONFIG_CONFIG_COMMAND'),
-                        d.getVar('PN') + ' Configuration', d)
+                d.getVar('PN') + ' Configuration', d)
+
+            if hasattr(bb.build, 'write_taint'):
+                try:
+                    newmtime = os.path.getmtime(config)
+                except OSError:
+                    newmtime = 0
+
+                if newmtime != mtime:
+                    bb.build.write_taint('do_compile', d)
         }
 
         do_menuconfig[depends] += "kconfig-native:do_populate_sysroot"
         do_menuconfig[nostamp] = "1"
         do_menuconfig[dirs] = "${B}"
-        do_menuconfig[postfuncs] += "do_setrecompile"
         addtask menuconfig after do_configure
         ```
 
@@ -585,6 +600,7 @@ lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行
     * 编译继承类
         * 使用 menuconfig 需要继承 `inherit kconfig`
             * 如果是 `make -f wrapper.mk menuconfig`，需要设置 `KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"`
+            * 如果 .congfig 输出目录是编译输出目录，需要设置 `KCONFIG_CONFIG_PATH = "${OUT_PATH}/.config"`
         * 使用 Makefile 编译应用继承 `inherit sanity`，使用 cmake 编译应用继承 `inherit cmake`
         * 编译外部内核模块继承 `inherit module`
         * 编译主机本地工具继承 `inherit native`
@@ -614,6 +630,7 @@ SRC_URI = ""
 
 inherit testenv
 #KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"
+#KCONFIG_CONFIG_PATH = "${OUT_PATH}/.config"
 #inherit kconfig
 inherit sanity
 #inherit cmake
@@ -958,12 +975,39 @@ FILES:${PN} = "${libdir}/lib*.so.*.*.*"
 
 关于链接参数的说明，请查看 [linux下动态库中的soname](https://www.cnblogs.com/wangshaowei/p/11285332.html)
 
+
+### `QA Issue [already-stripped]` 怎么解决
+
+答：该错误的打印是 `File '<file>' from <recipename> was already stripped, this will prevent future debugging! [already-stripped]`，
+错误原因是安装的可执行文件或动态库使用了 strip 命令删除了调试信息，所以我们安装的文件不应该先运行 `$(STRIP) 文件`，
+如果我们无法重新构建库，也可以通过忽略错误解决此问题，在recipe文件加上 `INSANE_SKIP:${PN} += "already-stripped"`
+
 ### `Error: Unable to find a match: <packagename>` 怎么解决
 
 答：该错误的打印出现在do_rootfs时，错误原因是某个包没有任何输出，或输出只有头文件 或/和 静态库文件，
 解决方法有两个
 * a. 忽略错误，在recipe文件加上 `ALLOW_EMPTY:${PN} = "1"` (目前使用方法)
 * b. 不要将此包加入到do_rootfs变量 `IMAGE_INSTALL:append` ，修改 `build/bin/yocto/inc-yocto-build.mk` 的 IGNORES_RECIPES 变量
+
+### `Error: Transaction test error:` 怎么解决
+
+答：该错误的打印出现在do_rootfs时，打印信息 `"xxx do_rootfs: Could not invoke dnf. Command..."`， 然后一连串的包列表，然后 `"Error: Transaction test error: file xxx conflicts between attempted installs of xxx and xxx"`。
+错误原因是某个包安装的文件和其它包安装的文件路径名相同，此时只能改变其中一个包安装的文件。
+
+有时候我们使用自己的配方编译开源包，Yocto 也有对应的默认配方，此时do_rootfs的时候也可能报错。
+例如如果我们使用了自己的配方编译zlib开源库，do_rootfs就报了下面错误
+```
+Error: 
+ Problem: package libkmod2-29-r0.cortexa53 requires libz1 >= 1.2.11, but none of the providers can be installed
+  - package systemd-1:250.5-r0.cortexa53 requires libkmod.so.2()(64bit), but none of the providers can be installed
+  - package systemd-1:250.5-r0.cortexa53 requires libkmod.so.2(LIBKMOD_5)(64bit), but none of the providers can be installed
+  - package systemd-1:250.5-r0.cortexa53 requires libkmod2 >= 29, but none of the providers can be installed
+  - cannot install both libz1-1.2.11-r0.cortexa53 and libz1-1.0-r0.cortexa53
+  - package packagegroup-core-boot-1.0-r17.v5 requires systemd, but none of the providers can be installed
+  - conflicting requests
+(try to add '--allowerasing' to command line to replace conflicting packages or '--skip-broken' to skip uninstallable packages)
+```
+此时我们只能删除自定义的配方转而使用官方的配方。
 
 ### 怎么设置使包每次编译都重新编译
 

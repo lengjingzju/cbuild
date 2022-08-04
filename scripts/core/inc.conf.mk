@@ -50,8 +50,11 @@ endif
 
 menuconfig: buildkconfig
 	@-mkdir -p $(OUT_PATH)
-	@$(CONF_PREFIX) $(CONF_PATH)/mconf $(CONF_OPTIONS)
-	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --syncconfig
+	@mtime="$(if $(wildcard $(CONFIG_PATH)),$(if $(wildcard $(AUTOHEADER_PATH)),$$(stat -c %Y $(CONFIG_PATH)),0),0)"; \
+		$(CONF_PREFIX) $(CONF_PATH)/mconf $(CONF_OPTIONS); \
+		if [ "$${mtime}" != "$$(stat -c %Y $(CONFIG_PATH))" ]; then \
+			$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --syncconfig; \
+		fi
 
 ifneq ($(DEF_CONFIG), )
 loadconfig: buildkconfig
