@@ -17,6 +17,9 @@ class Deps:
                         if idir in dirs:
                             dirs.remove(idir)
 
+                if dirs:
+                    dirs.sort()
+
                 if search_file in files:
                     fullname = os.path.join(root, search_file)
                     filename = os.path.dirname(fullname.replace(rootdir + '/', '', 1))

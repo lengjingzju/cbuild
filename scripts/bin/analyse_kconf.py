@@ -17,6 +17,9 @@ class Kconfs:
                         if idir in dirs:
                             dirs.remove(idir)
 
+                if dirs:
+                    dirs.sort()
+
                 if dep_name in files:
                     if kconf_name in files:
                         self.PathList.append((root, root.replace(rootdir + '/', '', 1)))
