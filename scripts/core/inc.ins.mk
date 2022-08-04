@@ -37,5 +37,5 @@ install_datas:
 endif
 
 install_datas_%:
-	@install -d $(ENV_INS_ROOT)/usr/share/$(patsubst install_datas_%,%,$@)
-	@cp -rf $(INSTALL_DATAS_$(patsubst install_datas_%,%,$@)) $(ENV_INS_ROOT)/usr/share/$(patsubst install_datas_%,%,$@)
+	@install -d $(ENV_INS_ROOT)/usr/share/$(if $(INSTALL_DATAS_DIR_$(patsubst install_datas_%,%,$@)),$(INSTALL_DATAS_DIR_$(patsubst install_datas_%,%,$@)),$(patsubst install_datas_%,%,$@))
+	@cp -rf $(INSTALL_DATAS_$(patsubst install_datas_%,%,$@)) $(ENV_INS_ROOT)/usr/share/$(if $(INSTALL_DATAS_DIR_$(patsubst install_datas_%,%,$@)),$(INSTALL_DATAS_DIR_$(patsubst install_datas_%,%,$@)),$(patsubst install_datas_%,%,$@))

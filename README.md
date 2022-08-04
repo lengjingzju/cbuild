@@ -180,6 +180,19 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
     * 用户需要设置被安装的头文件集变量 INSTALL_HEADER 或/与 INSTALL_PRIVATE_HEADER
     * INSTALL_HEADER 指定的头文件的安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
     * INSTALL_PRIVATE_HEADER 指定的头文件的安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private`
+* install_data: 安装数据文件集
+    * 用户需要设置被安装的数据文件集变量 INSTALL_DATA
+    * 安装目录是 `$(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)`
+* install_data_xxx: 安装数据文件集到特定文件夹xxx
+    * 如果没有设置 INSTALL_DATA_DIR_xxx
+        * 用户需要设置被安装的数据文件集变量 INSTALL_DATA_xxx
+        * 安装目录是 `$(ENV_INS_ROOT)/usr/share/xxx`
+        * xxx 必须是单层目录，不能带斜杠
+    * 如果设置了 INSTALL_DATA_DIR_xxx
+        * 用户需要设置被安装的数据文件集变量 INSTALL_DATA_xxx
+        * 安装目录是 `$(ENV_INS_ROOT)/usr/share/$(INSTALL_DATA_DIR_xxx)`
+        * xxx 不在代表目录意思，只是一个标志符
+        * INSTALL_DATA_DIR_xxx 的值是安装的目录路径，可以带斜杆表示多层目录
 
 `scripts/core/inc.app.mk` 提供的函数
 
@@ -210,8 +223,15 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
     * 用户需要设置被安装的数据文件集变量 INSTALL_DATAS
     * 安装目录是 `$(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)`
 * install_datas_xxx: 安装数据文件集到特定文件夹xxx
-    * 用户需要设置被安装的数据文件集变量 INSTALL_DATAS_xxx
-    * 安装目录是 `$(ENV_INS_ROOT)/usr/share/xxx`
+    * 如果没有设置 INSTALL_DATAS_DIR_xxx
+        * 用户需要设置被安装的数据文件集变量 INSTALL_DATAS_xxx
+        * 安装目录是 `$(ENV_INS_ROOT)/usr/share/xxx`
+        * xxx 必须是单层目录，不能带斜杠
+    * 如果设置了 INSTALL_DATAS_DIR_xxx
+        * 用户需要设置被安装的数据文件集变量 INSTALL_DATAS_xxx
+        * 安装目录是 `$(ENV_INS_ROOT)/usr/share/$(INSTALL_DATAS_DIR_xxx)`
+        * xxx 不在代表目录意思，只是一个标志符
+        * INSTALL_DATAS_DIR_xxx 的值是安装的目录路径，可以带斜杆表示多层目录
 
 `scripts/core/inc.app.mk` 可设置的变量
 

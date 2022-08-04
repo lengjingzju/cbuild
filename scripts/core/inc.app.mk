@@ -144,6 +144,16 @@ ifneq ($(INSTALL_PRIVATE_HEADER), )
 endif
 endif
 
+ifneq ($(INSTALL_DATA), )
+install_data:
+	@install -d $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
+	@cp -rf $(INSTALL_DATA) $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
+endif
+
+install_data_%:
+	@install -d $(ENV_INS_ROOT)/usr/share/$(if $(INSTALL_DATA_DIR_$(patsubst install_data_%,%,$@)),$(INSTALL_DATA_DIR_$(patsubst install_data_%,%,$@)),$(patsubst install_data_%,%,$@))
+	@cp -rf $(INSTALL_DATA_$(patsubst install_data_%,%,$@)) $(ENV_INS_ROOT)/usr/share/$(if $(INSTALL_DATA_DIR_$(patsubst install_data_%,%,$@)),$(INSTALL_DATA_DIR_$(patsubst install_data_%,%,$@)),$(patsubst install_data_%,%,$@))
+
 define add-liba-build
 LIB_TARGETS += $$(OUT_PATH)/$(1)
 $$(OUT_PATH)/$(1): $$(call translate_obj,$(2))
