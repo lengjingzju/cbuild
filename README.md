@@ -240,8 +240,9 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
     * 默认将包依赖对应的路径加到当前包的头文件和库文件的搜索路径
 * OUT_PATH: 编译输出目录，保持默认即可
 * SRC_PATH: 包中源码所在的目录，默认是包的根目录，也有的包将源码放在 src 下
+    * 也可以指定包下多个(不交叉)目录的源码，例如 `SRC_PATH = src1 src2 src3`
 * SRCS: 所有的 C 源码文件，默认是 SRC_PATH 下的所有的 `*.c *.cpp *.S` 文件
-    * 如果用户指定了 SRCS，不需要再指定 SRC_PATH
+    * 如果用户指定了 SRCS，也可以设置 SRC_PATH 将 SRC_PATH 和 SRC_PATH 下的 include 加入到头文件搜索的目录
 * CFLAGS: 用户可以设置包自己的一些全局编译标记
 * LDFLAGS: 用户可以设置包自己的一些全局链接标记
 * CFLAGS_xxx.o: 用户可以单独为指定源码 xxx.c 设置编译标记

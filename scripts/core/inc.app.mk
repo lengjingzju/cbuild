@@ -32,7 +32,7 @@ SRCS           ?= $(shell find $(SRC_PATH) -name "*.c" -o -name "*.cpp" -o -name
 OBJS            = $(call translate_obj,$(SRCS))
 DEPS            = $(patsubst %.o,%.d,$(OBJS))
 
-CFLAGS         += $(if $(filter-out .,$(SRC_PATH)),-I./include/) -I$(SRC_PATH)/ -I$(SRC_PATH)/include/ -I$(OUT_PATH)/
+CFLAGS         += -I./include/ $(patsubst %,-I%/,$(filter-out .,$(SRC_PATH))) $(patsubst %,-I%/inlcude/,$(filter-out .,$(SRC_PATH))) -I$(OUT_PATH)/
 
 comma          :=,
 ifneq ($(PACKAGE_DEPS), )
