@@ -37,5 +37,17 @@ install_datas:
 endif
 
 install_datas_%:
-	@install -d $(ENV_INS_ROOT)/usr/share/$(if $(INSTALL_DATAS_DIR_$(patsubst install_datas_%,%,$@)),$(INSTALL_DATAS_DIR_$(patsubst install_datas_%,%,$@)),$(patsubst install_datas_%,%,$@))
-	@cp -rf $(INSTALL_DATAS_$(patsubst install_datas_%,%,$@)) $(ENV_INS_ROOT)/usr/share/$(if $(INSTALL_DATAS_DIR_$(patsubst install_datas_%,%,$@)),$(INSTALL_DATAS_DIR_$(patsubst install_datas_%,%,$@)),$(patsubst install_datas_%,%,$@))
+	@isrc="$(patsubst $(lastword $(INSTALL_DATAS_$(patsubst install_datas_%,%,$@))),,$(INSTALL_DATAS_$(patsubst install_datas_%,%,$@)))"; \
+		idst=$(ENV_INS_ROOT)/usr/share$(lastword $(INSTALL_DATAS_$(patsubst install_datas_%,%,$@))); \
+		install -d $${idst} && cp -f $${isrc} $${idst}
+
+install_todirs_%:
+	@isrc="$(patsubst $(lastword $(INSTALL_TODIRS_$(patsubst install_todirs_%,%,$@))),,$(INSTALL_TODIRS_$(patsubst install_todirs_%,%,$@)))"; \
+		idst=$(ENV_INS_ROOT)$(lastword $(INSTALL_TODIRS_$(patsubst install_todirs_%,%,$@))); \
+		install -d $${idst} && cp -f $${isrc} $${idst}
+
+install_tofiles_%:
+	@isrc=$(word 1,$(INSTALL_TOFILES_$(patsubst install_tofiles_%,%,$@))); \
+		idst=$(ENV_INS_ROOT)$(word 2,$(INSTALL_TOFILES_$(patsubst install_tofiles_%,%,$@))); \
+		install -d $(dir $(ENV_INS_ROOT)$(word 2,$(INSTALL_TOFILES_$(patsubst install_tofiles_%,%,$@)))) && cp -f $${isrc} $${idst}
+

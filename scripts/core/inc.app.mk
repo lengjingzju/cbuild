@@ -132,28 +132,6 @@ install_bin:
 	@cp -rf $(OUT_PATH)/$(BIN_NAME) $(ENV_INS_ROOT)/usr/bin
 endif
 
-ifneq ($(INSTALL_HEADER)$(INSTALL_PRIVATE_HEADER), )
-install_hdr:
-ifneq ($(INSTALL_HEADER), )
-	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
-	@cp -rfp $(INSTALL_HEADER) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
-endif
-ifneq ($(INSTALL_PRIVATE_HEADER), )
-	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private
-	@cp -rfp $(INSTALL_PRIVATE_HEADER) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private
-endif
-endif
-
-ifneq ($(INSTALL_DATA), )
-install_data:
-	@install -d $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
-	@cp -rf $(INSTALL_DATA) $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
-endif
-
-install_data_%:
-	@install -d $(ENV_INS_ROOT)/usr/share/$(if $(INSTALL_DATA_DIR_$(patsubst install_data_%,%,$@)),$(INSTALL_DATA_DIR_$(patsubst install_data_%,%,$@)),$(patsubst install_data_%,%,$@))
-	@cp -rf $(INSTALL_DATA_$(patsubst install_data_%,%,$@)) $(ENV_INS_ROOT)/usr/share/$(if $(INSTALL_DATA_DIR_$(patsubst install_data_%,%,$@)),$(INSTALL_DATA_DIR_$(patsubst install_data_%,%,$@)),$(patsubst install_data_%,%,$@))
-
 define add-liba-build
 LIB_TARGETS += $$(OUT_PATH)/$(1)
 $$(OUT_PATH)/$(1): $$(call translate_obj,$(2))
@@ -193,4 +171,37 @@ $$(OUT_PATH)/$(1): $$(call translate_obj,$(2))
 	@echo "\033[032mbin:\033[0m	\033[44m$$@\033[0m"
 	@$$(if $$(filter %.cpp,$(2)),$$(CXX),$$(CC)) -o $$@ $$^ $$(LDFLAGS) $(3)
 endef
+
+ifneq ($(INSTALL_HEADER)$(INSTALL_PRIVATE_HEADER), )
+install_hdr:
+ifneq ($(INSTALL_HEADER), )
+	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
+	@cp -rfp $(INSTALL_HEADER) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
+endif
+ifneq ($(INSTALL_PRIVATE_HEADER), )
+	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private
+	@cp -rfp $(INSTALL_PRIVATE_HEADER) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private
+endif
+endif
+
+ifneq ($(INSTALL_DATA), )
+install_data:
+	@install -d $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
+	@cp -rf $(INSTALL_DATA) $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
+endif
+
+install_data_%:
+	@isrc="$(patsubst $(lastword $(INSTALL_DATA_$(patsubst install_data_%,%,$@))),,$(INSTALL_DATA_$(patsubst install_data_%,%,$@)))"; \
+		idst=$(ENV_INS_ROOT)/usr/share$(lastword $(INSTALL_DATA_$(patsubst install_data_%,%,$@))); \
+		install -d $${idst} && cp -f $${isrc} $${idst}
+
+install_todir_%:
+	@isrc="$(patsubst $(lastword $(INSTALL_TODIR_$(patsubst install_todir_%,%,$@))),,$(INSTALL_TODIR_$(patsubst install_todir_%,%,$@)))"; \
+		idst=$(ENV_INS_ROOT)$(lastword $(INSTALL_TODIR_$(patsubst install_todir_%,%,$@))); \
+		install -d $${idst} && cp -f $${isrc} $${idst}
+
+install_tofile_%:
+	@isrc=$(word 1,$(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@))); \
+		idst=$(ENV_INS_ROOT)$(word 2,$(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@))); \
+		install -d $(dir $(ENV_INS_ROOT)$(word 2,$(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))) && cp -f $${isrc} $${idst}
 

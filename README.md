@@ -161,6 +161,60 @@ Build test-app3 Done.
 lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 ```
 
+**特别注意: 第40次提交修改并增加了安装相关的目标和用法，和以前不兼容**
+
+`scripts/core/inc.ins.mk` 支持的目标
+* install_libs: 安装库文件集
+    * 用户需要设置被安装的库文件集变量 INSTALL_LIBRARIES
+    * 安装目录是 `$(ENV_INS_ROOT)/usr/lib`
+    * 编译生成的库文件会加入到 `LIB_TARGETS` 变量，可以将它赋值给 INSTALL_LIBRARIES
+* install_bins: 安装可执行文件集
+    * 用户需要设置被安装的可执行文件集变量 INSTALL_BINARIES
+    * 安装目录是 `$(ENV_INS_ROOT)/usr/bin`
+    * 编译生成的可执行文件会加入到 `BIN_TARGETS` 变量，可以将它赋值给 INSTALL_BINARIES
+* install_hdrs: 安装头文件集
+    * 用户需要设置被安装的头文件集变量 INSTALL_HEADERS 或/与 INSTALL_PRIVATE_HEADERS
+    * INSTALL_HEADERS 指定的头文件的安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
+    * INSTALL_PRIVATE_HEADERS 指定的头文件的安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private`
+* install_datas: 安装数据文件集
+    * 用户需要设置被安装的数据文件集变量 INSTALL_DATAS
+    * 安装目录是 `$(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)`
+* install_datas_xxx / install_todirs_xxx / install_tofiles_xxx: 安装文件集到特定文件夹
+    * 要安装的文件集分别由 INSTALL_DATAS_xxx / INSTALL_TODIRS_xxx / INSTALL_TOFILES_xxx 定义
+    * 定义的值前面部分是要安装的文件集，最后一项是以斜杆 `/` 开头的安装目标路径
+    * install_datas_xxx 安装到目录 `$(ENV_INS_ROOT)/usr/share$(INSTALL_DATAS_xxx最后一项)`
+    * install_todirs_xxx 安装到目录`$(ENV_INS_ROOT)$(INSTALL_TODIRS_xxx最后一项)` 
+    * install_tofiles_xxx 安装到文件`$(ENV_INS_ROOT)$(INSTALL_TOFILES_xxx最后一项)` ，INSTALL_TOFILES_xxx 的值有且只有两项
+    * 例子:
+        * 创建2个空白文件 testa 和 testb，Makefile 内容如下:
+        ```makefile
+        INSTALL_DATAS_test = testa testb /testa/testb
+        INSTALL_TODIRS_test = testa testb /usr/local/bin
+        INSTALL_TOFILES_testa = testa /etc/a.conf
+        INSTALL_TOFILES_testb = testa /etc/b.conf
+
+        all: install_datas_test install_todirs_test install_tofiles_testa install_tofiles_testb
+        include $(ENV_TOP_DIR)/scripts/core/inc.ins.mk
+        ```
+        * 运行 make 安装后的文件树
+        ```
+        output/
+        └── sysroot
+            ├── etc
+            │   ├── a.conf
+            │   └── b.conf
+            └── usr
+                ├── local
+                │   └── bin
+                │       ├── testa
+                │       └── testb
+                └── share
+                    └── testa
+                        └── testb
+                            ├── testa
+                            └── testb
+        ```
+
 `scripts/core/inc.app.mk` 支持的目标
 
 * LIBA_NAME: 编译静态库时需要设置静态库名
@@ -176,23 +230,9 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 * install_liba: 安装静态库
 * install_libso: 安装动态库
 * install_bin: 安装可执行文件
-* install_hdr: 安装头文件集
-    * 用户需要设置被安装的头文件集变量 INSTALL_HEADER 或/与 INSTALL_PRIVATE_HEADER
-    * INSTALL_HEADER 指定的头文件的安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
-    * INSTALL_PRIVATE_HEADER 指定的头文件的安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private`
-* install_data: 安装数据文件集
-    * 用户需要设置被安装的数据文件集变量 INSTALL_DATA
-    * 安装目录是 `$(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)`
-* install_data_xxx: 安装数据文件集到特定文件夹xxx
-    * 如果没有设置 INSTALL_DATA_DIR_xxx
-        * 用户需要设置被安装的数据文件集变量 INSTALL_DATA_xxx
-        * 安装目录是 `$(ENV_INS_ROOT)/usr/share/xxx`
-        * xxx 必须是单层目录，不能带斜杠
-    * 如果设置了 INSTALL_DATA_DIR_xxx
-        * 用户需要设置被安装的数据文件集变量 INSTALL_DATA_xxx
-        * 安装目录是 `$(ENV_INS_ROOT)/usr/share/$(INSTALL_DATA_DIR_xxx)`
-        * xxx 不在代表目录意思，只是一个标志符
-        * INSTALL_DATA_DIR_xxx 的值是安装的目录路径，可以带斜杆表示多层目录
+* install_hdr / install_data / install_data_xxx / install_todir_xxx / install_tofile_xxx:
+    * 目标意义同 inc.ins.mk 中对应的目标 install_hdrs / install_datas / install_datas_xxx / install_todirs_xxx / install_tofiles_xxx
+    * 且变量名称改为了 INSTALL_HEADER INSTALL_PRIVATE_HEADER / INSTALL_DATA / INSTALL_DATA_xxx / INSTALL_TODIR_xxx / INSTALL_TOFILE_xxx
 
 `scripts/core/inc.app.mk` 提供的函数
 
@@ -205,33 +245,6 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 * `$(eval $(call add-bin-build,可执行文件名,源文件列表,链接参数))`: 创建编译可执行文件规则
 
 注: 提供上述函数的原因是可以在一个 Makefile 中编译出多个库或可执行文件
-
-`scripts/core/inc.ins.mk` 支持的目标
-* install_hdrs: 安装头文件集
-    * 用户需要设置被安装的头文件集变量 INSTALL_HEADERS 或/与 INSTALL_PRIVATE_HEADERS
-    * INSTALL_HEADERS 指定的头文件的安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
-    * INSTALL_PRIVATE_HEADERS 指定的头文件的安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private`
-* install_libs: 安装库文件集
-    * 用户需要设置被安装的库文件集变量 INSTALL_LIBRARIES
-    * 安装目录是 `$(ENV_INS_ROOT)/usr/lib`
-    * 编译生成的库文件会加入到 `LIB_TARGETS` 变量，可以将它赋值给 INSTALL_LIBRARIES
-* install_bins: 安装可执行文件集
-    * 用户需要设置被安装的可执行文件集变量 INSTALL_BINARIES
-    * 安装目录是 `$(ENV_INS_ROOT)/usr/bin`
-    * 编译生成的可执行文件会加入到 `BIN_TARGETS` 变量，可以将它赋值给 INSTALL_BINARIES
-* install_datas: 安装数据文件集
-    * 用户需要设置被安装的数据文件集变量 INSTALL_DATAS
-    * 安装目录是 `$(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)`
-* install_datas_xxx: 安装数据文件集到特定文件夹xxx
-    * 如果没有设置 INSTALL_DATAS_DIR_xxx
-        * 用户需要设置被安装的数据文件集变量 INSTALL_DATAS_xxx
-        * 安装目录是 `$(ENV_INS_ROOT)/usr/share/xxx`
-        * xxx 必须是单层目录，不能带斜杠
-    * 如果设置了 INSTALL_DATAS_DIR_xxx
-        * 用户需要设置被安装的数据文件集变量 INSTALL_DATAS_xxx
-        * 安装目录是 `$(ENV_INS_ROOT)/usr/share/$(INSTALL_DATAS_DIR_xxx)`
-        * xxx 不在代表目录意思，只是一个标志符
-        * INSTALL_DATAS_DIR_xxx 的值是安装的目录路径，可以带斜杆表示多层目录
 
 `scripts/core/inc.app.mk` 可设置的变量
 
@@ -392,10 +405,7 @@ Build test-mod2 Done.
 * modules_clean: 清理内核模块的编译输出
 * modules_install: 安装内核模块到指定位置
     * 外部内核模块默认的安装路径为 `$(ENV_INS_ROOT)/lib/modules/<kernel_release>/extra/`
-* modules_install_hdrs: 安装头文件集
-    * 用户需要设置被安装的头文件集变量 INSTALL_HEADERS 或/与 INSTALL_PRIVATE_HEADERS
-    * INSTALL_HEADERS 指定的头文件的安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
-    * INSTALL_PRIVATE_HEADERS 指定的头文件的安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private`
+* install_hdr / install_data / install_data_xxx / install_todir_xxx / install_tofile_xxx: 和 inc.app.mk 中对应目标、变量和使用方法完全一致
 
 `scripts/core/inc.mod.mk` 可设置的变量(KERNELRELEASE 为空时)
 

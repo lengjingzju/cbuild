@@ -69,17 +69,40 @@ modules_clean:
 modules_install:
 	@make $(MOD_MAKES) $(if $(ENV_INS_ROOT), INSTALL_MOD_PATH=$(ENV_INS_ROOT)) modules_install
 
-ifneq ($(INSTALL_HEADERS)$(INSTALL_PRIVATE_HEADERS), )
-modules_install_hdrs:
+
+ifneq ($(INSTALL_HEADER)$(INSTALL_PRIVATE_HEADER), )
+install_hdr:
 	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
 	@cp -fp $(OUT_PATH)/Module.symvers $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
-ifneq ($(INSTALL_HEADERS), )
-	@cp -rfp $(INSTALL_HEADERS) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
+ifneq ($(INSTALL_HEADER), )
+	@cp -rfp $(INSTALL_HEADER) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
 endif
-ifneq ($(INSTALL_PRIVATE_HEADERS), )
+ifneq ($(INSTALL_PRIVATE_HEADER), )
 	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private
-	@cp -rfp $(INSTALL_PRIVATE_HEADERS) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private
+	@cp -rfp $(INSTALL_PRIVATE_HEADER) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private
 endif
 endif
 
+ifneq ($(INSTALL_DATA), )
+install_data:
+	@install -d $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
+	@cp -rf $(INSTALL_DATA) $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
 endif
+
+install_data_%:
+	@isrc="$(patsubst $(lastword $(INSTALL_DATA_$(patsubst install_data_%,%,$@))),,$(INSTALL_DATA_$(patsubst install_data_%,%,$@)))"; \
+		idst=$(ENV_INS_ROOT)/usr/share$(lastword $(INSTALL_DATA_$(patsubst install_data_%,%,$@))); \
+		install -d $${idst} && cp -f $${isrc} $${idst}
+
+install_todir_%:
+	@isrc="$(patsubst $(lastword $(INSTALL_TODIR_$(patsubst install_todir_%,%,$@))),,$(INSTALL_TODIR_$(patsubst install_todir_%,%,$@)))"; \
+		idst=$(ENV_INS_ROOT)$(lastword $(INSTALL_TODIR_$(patsubst install_todir_%,%,$@))); \
+		install -d $${idst} && cp -f $${isrc} $${idst}
+
+install_tofile_%:
+	@isrc=$(word 1,$(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@))); \
+		idst=$(ENV_INS_ROOT)$(word 2,$(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@))); \
+		install -d $(dir $(ENV_INS_ROOT)$(word 2,$(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))) && cp -f $${isrc} $${idst}
+
+endif
+

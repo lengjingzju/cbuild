@@ -88,3 +88,4 @@ endif
 
 cleanconfig: cleankconfig
 	@rm -rf $(CONFIG_PATH) $(CONFIG_PATH).old $(dir $(AUTOCONFIG_PATH)) $(AUTOHEADER_PATH)
+

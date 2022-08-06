@@ -6,7 +6,7 @@ MOD_NAME = hello_add
 else
 
 PACKAGE_NAME ?= test-hello-add
-INSTALL_HEADERS ?= hello_add.h
+INSTALL_HEADER ?= hello_add.h
 
 all: modules
 	@echo "Build $(PACKAGE_NAME) Done."
@@ -14,7 +14,7 @@ all: modules
 clean: modules_clean
 	@echo "Clean $(PACKAGE_NAME) Done."
 
-install: modules_install modules_install_hdrs
+install: modules_install install_hdr
 
 endif
 
