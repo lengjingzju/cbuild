@@ -3,7 +3,7 @@
 ## 特点
 
 * Linux 下纯粹的 Makefile 编译
-* 支持 C / C++ / 汇编混合编译
+* 支持 C(`*.c`) / C++(`*.cc *.cp *.cxx *.cpp *.CPP *.c++ *.C`) / 汇编(`*.S`) 混合编译
 * 支持交叉编译，支持自动分析头文件和编译脚本文件作为编译依赖，支持分别指定源文件的 CFLAGS
 * 一个 Makefile 同时支持 Yocto 编译方式、源码和编译输出分离模式和不分离模式
 * 一个 Makefile 支持生成多个库、可执行文件或模块
@@ -254,8 +254,12 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 * OUT_PATH: 编译输出目录，保持默认即可
 * SRC_PATH: 包中源码所在的目录，默认是包的根目录，也有的包将源码放在 src 下
     * 也可以指定包下多个(不交叉)目录的源码，例如 `SRC_PATH = src1 src2 src3`
+* IGNORE_PATH: 查找源码文件时，忽略搜索的目录名集合，默认已忽略 `.git scripts output` 文件夹
+* REG_SUFFIX: 支持查找的源码文件的后缀名，默认查找 以 `c cpp S` 为后缀的源码文件
+    * 目前支持的后缀有 `c cc cp cxx cpp CPP c++ C S`，可以方便地增加其它后缀的源码文件的支持
 * SRCS: 所有的 C 源码文件，默认是 SRC_PATH 下的所有的 `*.c *.cpp *.S` 文件
     * 如果用户指定了 SRCS，也可以设置 SRC_PATH 将 SRC_PATH 和 SRC_PATH 下的 include 加入到头文件搜索的目录
+    * 如果用户指定了 SRCS，忽略 IGNORE_PATH 的值
 * CFLAGS: 用户可以设置包自己的一些全局编译标记
 * LDFLAGS: 用户可以设置包自己的一些全局链接标记
 * CFLAGS_xxx.o: 用户可以单独为指定源码 xxx.c 设置编译标记

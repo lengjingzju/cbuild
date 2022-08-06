@@ -4,13 +4,45 @@ else
 OUT_PATH       ?= .
 endif
 
+
 define translate_obj
-$(patsubst %.c,%.o,\
-	$(patsubst %.cpp,%.o,\
-	$(patsubst %.S,%.o,\
-	$(patsubst %,$(OUT_PATH)/%,$(1)\
-))))
+$(patsubst %,$(OUT_PATH)/%.o,$(basename $(1)))
 endef
+
+SRC_PATH       ?= .
+IGNORE_PATH    ?= .git scripts output
+REG_SUFFIX     ?= c cpp S # c cc cp cxx cpp CPP c++ C S
+CPP_SUFFIX      = cc cp cxx cpp CPP c++ C
+
+SRCS           ?= $(shell find $(SRC_PATH) $(patsubst %,-path '*/%' -prune -o,$(IGNORE_PATH)) \
+                      $(shell echo '$(patsubst %,-o -name "*.%" -print,$(REG_SUFFIX))' | sed 's/^...//') \
+                  | sed "s/\(\.\/\)\(.*\)/\2/g" | xargs)
+OBJS            = $(call translate_obj,$(SRCS))
+DEPS            = $(patsubst %.o,%.d,$(OBJS))
+
+CFLAGS         += -I./include/ $(patsubst %,-I%/,$(filter-out .,$(SRC_PATH))) $(patsubst %,-I%/inlcude/,$(filter-out .,$(SRC_PATH))) -I$(OUT_PATH)/
+
+comma          :=,
+ifneq ($(PACKAGE_DEPS), )
+CFLAGS         += $(patsubst %,-I$(ENV_DEP_ROOT)%,/usr/include/ /usr/local/include/)
+CFLAGS         += $(patsubst %,-I$(ENV_DEP_ROOT)/usr/include/%/,$(PACKAGE_DEPS))
+LDFLAGS        += $(patsubst %,-L$(ENV_DEP_ROOT)%,/lib/ /usr/lib/ /usr/local/lib/)
+LDFLAGS        += $(patsubst %,-Wl$(comma)-rpath-link=$(ENV_DEP_ROOT)%,/lib/ /usr/lib/ /usr/local/lib/)
+endif
+
+CFLAGS         += -Wall # This enables all the warnings about constructions that some users consider questionable.
+CFLAGS         += -Wextra # This enables some extra warning flags that are not enabled by -Wall (This option used to be called -W).
+CFLAGS         += -Wlarger-than=$(if $(object_byte_size),$(object_byte_size),1024) # Warn whenever an object is defined whose size exceeds object_byte_size.
+CFLAGS         += -Wframe-larger-than=$(if $(object_byte_size),$(object_byte_size),8192) # Warn if the size of a function frame exceeds byte-size.
+#CFLAGS        += -Wdate-time #Warn when macros __TIME__, __DATE__ or __TIMESTAMP__ are encountered as they might prevent bit-wise-identical reproducible compilations.
+
+ifeq ($(DEBUG), y)
+CFLAGS         += -O0 -g -ggdb
+else
+CFLAGS         += -ffunction-sections -fdata-sections -O2
+LDFLAGS        += -Wl,--gc-sections
+endif
+#LDFLAGS       += -static
 
 define all_ver_obj
 $(strip \
@@ -26,51 +58,82 @@ $(strip \
 )
 endef
 
-SRC_PATH       ?= .
-SRCS           ?= $(shell find $(SRC_PATH) -name "*.c" -o -name "*.cpp" -o -name "*.S" \
-                  | grep -v "scripts/" | sed "s/\(\.\/\)\(.*\)/\2/g" | xargs)
-OBJS            = $(call translate_obj,$(SRCS))
-DEPS            = $(patsubst %.o,%.d,$(OBJS))
+define compile_tool
+$(if $(filter $(patsubst %,\%.%,$(CPP_SUFFIX)),$(1)),$(CXX),$(CC))
+endef
 
-CFLAGS         += -I./include/ $(patsubst %,-I%/,$(filter-out .,$(SRC_PATH))) $(patsubst %,-I%/inlcude/,$(filter-out .,$(SRC_PATH))) -I$(OUT_PATH)/
+define compile_obj
+$$(patsubst %.$(1),$$(OUT_PATH)/%.o,$(2)): $$(OUT_PATH)/%.o: %.$(1)
+	@-mkdir -p $$(dir $$@)
+	@$(3) -c $$(CFLAGS) $$(CFLAGS_$$(patsubst %.$(1),%.o,$$<)) -MM -MT $$@ -MF $$(patsubst %.o,%.d,$$@) $$<
+	@echo "\033[032m$(3)\033[0m	$$<"
+	@$(3) -c $$(CFLAGS) $$(CFLAGS_$$(patsubst %.$(1),%.o,$$<)) -fPIC -o $$@ $$<
+endef
 
-comma          :=,
-ifneq ($(PACKAGE_DEPS), )
-CFLAGS         += $(patsubst %,-I$(ENV_DEP_ROOT)%,/usr/include/ /usr/local/include/)
-CFLAGS         += $(patsubst %,-I$(ENV_DEP_ROOT)/usr/include/%/,$(PACKAGE_DEPS))
-LDFLAGS        += $(patsubst %,-L$(ENV_DEP_ROOT)%,/lib/ /usr/lib/ /usr/local/lib/)
-LDFLAGS        += $(patsubst %,-Wl$(comma)-rpath-link=$(ENV_DEP_ROOT)%,/lib/ /usr/lib/ /usr/local/lib/)
-endif
-
-CFLAGS         += -ffunction-sections -fdata-sections -O2
-#CFLAGS        += -O0 -g -ggdb
-LDFLAGS        += -Wl,--gc-sections
-#LDFLAGS       += -static
-
-CSRCS           = $(filter %.c,$(SRCS))
+ifeq ($(filter c,$(REG_SUFFIX)),c)
+CSRCS = $(filter %.c,$(SRCS))
 ifneq ($(CSRCS), )
-$(patsubst %.c,$(OUT_PATH)/%.o,$(CSRCS)): $(OUT_PATH)/%.o: %.c
-	@-mkdir -p $(dir $@)
-	@$(CC) -c $(CFLAGS) $(CFLAGS_$(patsubst %.c,%.o,$<)) -MM -MT $@ -MF $(patsubst %.o,%.d,$@) $<
-	@echo "\033[032m$(CC)\033[0m	$<"
-	@$(CC) -c $(CFLAGS) $(CFLAGS_$(patsubst %.c,%.o,$<)) -fPIC -o $@ $<
+$(eval $(call compile_obj,c,$$(CSRCS),$$(CC)))
+endif
 endif
 
-CPPSRCS         = $(filter %.cpp,$(SRCS))
-ifneq ($(CPPSRCS), )
-$(patsubst %.cpp,$(OUT_PATH)/%.o,$(CPPSRCS)): $(OUT_PATH)/%.o: %.cpp
-	@-mkdir -p $(dir $@)
-	@$(CXX) -c $(CFLAGS) $(CFLAGS_$(patsubst %.cpp,%.o,$<)) -MM -MT $@ -MF $(patsubst %.o,%.d,$@) $<
-	@echo "\033[032m$(CXX)\033[0m	$<"
-	@$(CXX) -c $(CFLAGS) $(CFLAGS_$(patsubst %.cpp,%.o,$<)) -fPIC -o $@ $<
+ifeq ($(filter cc,$(REG_SUFFIX)),cc)
+CPP1SRCS = $(filter %.cc,$(SRCS))
+ifneq ($(CPP1SRCS), )
+$(eval $(call compile_obj,cc,$$(CPP1SRCS),$$(CXX)))
+endif
 endif
 
-SSRCS           = $(filter %.S,$(SRCS))
+ifeq ($(filter cp,$(REG_SUFFIX)),cp)
+CPP2SRCS = $(filter %.cp,$(SRCS))
+ifneq ($(CPP2SRCS), )
+$(eval $(call compile_obj,cp,$$(CPP2SRCS),$$(CXX)))
+endif
+endif
+
+ifeq ($(filter cxx,$(REG_SUFFIX)),cxx)
+CPP3SRCS = $(filter %.cxx,$(SRCS))
+ifneq ($(CPP3SRCS), )
+$(eval $(call compile_obj,cxx,$$(CPP3SRCS),$$(CXX)))
+endif
+endif
+
+ifeq ($(filter cpp,$(REG_SUFFIX)),cpp)
+CPP4SRCS = $(filter %.cpp,$(SRCS))
+ifneq ($(CPP4SRCS), )
+$(eval $(call compile_obj,cpp,$$(CPP4SRCS),$$(CXX)))
+endif
+endif
+
+ifeq ($(filter CPP,$(REG_SUFFIX)),CPP)
+CPP5SRCS = $(filter %.CPP,$(SRCS))
+ifneq ($(CPP5SRCS), )
+$(eval $(call compile_obj,CPP,$$(CPP5SRCS),$$(CXX)))
+endif
+endif
+
+ifeq ($(filter c++,$(REG_SUFFIX)),c++)
+CPP6SRCS = $(filter %.c++,$(SRCS))
+ifneq ($(CPP6SRCS), )
+$(eval $(call compile_obj,c++,$$(CPP6SRCS),$$(CXX)))
+endif
+endif
+
+ifeq ($(filter C,$(REG_SUFFIX)),C)
+CPP7SRCS = $(filter %.C,$(SRCS))
+ifneq ($(CPP7SRCS), )
+$(eval $(call compile_obj,C,$$(CPP7SRCS),$$(CXX)))
+endif
+endif
+
+ifeq ($(filter S,$(REG_SUFFIX)),S)
+SSRCS = $(filter %.S,$(SRCS))
 ifneq ($(SSRCS), )
 $(patsubst %.S,$(OUT_PATH)/%.o,$(SSRCS)): $(OUT_PATH)/%.o: %.S
 	@-mkdir -p $(dir $@)
 	@echo "\033[032m$(CC)\033[0m	$<"
 	@$(CC) -c $(CFLAGS) $(CFLAGS_$(patsubst %.S,%.o,$<)) -fPIC -o $@ $<
+endif
 endif
 
 $(OBJS): $(MAKEFILE_LIST)
@@ -98,7 +161,7 @@ LIB_TARGETS += $(patsubst %,$(OUT_PATH)/%,$(LIBSO_NAMES))
 
 $(OUT_PATH)/$(firstword $(LIBSO_NAMES)): $(OBJS)
 	@echo "\033[032mlib:\033[0m	\033[44m$@\033[0m"
-	@$(if $(CPPSRCS),$(CXX),$(CC)) -shared -fPIC -o $@ $^ $(LDFLAGS) \
+	@$(call compile_tool,$(SRCS)) -shared -fPIC -o $@ $^ $(LDFLAGS) \
 		$(if $(findstring -soname=,$(LDFLAGS)),,-Wl$(comma)-soname=$(if $(word 2,$(LIBSO_NAME)),$(firstword $(LIBSO_NAME)).$(word 2,$(LIBSO_NAME)),$(LIBSO_NAME)))
 
 ifneq ($(word 2,$(LIBSO_NAMES)), )
@@ -125,7 +188,7 @@ ifneq ($(BIN_NAME), )
 BIN_TARGETS += $(OUT_PATH)/$(BIN_NAME)
 $(OUT_PATH)/$(BIN_NAME): $(OBJS)
 	@echo "\033[032mbin:\033[0m	\033[44m$@\033[0m"
-	@$(if $(CPPSRCS),$(CXX),$(CC)) -o $@ $^ $(LDFLAGS)
+	@$(call compile_tool,$(SRCS)) -o $@ $^ $(LDFLAGS)
 
 install_bin:
 	@install -d $(ENV_INS_ROOT)/usr/bin
@@ -145,7 +208,7 @@ LIB_TARGETS += $(patsubst %,$(OUT_PATH)/%,$(call all_ver_obj,$(1)))
 
 $$(OUT_PATH)/$$(firstword $$(libso_names)): $$(call translate_obj,$(2))
 	@echo "\033[032mlib:\033[0m	\033[44m$$@\033[0m"
-	@$$(if $$(filter %.cpp,$(2)),$$(CXX),$$(CC)) -shared -fPIC -o $$@ $$^ $$(LDFLAGS) $(3) \
+	@$$(call compile_tool,$(2)) -shared -fPIC -o $$@ $$^ $$(LDFLAGS) $(3) \
 		$$(if $$(findstring -soname=,$(3)),,-Wl$$(comma)-soname=$$(if $$(word 2,$(1)),$$(firstword $(1)).$$(word 2,$(1)),$(1)))
 
 ifneq ($$(word 2,$$(libso_names)), )
@@ -169,7 +232,7 @@ define add-bin-build
 BIN_TARGETS += $$(OUT_PATH)/$(1)
 $$(OUT_PATH)/$(1): $$(call translate_obj,$(2))
 	@echo "\033[032mbin:\033[0m	\033[44m$$@\033[0m"
-	@$$(if $$(filter %.cpp,$(2)),$$(CXX),$$(CC)) -o $$@ $$^ $$(LDFLAGS) $(3)
+	@$$(call compile_tool,$(2)) -o $$@ $$^ $$(LDFLAGS) $(3)
 endef
 
 ifneq ($(INSTALL_HEADER)$(INSTALL_PRIVATE_HEADER), )
