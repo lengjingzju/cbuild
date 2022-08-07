@@ -11,8 +11,9 @@ endef
 
 SRC_PATH       ?= .
 IGNORE_PATH    ?= .git scripts output
-REG_SUFFIX     ?= c cpp S # c cc cp cxx cpp CPP c++ C S
-CPP_SUFFIX      = cc cp cxx cpp CPP c++ C
+REG_SUFFIX     ?= c cpp S
+CPP_SUFFIX     ?= cc cp cxx cpp CPP c++ C
+ASM_SUFFIX     ?= S s asm
 
 SRCS           ?= $(shell find $(SRC_PATH) $(patsubst %,-path '*/%' -prune -o,$(IGNORE_PATH)) \
                       $(shell echo '$(patsubst %,-o -name "*.%" -print,$(REG_SUFFIX))' | sed 's/^...//') \
@@ -63,78 +64,28 @@ $(if $(filter $(patsubst %,\%.%,$(CPP_SUFFIX)),$(1)),$(CXX),$(CC))
 endef
 
 define compile_obj
-$$(patsubst %.$(1),$$(OUT_PATH)/%.o,$(2)): $$(OUT_PATH)/%.o: %.$(1)
-	@-mkdir -p $$(dir $$@)
-	@$(3) -c $$(CFLAGS) $$(CFLAGS_$$(patsubst %.$(1),%.o,$$<)) -MM -MT $$@ -MF $$(patsubst %.o,%.d,$$@) $$<
-	@echo "\033[032m$(3)\033[0m	$$<"
-	@$(3) -c $$(CFLAGS) $$(CFLAGS_$$(patsubst %.$(1),%.o,$$<)) -fPIC -o $$@ $$<
+ifeq ($(filter $(1),$(REG_SUFFIX)),$(1))
+ifneq ($(filter %.$(1),$(SRCS)), )
+$$(patsubst %.$(1),$$(OUT_PATH)/%.o,$$(filter %.$(1),$$(SRCS))): $$(OUT_PATH)/%.o: %.$(1)
+	@mkdir -p $$(dir $$@)
+	@$$(if $$(filter-out $$(patsubst %,\%.%,$$(ASM_SUFFIX)),$$<),$(2) -c $$(CFLAGS) $$(CFLAGS_$$(patsubst %.$(1),%.o,$$<)) -MM -MT $$@ -MF $$(patsubst %.o,%.d,$$@) $$<)
+	@echo "\033[032m$(2)\033[0m	$$<"
+	@$$(if $$(filter-out $$(AS),$(2)),$(2) -c $$(CFLAGS) $$(CFLAGS_$$(patsubst %.$(1),%.o,$$<)) -fPIC -o $$@ $$<,$(AS) $$(AFLAGS) $$(AFLAGS_$$(patsubst %.$(1),%.o,$$<)) -o $$@ $$<)
+endif
+endif
 endef
 
-ifeq ($(filter c,$(REG_SUFFIX)),c)
-CSRCS = $(filter %.c,$(SRCS))
-ifneq ($(CSRCS), )
-$(eval $(call compile_obj,c,$$(CSRCS),$$(CC)))
-endif
-endif
-
-ifeq ($(filter cc,$(REG_SUFFIX)),cc)
-CPP1SRCS = $(filter %.cc,$(SRCS))
-ifneq ($(CPP1SRCS), )
-$(eval $(call compile_obj,cc,$$(CPP1SRCS),$$(CXX)))
-endif
-endif
-
-ifeq ($(filter cp,$(REG_SUFFIX)),cp)
-CPP2SRCS = $(filter %.cp,$(SRCS))
-ifneq ($(CPP2SRCS), )
-$(eval $(call compile_obj,cp,$$(CPP2SRCS),$$(CXX)))
-endif
-endif
-
-ifeq ($(filter cxx,$(REG_SUFFIX)),cxx)
-CPP3SRCS = $(filter %.cxx,$(SRCS))
-ifneq ($(CPP3SRCS), )
-$(eval $(call compile_obj,cxx,$$(CPP3SRCS),$$(CXX)))
-endif
-endif
-
-ifeq ($(filter cpp,$(REG_SUFFIX)),cpp)
-CPP4SRCS = $(filter %.cpp,$(SRCS))
-ifneq ($(CPP4SRCS), )
-$(eval $(call compile_obj,cpp,$$(CPP4SRCS),$$(CXX)))
-endif
-endif
-
-ifeq ($(filter CPP,$(REG_SUFFIX)),CPP)
-CPP5SRCS = $(filter %.CPP,$(SRCS))
-ifneq ($(CPP5SRCS), )
-$(eval $(call compile_obj,CPP,$$(CPP5SRCS),$$(CXX)))
-endif
-endif
-
-ifeq ($(filter c++,$(REG_SUFFIX)),c++)
-CPP6SRCS = $(filter %.c++,$(SRCS))
-ifneq ($(CPP6SRCS), )
-$(eval $(call compile_obj,c++,$$(CPP6SRCS),$$(CXX)))
-endif
-endif
-
-ifeq ($(filter C,$(REG_SUFFIX)),C)
-CPP7SRCS = $(filter %.C,$(SRCS))
-ifneq ($(CPP7SRCS), )
-$(eval $(call compile_obj,C,$$(CPP7SRCS),$$(CXX)))
-endif
-endif
-
-ifeq ($(filter S,$(REG_SUFFIX)),S)
-SSRCS = $(filter %.S,$(SRCS))
-ifneq ($(SSRCS), )
-$(patsubst %.S,$(OUT_PATH)/%.o,$(SSRCS)): $(OUT_PATH)/%.o: %.S
-	@-mkdir -p $(dir $@)
-	@echo "\033[032m$(CC)\033[0m	$<"
-	@$(CC) -c $(CFLAGS) $(CFLAGS_$(patsubst %.S,%.o,$<)) -fPIC -o $@ $<
-endif
-endif
+$(eval $(call compile_obj,c,$$(CC)))
+$(eval $(call compile_obj,cc,$$(CXX)))
+$(eval $(call compile_obj,cp,$$(CXX)))
+$(eval $(call compile_obj,cxx,$$(CXX)))
+$(eval $(call compile_obj,cpp,$$(CXX)))
+$(eval $(call compile_obj,CPP,$$(CXX)))
+$(eval $(call compile_obj,c++,$$(CXX)))
+$(eval $(call compile_obj,C,$$(CXX)))
+$(eval $(call compile_obj,S,$$(CC)))
+$(eval $(call compile_obj,s,$$(AS)))
+$(eval $(call compile_obj,asm,$$(AS)))
 
 $(OBJS): $(MAKEFILE_LIST)
 -include $(DEPS)
