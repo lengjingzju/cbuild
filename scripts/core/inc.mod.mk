@@ -8,10 +8,20 @@ ccflags-y      += $(patsubst %,-I$(ENV_DEP_ROOT)%,/usr/include/ /usr/local/inclu
 ccflags-y      += $(patsubst %,-I$(ENV_DEP_ROOT)/usr/include/%/,$(PACKAGE_DEPS))
 endif
 
+define translate_obj
+$(patsubst $(src)/%,%,$(patsubst %,%.o,$(basename $(1))))
+endef
+
 ifeq ($(words $(MOD_NAME)), 1)
 
-SRCS           ?= $(shell find $(src) -name "*.c" | grep -v "scripts/" | grep -v "\.mod\.c" | xargs)
-OBJS            = $(patsubst $(src)/%,%,$(patsubst %.c,%.o,$(SRCS)))
+IGNORE_PATH    ?= .git scripts output
+REG_SUFFIX     ?= c S
+SRCS           ?= $(filter-out %.mod.c,$(shell find $(src) \
+                          $(patsubst %,-path '*/%' -prune -o,$(IGNORE_PATH)) \
+                          $(shell echo '$(patsubst %,-o -name "*.%" -print,$(REG_SUFFIX))' | sed 's/^...//') \
+                     | xargs))
+OBJS            = $(call translate_obj,$(SRCS))
+
 ifneq ($(words $(OBJS))-$(OBJS), 1-$(MOD_NAME).o)
 $(MOD_NAME)-y  := $(OBJS)
 endif

@@ -3,14 +3,16 @@
 ## 特点
 
 * Linux 下纯粹的 Makefile 编译
-* 支持 C(`*.c`) / C++(`*.cc *.cp *.cxx *.cpp *.CPP *.c++ *.C`) / 汇编(`*.S *.s *.asm`) 混合编译，并且方便地增加其它后缀的源码文件的支持
 * 支持交叉编译，支持自动分析头文件和编译脚本文件作为编译依赖，支持分别指定源文件的 CFLAGS
 * 一个 Makefile 同时支持 Yocto 编译方式、源码和编译输出分离模式和不分离模式
 * 一个 Makefile 支持生成多个库、可执行文件或模块
 * 提供编译静态库、共享库和可执行文件的模板 `inc.app.mk`
+    * 支持 C(`*.c`) C++(`*.cc *.cp *.cxx *.cpp *.CPP *.c++ *.C`) 和 汇编(`*.S *.s *.asm`) 混合编译
+    * 实现非常灵活，可以方便地增加其它后缀的源码文件的支持
+* 提供编译外部内核模块的模板 `inc.mod.mk`
+    * 支持 C(`*.c`) 和 汇编(`*.S`) 混合编译
 * 提供安装编译输出的模板 `inc.ins.mk`
 * 提供 kconfig 配置参数的模板 `inc.conf.mk`
-* 提供编译外部内核模块的模板 `inc.mod.mk`
 * 提供根据目标依赖关系自动生成编译开关配置和编译顺序的脚本 `analyse_deps.py`
 * 提供自动收集配置生成总配置的脚本 `analyse_kconf.py`
 
@@ -272,7 +274,6 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
         include $(ENV_TOP_DIR)/scripts/core/inc.app.mk
         $(eval $(call compile_obj,CXX,$$(CXX)))
         ```
-
 * SRCS: 所有的 C 源码文件，默认是 SRC_PATH 下的所有的 `*.c *.cpp *.S` 文件
     * 如果用户指定了 SRCS，也可以设置 SRC_PATH 将 SRC_PATH 和 SRC_PATH 下的 include 加入到头文件搜索的目录
     * 如果用户指定了 SRCS，忽略 IGNORE_PATH 的值
@@ -446,8 +447,12 @@ Build test-mod2 Done.
 
 `scripts/core/inc.mod.mk` 可设置的变量(KERNELRELEASE 有值时)
 
-* SRCS: 所有的 C 源码文件，默认是当前目录下的所有的 `*.c` 文件
+* IGNORE_PATH: 查找源码文件时，忽略搜索的目录名集合，默认已忽略 `.git scripts output` 文件夹
+* SRCS: 所有的 C 和汇编源码文件，默认是当前目录下的所有的 `*.c *.S` 文件
 * `ccflags-y` `asflags-y` `ldflags-y`: 分别对应内核模块编译、汇编、链接时的参数
+
+`scripts/core/inc.mod.mk` 提供的函数(KERNELRELEASE 有值时)
+* `$(call translate_obj,源码文件集)`: 将源码文件集名字转换为KBUILD需要的 `*.o` 格式，不管源码是不是以 `$(src)/` 开头
 
 注：如果 MOD_NAME 含有多个模块名称，需要用户自己填写各个模块下的对象，例如
 
