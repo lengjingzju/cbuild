@@ -26,9 +26,7 @@ $(eval $(call add-liba-build,libdiv.a,$(div-srcs)))
 $(eval $(call add-libso-build,libdiv.so,$(div-srcs)))
 $(eval $(call add-libso-build,libadd2.so 1 2 3,$(add-srcs),-Wl$(comma)-soname=libadd2.so))
 
-INSTALL_HEADERS = include/add.h include/sub.h include/mul.h include/div.h
-INSTALL_LIBRARIES = $(LIB_TARGETS)
-include $(ENV_TOP_DIR)/scripts/core/inc.ins.mk
+INSTALL_HEADER = include/add.h include/sub.h include/mul.h include/div.h
 
 all: $(LIB_TARGETS)
 
@@ -36,4 +34,4 @@ clean: clean_objs
 	@rm -f $(LIB_TARGETS)
 	@echo "Clean $(PACKAGE_NAME) Done."
 
-install: install_libs install_hdrs
+install: install_lib install_hdr

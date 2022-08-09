@@ -169,15 +169,12 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 * install_libs: 安装库文件集
     * 用户需要设置被安装的库文件集变量 INSTALL_LIBRARIES
     * 安装目录是 `$(ENV_INS_ROOT)/usr/lib`
-    * 编译生成的库文件会加入到 `LIB_TARGETS` 变量，可以将它赋值给 INSTALL_LIBRARIES
 * install_bins: 安装可执行文件集
     * 用户需要设置被安装的可执行文件集变量 INSTALL_BINARIES
     * 安装目录是 `$(ENV_INS_ROOT)/usr/bin`
-    * 编译生成的可执行文件会加入到 `BIN_TARGETS` 变量，可以将它赋值给 INSTALL_BINARIES
 * install_hdrs: 安装头文件集
-    * 用户需要设置被安装的头文件集变量 INSTALL_HEADERS 或/与 INSTALL_PRIVATE_HEADERS
-    * INSTALL_HEADERS 指定的头文件的安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
-    * INSTALL_PRIVATE_HEADERS 指定的头文件的安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private`
+    * 用户需要设置被安装的头文件集变量 INSTALL_HEADERS
+    * 安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
 * install_datas: 安装数据文件集
     * 用户需要设置被安装的数据文件集变量 INSTALL_DATAS
     * 安装目录是 `$(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)`
@@ -185,7 +182,7 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
     * 要安装的文件集分别由 INSTALL_DATAS_xxx / INSTALL_TODIRS_xxx / INSTALL_TOFILES_xxx 定义
     * 定义的值前面部分是要安装的文件集，最后一项是以斜杆 `/` 开头的安装目标路径
     * install_datas_xxx 安装到目录 `$(ENV_INS_ROOT)/usr/share$(INSTALL_DATAS_xxx最后一项)`
-    * install_todirs_xxx 安装到目录`$(ENV_INS_ROOT)$(INSTALL_TODIRS_xxx最后一项)` 
+    * install_todirs_xxx 安装到目录`$(ENV_INS_ROOT)$(INSTALL_TODIRS_xxx最后一项)`
     * install_tofiles_xxx 安装到文件`$(ENV_INS_ROOT)$(INSTALL_TOFILES_xxx最后一项)` ，INSTALL_TOFILES_xxx 的值有且只有两项
     * 例子:
         * 创建2个空白文件 testa 和 testb，Makefile 内容如下:
@@ -229,12 +226,18 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
     * 如果 LIBSO_NAME 带版本号，默认指定的 soname 是 `libxxxx.so.x`，可以通过 LDFLAGS 覆盖默认值
         * 例如 `LDFLAGS += -Wl,-soname=libxxxx.so`
 * BIN_NAME: 编译可执行文件时需要设置可执行文件名
-* install_liba: 安装静态库
-* install_libso: 安装动态库
-* install_bin: 安装可执行文件
+
+* install_lib: 安装库文件集
+    * 用户一般不需要设置被安装的库文件集变量 INSTALL_LIBRARY
+    * 编译生成的库文件会加入到 `LIB_TARGETS` 变量，INSTALL_LIBRARY 已经默认赋值为 `$(LIB_TARGETS)`
+    * 安装目录是 `$(ENV_INS_ROOT)/usr/lib`
+* install_bin: 安装可执行文件集
+    * 用户一般不需要设置被安装的可执行文件集变量 INSTALL_BINARY
+    * 编译生成的可执行文件会加入到 `BIN_TARGETS` 变量，INSTALL_BINARY 已经默认赋值为 `$(BIN_TARGETS)`
+    * 安装目录是 `$(ENV_INS_ROOT)/usr/bin`
 * install_hdr / install_data / install_data_xxx / install_todir_xxx / install_tofile_xxx:
     * 目标意义同 inc.ins.mk 中对应的目标 install_hdrs / install_datas / install_datas_xxx / install_todirs_xxx / install_tofiles_xxx
-    * 且变量名称改为了 INSTALL_HEADER INSTALL_PRIVATE_HEADER / INSTALL_DATA / INSTALL_DATA_xxx / INSTALL_TODIR_xxx / INSTALL_TOFILE_xxx
+    * 且变量名称改为了 INSTALL_HEADER / INSTALL_DATA / INSTALL_DATA_xxx / INSTALL_TODIR_xxx / INSTALL_TOFILE_xxx
 
 `scripts/core/inc.app.mk` 提供的函数
 
@@ -1056,7 +1059,7 @@ FILES:${PN} = "${libdir}/lib*.so.*.*.*"
 有时候我们使用自己的配方编译开源包，Yocto 也有对应的默认配方，此时do_rootfs的时候也可能报错。
 例如如果我们使用了自己的配方编译zlib开源库，do_rootfs就报了下面错误
 ```
-Error: 
+Error:
  Problem: package libkmod2-29-r0.cortexa53 requires libz1 >= 1.2.11, but none of the providers can be installed
   - package systemd-1:250.5-r0.cortexa53 requires libkmod.so.2()(64bit), but none of the providers can be installed
   - package systemd-1:250.5-r0.cortexa53 requires libkmod.so.2(LIBKMOD_5)(64bit), but none of the providers can be installed

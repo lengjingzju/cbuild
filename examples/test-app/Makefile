@@ -18,4 +18,4 @@ clean: clean_objs
 	@rm -f $(LIB_TARGETS) $(BIN_TARGETS)
 	@echo "Clean $(PACKAGE_NAME) Done."
 
-install: install_liba install_libso install_bin install_hdr
+install: install_lib install_bin install_hdr

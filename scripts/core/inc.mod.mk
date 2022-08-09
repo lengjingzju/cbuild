@@ -70,8 +70,10 @@ endif
 
 export PACKAGE_DEPS ENV_DEP_ROOT
 
+.PHONY: modules modules_clean modules_install install_hdr install_data
+
 modules:
-	@make $(MOD_MAKES) $(if $(PACKAGE_DEPS), KBUILD_EXTRA_SYMBOLS="$(patsubst %,$(ENV_DEP_ROOT)/usr/include/%/Module.symvers,$(patsubst %/private,,$(PACKAGE_DEPS)))") modules
+	@make $(MOD_MAKES) $(if $(PACKAGE_DEPS), KBUILD_EXTRA_SYMBOLS="$(patsubst %,$(ENV_DEP_ROOT)/usr/include/%/Module.symvers,$(PACKAGE_DEPS))") modules
 
 modules_clean:
 	@make $(MOD_MAKES) clean
@@ -79,25 +81,14 @@ modules_clean:
 modules_install:
 	@make $(MOD_MAKES) $(if $(ENV_INS_ROOT), INSTALL_MOD_PATH=$(ENV_INS_ROOT)) modules_install
 
-
-ifneq ($(INSTALL_HEADER)$(INSTALL_PRIVATE_HEADER), )
 install_hdr:
 	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
 	@cp -fp $(OUT_PATH)/Module.symvers $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
-ifneq ($(INSTALL_HEADER), )
 	@cp -rfp $(INSTALL_HEADER) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
-endif
-ifneq ($(INSTALL_PRIVATE_HEADER), )
-	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private
-	@cp -rfp $(INSTALL_PRIVATE_HEADER) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)/private
-endif
-endif
 
-ifneq ($(INSTALL_DATA), )
 install_data:
 	@install -d $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
 	@cp -rf $(INSTALL_DATA) $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
-endif
 
 install_data_%:
 	@icp="$(if $(findstring /include,$(lastword $(INSTALL_DATA_$(patsubst install_data_%,%,$@)))),cp -rfp,cp -rf)"; \
