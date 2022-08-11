@@ -62,6 +62,10 @@ define compile_tool
 $(if $(filter $(patsubst %,\%.%,$(CPP_SUFFIX)),$(1)),$(CXX),$(CC))
 endef
 
+define set_flags
+$(foreach v,$(2),$(eval $(1)_$(patsubst %,%.o,$(basename $(v))) = $(3)))
+endef
+
 define compile_obj
 ifeq ($(filter $(1),$(REG_SUFFIX)),$(1))
 ifneq ($(filter %.$(1),$(SRCS)), )

@@ -248,6 +248,8 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
     * 注意函数中有逗号要用变量覆盖: `$(eval $(call add-libso-build,动态库名,源文件列表,-Wl$(comma)-soname=libxxxx.so))`
 * `$(eval $(call add-bin-build,可执行文件名,源文件列表))`: 创建编译可执行文件规则
 * `$(eval $(call add-bin-build,可执行文件名,源文件列表,链接参数))`: 创建编译可执行文件规则
+* `$(call set_flags,标记名称,源文件列表,标记值)`: 单独为指定源码集设置编译标记
+    * 例如 `$(call set_flags,CFLAGS,main.c src/read.c src/write.c,-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE)`
 
 注: 提供上述函数的原因是可以在一个 Makefile 中编译出多个库或可执行文件
 
@@ -456,6 +458,7 @@ Build test-mod2 Done.
 
 `scripts/core/inc.mod.mk` 提供的函数(KERNELRELEASE 有值时)
 * `$(call translate_obj,源码文件集)`: 将源码文件集名字转换为KBUILD需要的 `*.o` 格式，不管源码是不是以 `$(src)/` 开头
+* `$(call set_flags,标记名称,源文件列表,标记值)`: 单独为指定源码集设置编译标记，参考 inc.app.mk 的说明
 
 注：如果 MOD_NAME 含有多个模块名称，需要用户自己填写各个模块下的对象，例如
 

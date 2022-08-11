@@ -12,6 +12,10 @@ define translate_obj
 $(patsubst $(src)/%,%,$(patsubst %,%.o,$(basename $(1))))
 endef
 
+define set_flags
+$(foreach v,$(2),$(eval $(1)_$(call translate_obj,$(v)) = $(3)))
+endef
+
 ifeq ($(words $(MOD_NAME)), 1)
 
 IGNORE_PATH    ?= .git scripts output
