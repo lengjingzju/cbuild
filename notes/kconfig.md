@@ -1,8 +1,8 @@
 # Kconfig 语法简介
 
-参考资料: Linux 内核官方文档的 [kconfig-language](https://www.kernel.org/doc/html/latest/kbuild/kconfig-language.html) 和 [kconfig-macro-language](https://www.kernel.org/doc/html/latest/kbuild/kconfig-macro-language.html)
-界面操作: Kconfig 界面一般是使用 `方向键` 移动选项，`空格键` 改变选项，`回车键` 进入子菜单，`ESC键` 返回或退出
-注释: Kconfig 使用 `#` 作为单行注释
+* 参考资料: Linux 内核官方文档的 [kconfig-language](https://www.kernel.org/doc/html/latest/kbuild/kconfig-language.html) 和 [kconfig-macro-language](https://www.kernel.org/doc/html/latest/kbuild/kconfig-macro-language.html)
+* 界面操作: Kconfig 界面一般是使用 `方向键` 移动选项，`空格键` 改变选项，`回车键` 进入子菜单，`ESC键` 返回或退出
+* 注释: Kconfig 使用 `#` 作为单行注释
 
 ## mainmenu 主菜单语法
 
