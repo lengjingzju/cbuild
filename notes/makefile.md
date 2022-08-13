@@ -1,8 +1,75 @@
 # Makefile 笔记
 
-参考文档: [GNU Make Manual](https://www.gnu.org/software/make/manual/make.html)
+* 参考文档:
+    * [GNU Make Manual](https://www.gnu.org/software/make/manual/make.html)
+    * [GCC 12.1 Manual](https://gcc.gnu.org/onlinedocs/gcc-12.1.0/gcc/)
+    * [GNU ld Manual](https://sourceware.org/binutils/docs-2.39/ld/index.html)
 
-## 命令参数
+## 编译基础知识
+
+* 4个编译过程
+    1. `gcc -E test.c -o test.i` : 预处理(Preprocessing)
+        * 处理宏定义和 include，去除注释，不会对语法进行检查，生成的还是C代码，默认不生成文件，而是直接输出到终端
+    2. `gcc -S test.i -o test.s` : 编译(Compilation)
+        * 检查语法，生成汇编代码，默认生成 `*.s` 文件
+    3. `gcc -c test.s -o test.o` or `as test.s -o test.o` : 汇编(Assembly)
+        * 生成 ELF 格式的目标代码，默认生成 `*.o` 文件
+    4. `gcc    test.o -o test` or `ld test.o -o test` : 链接(Linking)
+        * 链接启动代码、库等，生成可执行文件，默认生成 `a.out` 文件
+        * 只有在链接阶段才会检查所有函数是否已经定义，没有定义会报错找不到函数
+
+* gcc 常用选项
+    * 指定输出
+        * `-o output`           : 指定编译生成的文件名为 output
+    * 编译选项
+        * `-c`                  : 编译生成 ELF 格式的目标代码，但不进行最后的链接
+        * `-fPIC`               : 生成位置无关代码，编译动态库必须
+        * `-Idir`               : 指定头文件的搜索路径
+        * `-ffunction-sections -fdata-sections` : 将每个函数和变量放入到各自独立的 section
+    * 链接选项
+        * `-shared`             : 动态链接，生成的程序比较小，占用较少的内存
+        * `-static`             : 静态链接，单个文件即可执行，不依赖动态链接库，具有较好的兼容性，缺点是生成的程序比较大
+        * `-lname`              : 链接库 libname.so 或 libname.a，例如 `-lpthread` 是链接 libpthread.so 库
+        * `-Ldir`               : 指定库文件的搜索路径
+        * `-Wl,-soname=name`    : 指定生成动态库的名称，可以使用 `readelf -d libxxx.so` 读到这个名称
+        * `-Wl,-rpath-link=dir` : 指定子库文件链接的库文件的搜索路径
+        * `-Wl,--gc-sections`   : 按 section 链接，和编译对应的选项合用，则链接器 ld 不会链接未使用的函数，从而减小可执行文件大小
+    * 定义变量
+        * `-Dname`              : 定义宏 name，默认定义内容为 `1`
+        * `-Dname=value`        : 定义宏 name，值为 `value`，例如 `-DMAX_MUM=1024` 类似定义了 `#define MAX_MUM 1024`
+        * `-Dname=\"value\"`    : 定义宏 name，值为 `字符串value`，例如 `-DAUTHOR=\"LengJing\"` 类似定义了`#define AUTHOR "LengJing"`
+    * 优化等级，总共 `-O0 -O1 -O2 -Os -O3` 5个等级
+            * `-O0`             : 默认优化等级，不优化用于调试
+            * `-O1`             : 缺省优化等级 `-O`，编译器会尝试减少代码大小和执行时间的优化，而不执行任何需要大量编译时间的优化
+            * `-O2`             : 增加了编译时间，编译器进一步优化了生成代码的性能，**一般用于发布的程序**
+            * `-Os`             : 编译器禁用了 `-O2` 增加生成代码大小的优化，**强调大小而不是速度**
+            * `-O3`             : 增加了生成代码的大小，编译器进行了函数展开和循环展开等优化，生成代码的性能不一定比 `-O2` 更好
+            * `-g -ggdb`        : 生成带有调试信息的目标文件，可用于 gdb 调试
+    * 警告选项
+        * `-w`                  : 关闭所有警告
+        * `-Wall`               : 使 gcc 产生尽可能多的警告信息
+        * `-Wextra`             : 使 gcc 产生额外的警告信息，老的名称是 `-W`
+        * `-Werror`             : 使 gcc 在产生警告的地方停止编译
+        * `-Wxxx`               : 打开特定警告
+        * `-Wno-xxx`            : 关闭特定警告
+        * `-v`                  : 列出详细编译过程
+
+* 链接过程
+    * 链接分类
+        * Linux 下的库文件分为两大类分别是动态链接库(通常以 `.so` 结尾)(运行时动态加载)和静态链接库(通常以 `.a` 结尾)(编译时静态加载)
+        * 默认情况下，gcc 在链接时优先使用动态链接库，只有当动态链接库不存在时才考虑使用静态链接库; 如果需要的话可以在编译时加上 `-static` 选项，强制使用静态链接库
+        * 静态链接的可执行文件单文件即可执行，动态链接的可执行文件需要把链接的动态库复制到 `/usr/lib` (或修改环境变量) 才可以执行
+    * 动态库链接和执行时搜索路径顺序
+        1. 编译目标代码时指定的动态库搜索路径 `-L`
+        2. 环境变量 `LD_LIBRARY_PATH` 指定的动态库搜索路径
+        3. 配置文件 `/etc/ld.so.conf` 中指定的动态库搜索路径
+        4. 默认的动态库搜索路径 `/lib` `/usr/lib`
+    * 静态库链接时搜索路径顺序
+        1. ld会去找GCC命令中的参数 `-L`
+        2. 再找gcc的环境变量 `LIBRARY_PATH`
+        3. 再找系统内定目录 `/lib` `/usr/lib` `/usr/local/lib`
+
+## make 命令参数
 
 * 常用命令
     * `make`            : 执行当前目录下的 Makefile 的默认目标 (Makefile 文件查找顺序: `GNUmakefile` `makefile` 和 `Makefile`)
@@ -30,7 +97,7 @@
     * `make -p`         : `--print-database`，打印读取 Makefile 产生的数据库(规则和变量值)，然后照常执行
     * 注: Makefile 中可以使用 `$(info text)` `$(warning text)` `$(error text)` 打印信息，其中 error 会停止执行 Makefile
 
-## 执行过程
+## make 执行过程
 
 * 第一阶段: 解析，make 读取 Makefile、包含的子 Makefile 等，并解析所有变量及其值以及隐式和显式规则，并构建所有目标及其先决条件的依赖图
     * 读入完整的逻辑行，包括反斜杠转义的行，扫描该行以查找分隔符和关键字，以确定该行属性
@@ -55,7 +122,7 @@
         * 然后执行文件目标下的命令块 (依赖伪目标的目标的命令块会始终执行)
     * 如果找寻的过程中依赖找不到或某个依赖的命令执行出错，默认会终止退出执行
 
-## 编译规则
+## Makefile 编译规则
 
 * 例子: 常规写法
 
@@ -329,7 +396,7 @@ command or variable_definition
 endif
 ```
 
-## 变量规则
+## Makefile 变量规则
 
 * 变量定义 `变量名 赋值运算符 值`
     * 变量名可以由任何不是 `:` `#` `=` `空格` 的字符构成，且区分大小写
@@ -542,7 +609,7 @@ DIR3 = /tmp/test
 /tmp
 ```
 
-## 函数调用
+## Makefile 函数调用
 
 * 函数调用: `$(函数名 参数)` `${函数名 参数}`
     * 函数名和参数之间用一个或多个空格或制表符分隔，如果有多个参数，他们之间用逗号分隔
@@ -566,7 +633,7 @@ bar   := $(subst $(space),$(comma),$(foo))
 * shell 函数: `$(shell cmdline)` `$$(cmdline)`
     * `$(shell cmdline)`: 解析时展开，不允许顶格(即命令没有所属 target)直接调用，但可以用在变量的值、目标、依赖、命令块、函数参数中
         * 此调用执行命令扩展，这意味着它将 shell 命令作为参数并计算命令的输出
-        * 它对结果的唯一处理 make 是将每个(回车和)换行符转换为单个空格<如果有尾随(回车和)换行符，它将被简单地删除
+        * 它对结果的唯一处理 make 是将每个(回车和)换行符转换为单个空格，如果有尾随(回车和)换行符，它将被简单地删除
     * `$$(cmdline)`: 运行时展开，只能用在命令块中
 
 * 例子: 获取文件时间戳
@@ -635,7 +702,9 @@ endef
 $(call set_flags,CFLAGS,a.c b.c,-DDEBUG)
 ```
 
-## 字符串函数
+## Makefile 内建函数
+
+### 字符串函数
 
 * `$(subst from,to,text)`               : 字符串替换
     * 功能: 在文本 text 中使用 "to" 替换每一处 "from"
@@ -667,7 +736,7 @@ $(call set_flags,CFLAGS,a.c b.c,-DDEBUG)
     * 功能: 返回 text 中的最后1个单词
     * 示例: `$(lastword foo bar)` 返回值是 `bar`
 
-## 文件名函数
+### 文件名函数
 
 * `$(dir names ...`)                    : 取目录
     * 功能: 从文件名序列中取出目录部分。目录部分是指最后一个斜杠(含)之前的部分，如果没有斜杠，则返回 `./`
@@ -699,7 +768,7 @@ $(call set_flags,CFLAGS,a.c b.c,-DDEBUG)
 * `$(abspath names ...`)                : 获取绝对路径
     * 功能: 同 `realpath`，只是不对符号链接解引用
 
-## 条件和循环函数
+### 条件和循环函数
 
 * `$(if condition,then-part[,else-part])` : 条件求值
     * 功能: 如果 `condition` 展开后非空，则条件为真，执行 `then-part` 部分，否则执行 `else-part` (如果有)部分，返回值是执行分支的表达式值，无此分支时返回空
@@ -711,7 +780,7 @@ $(call set_flags,CFLAGS,a.c b.c,-DDEBUG)
     * 功能: 对 list 中的每一个单词赋值给变量 var ，var 作为 cmd 命令运行的变量循环执行 cmd，多次的运行结果使用空格相互连接
     * 示例: `files := $(foreach dir,$(dirs),$(wildcard $(dir)/*.c))` 返回值是 dirs 目录集下的所有 .c 文件列表
 
-## 其它函数
+### 其它函数
 
 * `$(file op filename[,text])`          : [文件操作](https://www.gnu.org/software/make/manual/html_node/File-Function.html#File-Function)
     * 功能: op 的值: `<` 读，此时没有 text ，`>` 清空写，`>>` 追加写
