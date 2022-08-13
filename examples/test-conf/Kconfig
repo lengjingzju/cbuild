@@ -37,7 +37,7 @@ mainmenu "Test Configuration"
 #     string  : 字符串型，在.config中以 "原样" 表示
 #     int     : 数字型(十进制)，在.config中以 原样 表示
 #     hex     : 数字型(十六进制)，在.config中以 原样 表示
-# 配置项名: 显示在界面上的配置项名称，可以和配置项类型合并写，也可以使用关键字 prompt 分开写
+# 配置项名: 显示在界面上的配置项名称，可以和配置项类型合并写，也可以使用关键字 prompt 分开写，prompt 提示最多只有一条有效
 # 其它选项: 见子段落说明
 
 config KCONFIG_BOOL_ITEM1
@@ -67,8 +67,13 @@ config KCONFIG_HEX_ITEM
 #     配置项类型 "配置项名"
 #     depends on 依赖的配置项
 #####################
+# config 配置项
+#     配置项类型 "配置项名"
+#     visible if 依赖的配置项
+#####################
 #
-# 依赖的配置项设为 y 时，本设置项才显示
+# depends on 依赖的配置项设为 y 时，本设置项才会显示，才可以被设置为 y
+# visible 条件为真时该设置项才显示，即使不显示也可以被其他设置项 select 将该设置项的值设为 y
 
 config DEPEND_BOOL_ITEM
     bool "depends on bool item1 learning"
@@ -100,7 +105,7 @@ config DEPEND_OR_ITEM
 #####################
 #
 # 设置项设置 y 时，select 选择的选项也会设为 y, 且无法修改为 n
-# 设置项设置 y 时，imply 选择的选项也会设为 y, 但可以显示修改为 n
+# 设置项设置 y 时，imply 选择的选项也会设为 y, 但可以显式修改为 n
 
 config SELECT_BOOL_ITEM1
     bool "select bool item1 and item2 learning"
@@ -161,7 +166,7 @@ config RANGE_INT_ITEM
 #     帮助信息语句2
 #####################
 #
-# 移动到该配置项后，按大写H键显示帮助信息
+# 移动到该配置项后，按H键显示帮助信息
 
 config HELP_BOOL_ITEM
     bool "item help information learning"
@@ -176,7 +181,7 @@ config HELP_BOOL_ITEM
 # comment "注释信息"
 #####################
 #
-# 注释信息会在界面显示，也会在.config中写入
+# 注释信息会在界面显示，配置项名会作为注释写入.config文件中
 
 comment "comment item learning"
 
@@ -193,9 +198,6 @@ comment "comment item learning"
 # 表达式 && 表达式    : 逻辑与
 # 表达式 || 表达式    : 逻辑或
 #####################
-#
-# prompt 提示最多只有一条有效
-# visible 条件为真时该设置项才显示，即使不显示也可以被其他设置项 select 将该设置项的值设为 y
 
 
 # 3. menu模块语法
@@ -278,7 +280,7 @@ endif
 # endchoice
 #####################
 #
-# 移动到choice配置项后，按回车键可以进入子菜单界面
+# 移动到choice配置项后，按回车键可以进入子菜单界面，只能选中其中一个选项
 
 choice CHOICE_ITEM
     prompt "choice item learning"
@@ -343,12 +345,12 @@ endchoice
 # 8. Kconfig常用运行参数
 #
 #####################
-# CONF_OPTIONS      = $(KCONFIG) --configpath \
+# CONF_OPTIONS      = $(KCONFIG) \
 #					--configpath $(CONFIG_PATH) \
 #					--autoconfigpath $(AUTOCONFIG_PATH) \
 #					--autoheaderpath $(AUTOHEADER_PATH)
 # mconf $(CONF_OPTIONS)                             : 打开menuconfig菜单
-# conf $(CONF_OPTIONS) --silent --oldconfig         : 重新解析当前配置
+# conf $(CONF_OPTIONS) --silent --syncconfig        : 根据当前文件生成conf文件和C的头文件
 # conf $(CONF_OPTIONS) --defconfig <conf_name>      : 加载conf_name指定的配置到当前配置
 # conf $(CONF_OPTIONS) --savedefconfig <conf_name>  : 保存当前配置到conf_name指定的配置
 #####################
@@ -358,5 +360,3 @@ endchoice
 # --autoconfigpath  : 设置"auto.conf"文件的保存路径，不设置时是"include/config/auto.conf"
 #                     注意指定此项的值时请指定一个带文件夹路径的值，它会在这个文件夹下生成一系列的以配置项作为文件名的文件
 # --autoheaderpath  : 设置"autoconf.h"文件的保存路径，不设置时是"include/generated/autoconf.h"
-
-

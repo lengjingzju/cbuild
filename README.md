@@ -16,6 +16,10 @@
 * 提供根据目标依赖关系自动生成编译开关配置和编译顺序的脚本 `analyse_deps.py`
 * 提供自动收集配置生成总配置的脚本 `analyse_kconf.py`
 
+## 笔记
+
+* 如果对 Kconfig 语法不了解，可以查看 [Kconfig 笔记](./notes/makefile.md)
+
 ## 开源贡献
 
 本工程目前已向 Linux 内核社区贡献了2次提交，已合并到 Linux 内核主线
