@@ -473,11 +473,6 @@ mod1-y = a1.o b1.o c1.o
 mod2-y = a2.o b2.o c2.o
 ```
 
-不同的模块编译方式
-
-* 源码和编译输出同目录时编译命令: `make -C $(KERNEL_SRC) M=$(shell pwd) modules`
-* 源码和编译输出分离时编译命令: `make -C $(KERNEL_SRC) O=(KERNEL_OUT) M=$(OUT_PATH) src=$(shell pwd) modules`
-
 注: 使用源码和编译输出分离时， 需要先将 Kbuild 或 Makefile 复制到 OUT_PATH 目录下，如果不想复制，需要修改内核源码的 `scripts/Makefile.modpost`，最新 linux-5.19 已合并此补丁
 
 ```makefile
@@ -485,12 +480,6 @@ mod2-y = a2.o b2.o c2.o
 -             $(KBUILD_EXTMOD)/Kbuild, $(KBUILD_EXTMOD)/Makefile)
 +include $(if $(wildcard $(src)/Kbuild), $(src)/Kbuild, $(src)/Makefile)
 ```
-
-模块编译过程说明
-
-1. 在当前目录运行 Makefile，此时 KERNELRELEASE 为空，执行这个分支下的第一个目标 modules
-2. 运行`make -C $(KERNEL_SRC) xxx` 时进入内核源码目录，在内核源码目录运行 src 的 Kbuild 或 Makefile，此时 KERNELRELEASE 有值，编译源文件
-3. 继续在内核源码目录运行 M 目录的 Kbuild 或 Makefile，生成模块和它的符号表
 
 ## 测试自动生成总编译
 

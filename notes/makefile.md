@@ -1,7 +1,8 @@
 # Makefile 笔记
 
-* 参考文档:
+* 参考文档
     * [GNU Make Manual](https://www.gnu.org/software/make/manual/make.html)
+    * [Kernel Build System](https://www.kernel.org/doc/html/latest/kbuild/index.html)
     * [GCC 12.1 Manual](https://gcc.gnu.org/onlinedocs/gcc-12.1.0/gcc/)
     * [GNU ld Manual](https://sourceware.org/binutils/docs-2.39/ld/index.html)
 
@@ -27,8 +28,8 @@
         * `-Idir`               : 指定头文件的搜索路径
         * `-ffunction-sections -fdata-sections` : 将每个函数和变量放入到各自独立的 section
     * 链接选项
-        * `-shared`             : 动态链接，生成的程序比较小，占用较少的内存
-        * `-static`             : 静态链接，单个文件即可执行，不依赖动态链接库，具有较好的兼容性，缺点是生成的程序比较大
+        * `-static`             : 链接时强制链接静态库，单个文件即可执行，不依赖动态链接库，具有较好的兼容性，缺点是生成的程序比较大
+        * `-shared`             : 编译生成动态库
         * `-lname`              : 链接库 libname.so 或 libname.a，例如 `-lpthread` 是链接 libpthread.so 库
         * `-Ldir`               : 指定库文件的搜索路径
         * `-Wl,-soname=name`    : 指定生成动态库的名称，可以使用 `readelf -d libxxx.so` 读到这个名称
@@ -57,8 +58,9 @@
 * 链接过程
     * 链接分类
         * Linux 下的库文件分为两大类分别是动态链接库(通常以 `.so` 结尾)(运行时动态加载)和静态链接库(通常以 `.a` 结尾)(编译时静态加载)
-        * 默认情况下，gcc 在链接时优先使用动态链接库，只有当动态链接库不存在时才考虑使用静态链接库; 如果需要的话可以在编译时加上 `-static` 选项，强制使用静态链接库
-        * 静态链接的可执行文件单文件即可执行，动态链接的可执行文件需要把链接的动态库复制到 `/usr/lib` (或修改环境变量) 才可以执行
+        * 默认情况下，gcc 在链接时优先使用动态链接库，只有当动态链接库不存在时才考虑使用静态链接库，在编译时加上 `-static` 选项将强制使用静态链接库
+        * 静态链接的可执行文件单文件即可执行，不依赖动态链接库，具有较好的兼容性，库的代码直接插入了可执行文件，生成的程序比较大
+        * 动态链接的可执行文件需要把链接的动态库复制到 `/usr/lib` (或修改环境变量) 才可以执行，生成的程序比较小，多个程序共享同一个库，占用较少的内存，库有变化升级时也只需要重新编译库
     * 动态库链接和执行时搜索路径顺序
         1. 编译目标代码时指定的动态库搜索路径 `-L`
         2. 环境变量 `LD_LIBRARY_PATH` 指定的动态库搜索路径
@@ -791,3 +793,130 @@ $(call set_flags,CFLAGS,a.c b.c,-DDEBUG)
     * 功能: 获取变量的来源，不会对变量进行扩展，来源有 `undefined` `default` `environment` `environment override` `file` `command line` `override` `automatic`
 * `$(flavor variable)`                  : [获取变量的风格](https://www.gnu.org/software/make/manual/html_node/Flavor-Function.html#Flavor-Function)
     * 功能: 获取变量的风格，不会对变量进行扩展，风格有 `undefined` `recursive`(递归变量) `simple`(简单变量)
+
+## 内核 Kbuild 系统
+
+* Kernel Makefile
+
+```makefile
+KERN_MAKES := make $(BUILD_SILENT) $(BUILD_JOBS)
+KERN_MAKES += $(if $(ARCH),ARCH=$(ARCH)) $(if $(CROSS_COMPILE),CROSS_COMPILE=$(CROSS_COMPILE))
+KERN_MAKES += $(if $(KERNEL_OUT),O=$(KERNEL_OUT))
+
+.PHONY: all clean install loadconfig menuconfig
+
+all:
+	@mkdir -p $(KERNEL_OUT)
+	@$(KERN_MAKES) all
+	@echo "Build linux-kernel Done."
+
+clean:
+	@$(KERN_MAKES) clean
+	@echo "Clean linux-kernel Done."
+
+install:
+	@$(KERN_MAKES) $(if $(SYSROOT_DIR),INSTALL_MOD_PATH=$(SYSROOT_DIR)) modules_install
+	@echo "Install linux-kernel Done."
+
+loadconfig:
+	@$(KERN_MAKES) $(KERNEL_CONF)
+
+menuconfig:
+	@$(KERN_MAKES) menuconfig
+```
+
+* Module Makefile
+
+```makefile
+MOD_MAKES := make $(BUILD_SILENT) $(BUILD_JOBS)
+MOD_MAKES += -C $(KERNEL_SRC)
+MOD_MAKES += $(if $(ARCH),ARCH=$(ARCH)) $(if $(CROSS_COMPILE),CROSS_COMPILE=$(CROSS_COMPILE))
+MOD_MAKES += $(if $(KERNEL_OUT),O=$(KERNEL_OUT))
+MOD_MAKES += $(if $(OUT_PATH),M=$(OUT_PATH) src=$(shell pwd),M=$(shell pwd))
+
+.PHONY: all clean install
+
+all:
+	@$(MOD_MAKES) $(if $(MOD_DEPS), KBUILD_EXTRA_SYMBOLS="$(wildcard $(patsubst %,$(SYSROOT_DIR)/usr/include/%/Module.symvers,$(MOD_DEPS)))") modules
+	@echo "Build $(MOD_NAME) Done."
+
+clean:
+	@$(MOD_MAKES) clean
+	@echo "Clean $(MOD_NAME) Done."
+
+install:
+	@make $(MOD_MAKES) $(if $(SYSROOT_DIR), INSTALL_MOD_PATH=$(SYSROOT_DIR)) modules_install
+ifneq ($(INSTALL_HEADER), )
+	@mkdir -p $(SYSROOT_DIR)/usr/include/$(MOD_NAME)
+	@cp -fp $(OUT_PATH)/Module.symvers $(SYSROOT_DIR)/usr/include/$(MOD_NAME)
+	@cp -rfp $(INSTALL_HEADER) $(SYSROOT_DIR)/usr/include/$(MOD_NAME)
+	@echo "Install $(MOD_NAME) Done."
+endif
+```
+
+* Kbuild Makefile
+
+```makefile
+obj-m := $(moda).o $(modb).o ...
+$(moda)-y := srca1.o srca2.o ...
+$(modb)-y := srcb1.o srcb2.o ...
+...
+```
+
+* Makefile 说明
+    * 自定义的变量
+        * `KERNEL_SRC`          : 内核的源码目录
+            * 本机的内核源码目录是 `/lib/modules/$(shell uname -r)/build`
+        * `KERNEL_OUT`          : 内核的编译输出目录
+        * `SYSROOT_DIR`         : 安装文件的根目录
+        * `KERNEL_CONF`         : 编译内核源码的配置，需要在 `$(KERNEL_SRC)/arch/$(ARCH)/configs` 找到此配置
+        * `OUT_PATH`            : 模块的编译输出目录
+        * `MOD_NAME`            : 当前模块的名字，决定头文件的安装位置
+        * `MOD_DEPS`            : 当前模块依赖的其它模块的 MOD_NAME，多个名字使用空格隔开
+        * `INSTALL_HEADER`      : 当前模块要安装的头文件
+        * `modx`                : 编译生成的模块名 `modx.ko`
+        * `srcxx.o`             : 编译对应模块需要的源码的后缀 `.c .S` 换成 `.o`
+    * 参数说明
+        * `BUILD_SILENT`        : 设置该变量的值为 `-s`，静默编译
+        * `BUILD_JOBS`          : 设置该变量的值为 `-jn`，启用多线程编译，例如 `-j8` 启用8线程编译
+        * `ARCH=xxx`            : 设置要构建的体系结构，例如 `arm64`，直接导出 `ARCH` 环境变量就不需要此设置
+        * `CROSS_COMPILE=xxx`   : 设置构建的交叉编译器，例如 `arm-linux-`，直接导出 `CROSS_COMPILE` 环境变量就不需要此设置
+        * `O=xxx`               : 构建内核时指定输出目录，编译输出和源码同目录或直接导出 `KBUILD_OUTPUT` 环境变量就不需要此设置，`O=xxx` 优先级更高
+        * `INSTALL_MOD_PATH=xxx`: 指定安装模块的根目录，直接导出 `INSTALL_MOD_PATH` 环境变量就不需要此设置
+            * linux 内核的模块默认安装到 `$(INSTALL_MOD_PATH)/lib/modules/$(KERNELRELEASE)/linux`
+            * 外部内核模块默认安装到 `$(INSTALL_MOD_PATH)/lib/modules/$(KERNELRELEASE)/extra`，可以使用 `INSTALL_MOD_DIR` 的值修改 `extra`
+        * `M=xxx`               : 通知 kbuild 正在构建外部模块，设置编译输出目录，直接导出 `KBUILD_EXTMOD` 环境变量就不需要此设置，`M=xxx` 优先级更高
+        * `src=xxx`             : 设置源码目录，不设置时源码目录同 `M=xxx` 设置的值
+        * `KBUILD_EXTRA_SYMBOLS = xxx` : 设置查找的符号导出文件 `Module.symvers`，依赖其它模块时必须设置，没有依赖或直接导出 `KBUILD_EXTRA_SYMBOLS` 环境变量就不需要此设置
+
+* 编译外部模块说明
+    * Makefile 由2部分(3步骤)组成
+        1. 在当前目录执行 Makefile，调用内核源码目录的 Makefile 的目标: `modules` 构建模块，`modules_install` 安装模块，`clean` 清理编译
+        2. 在内核源码目录执行 `src` 目录下的 Kbuild(优先) 或 Makefile，源文件编译成目标文件 `*.o`
+        3. 在内核源码目录执行 `src` 目录下的 Kbuild(优先) 或 Makefile，链接目标文件生成模块 `*.ko`
+    * 特殊说明
+        * 在 5.18 内核 [kbuild: Fix include path in scripts/Makefile.modpost](https://git.kernel.org/pub/scm/linux/kernel/git/masahiroy/linux-kbuild.git/commit/?h=fixes&id=23a0cb8e3225122496bfa79172005c587c2d64bf) 之前，在内核源码目录执行的是 `$(M)` 下的编译脚本， 所以编译输出到非源码目录时，需要先将 Kbuild 或 Makefile 复制到 OUT_PATH 目录
+        * 由于执行 Kbuild 的当前目录是内核源码目录，所以在 Kbuild 文件使用 `find` 命令或 `wildcard` 函数查找源码时必须加上 `$(src)/` 前缀
+            * `$(src)` 指向源码目录，`$(obj)` 指向编译输出目录
+        * `KERNELRELEASE` 在当前目录执行时没有值，在内核源码目录执行时被赋值，所以我们可以把 Kbuild 和 Makefile 写成一个 Makefile
+            ```
+            ifneq ($(KERNELRELEASE),)
+            Kbuild 文件内容
+            else
+            Makefile 文件内容
+            endif
+            ```
+    * Kbuild 说明
+        * `obj-m := modname.o` : 设置 `obj-m` 变量，指定要生成的模块名(注意后缀 `.o`)，生成 `modname.ko`，可以同时指定多个模块
+        * `modname-y := src1.o src2.o ...` : 设置生成模块使用的目标文件，内核 Makefile 会在 `$(M)` 指定的目录生成目标文件
+            * 如果生成模块使用的目标文件只有一个且等于 `modname.o`，那么这条语句要删除
+    * 输出方式
+        * 源码和编译输出同目录时编译命令: `make -C $(KERNEL_SRC) M=$(shell pwd) modules`
+        * 源码和编译输出分离时编译命令: `make -C $(KERNEL_SRC) O=(KERNEL_OUT) M=$(OUT_PATH) src=$(shell pwd) modules`
+
+* 编译标志说明
+    * `ccflags-y` `asflags-y` `ldflags-y`   : 设置调用 cc(编译) as(汇编) ld(链接) 命令使用的标志
+        * 老的名称是 `EXTRA_CFLAGS` `EXTRA_AFLAGS` `EXTRA_LDFLAGS`
+    * `subdir-ccflags-y`` ubdir-asflags-y`  : 设置调用 cc(编译) as(汇编) 命令使用的标志，这些标志还会影响子目录的 Kbuild
+    * `ccflags-remove-y` `asflags-remove-y` : 删除调用 cc(编译) as(汇编) 命令使用的某些标志
+    * `CFLAGS_xxx.o` `AFLAGS_xxx.o`         : 为生成特定目标 xxx.o 指定 cc(编译) as(汇编) 命令使用的标志
