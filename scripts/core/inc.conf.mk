@@ -1,7 +1,7 @@
 CONF_SRC         ?= $(ENV_TOP_DIR)/scripts/kconfig
 ifeq ($(ENV_BUILD_MODE), external)
 CONF_PATH        ?= $(patsubst $(ENV_TOP_DIR)/%,$(ENV_OUT_ROOT)/%,$(CONF_SRC))
-OUT_PATH         ?= $(shell pwd | sed 's:$(ENV_TOP_DIR):$(ENV_OUT_ROOT):')
+OUT_PATH         ?= $(patsubst $(ENV_TOP_DIR)/%,$(ENV_OUT_ROOT)/%,$(shell pwd))
 else ifeq ($(ENV_BUILD_MODE), yocto)
 CONF_PATH        ?= $(CONF_SRC)/oe-workdir/build
 OUT_PATH         ?= .

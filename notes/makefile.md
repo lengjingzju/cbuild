@@ -572,6 +572,7 @@ cur_dir in "all" is: .
     * `$(PWD)`: 运行 make 命令时的当前目录的绝对路径
     * `$(shell pwd)`: 解析 Makefile 时的此 Makefile 所在目录的绝对路径
         * 注: `$(shell pwd)` 会解析真实的文件路径(解符号链接)，而命令行直接运行 `pwd` 不会解析
+        * 注: `$(shell pwd | other_cmd)` `make -C dir` 时会解符号链接，而直接 `make` 时不会解析
 
 * 例子: 不同函数获取到的当前目录
 

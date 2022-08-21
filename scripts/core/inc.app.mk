@@ -1,5 +1,5 @@
 ifeq ($(ENV_BUILD_MODE), external)
-OUT_PATH       ?= $(shell pwd | sed "s:$(ENV_TOP_DIR):$(ENV_OUT_ROOT):")
+OUT_PATH       ?= $(patsubst $(ENV_TOP_DIR)/%,$(ENV_OUT_ROOT)/%,$(shell pwd))
 else
 OUT_PATH       ?= .
 endif

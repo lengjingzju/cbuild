@@ -50,7 +50,7 @@ MOD_MAKES      += M=$(shell pwd)
 
 else
 
-OUT_PATH       ?= $(shell pwd | sed "s:$(ENV_TOP_DIR):$(ENV_OUT_ROOT):")
+OUT_PATH       ?= $(patsubst $(ENV_TOP_DIR)/%,$(ENV_OUT_ROOT)/%,$(shell pwd))
 MOD_MAKES      += M=$(OUT_PATH) src=$(shell pwd)
 KBUILD_MK       = $(if $(wildcard Kbuild),Kbuild,Makefile)
 
