@@ -130,12 +130,22 @@ class Deps:
                     dirs = [ var for var in item['spath'].split('/') if var not in keywords]
                 depth = len(dirs) - 1
                 while cur_depth >= 0:
-                    if depth < cur_depth or dirs[cur_depth] != cur_dirs[cur_depth]:
+                    back_flag = False
+                    if depth < cur_depth:
+                        back_flag = True
+                    else:
+                        for i in range(cur_depth, -1, -1):
+                            if dirs[i] != cur_dirs[i]:
+                                back_flag = True
+                                break
+
+                    if back_flag:
                         cur_dirs.pop()
                         cur_depth -= 1
                         fp.write('endmenu\n\n')
                     else:
                         break
+
                 while depth > cur_depth + 1 and cur_depth < max_depth - 1:
                     cur_depth += 1
                     cur_dirs.append(dirs[cur_depth])
