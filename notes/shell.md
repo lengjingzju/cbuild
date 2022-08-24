@@ -78,6 +78,27 @@
     * 翻页选项                  : `[空格键]` 向下翻页 ; `[PgUp]` `[PgDn]` `[Home]` `[End]` 翻上/下/首/尾页
 <br>
 
+* 中文版 man
+    * [下载](https://src.fedoraproject.org/repo/pkgs/man-pages-zh-CN/)和编译安装
+        ```sh
+        wget https://src.fedoraproject.org/repo/pkgs/man-pages-zh-CN/v1.6.3.6.tar.gz/sha512/dc9ecd461eba41fc30658e028f853e3664fc6ce27c5b48c3159c5c8a452ad6d71730e0e5f551efa7b4c358baf010ba27a855457ae69b21e9637af326044dcca8/v1.6.3.6.tar.gz
+        tar -xvf  v1.6.3.6.tar.gz 
+        cd manpages-zh-1.6.3.6/
+        sudo apt install autotools-dev opencc
+        autoreconf --install --force
+        ./configure --disable-zhtw --prefix=/usr/local/zhman
+        make && sudo make install
+        ```
+    * 定义别名 cman
+        * 在 `~/.bashrc` 中加入下面的内容
+            ```sh
+            cman() {
+                man -M /usr/local/zhman/share/man/zh_CN $@ || man $@
+            }
+            export -f cman
+            ```
+        * `cman <cmd>`: cmd 有中文说明时查看中文手册，没有中文时查看 man 原始的英文手册
+
 * 命令位置
     * `which`                   : 查找命令
         * 命令选项
@@ -708,48 +729,129 @@ done
             * command 中的 `{}` 表示对于每一个相应的匹配文件的文件名，例如: `find -name *.html -exec cp {} ../html \;`
 <br>
 
-* 例子 find.sh: 查找指定目录下的指定后缀的文件
-    * 用法: `./find.sh [find_path] [keep_path] [find_suffix]`，例如: `./find.sh "dir1 dir2" "\*_v5 \*_v6" "c h"`
-        * find_path             : 指定要查找的文件夹，不指定时默认查找当前目录
-        * ignore_path           : 忽略的文件夹列表(去除 keep_path 指定的目录，不指定时默认去除 `*_v6`)，`*` 是通配符
-        * find_suffix           : 指定要查找的文件名后缀，不指定时默认查找全部的 `C` 和 `C++` 源代码
+* 例子 find.sh: 查找指定目录下的指定文件名的文件
+    * 用法: `./find.sh [find_str]` or `./find.sh [options]`，可使用 `./find.sh -h` 查看详细帮助信息
+    * 用户可以修改 `ignore_path` `used_path` 对应他自己的工程
 
 ```sh
 #!/bin/bash
 
-if [[ ! -z $1 ]]; then
-	find_path=$1
-else
-	find_path=.
-fi
+find_str=
+find_path=
+ignore_path="arch-v1 arch-v2 arch-v3 arch-v4 arch-v5 armv7-a-hf armv8-a dsp-v1 dsp-v2 dsp-v3 ai-v1 ai-v2 linux* out"
+used_path="arch-v5 armv8-a dsp-v3 ai-v2"
 
-ignore_path="*_v1 *_v2 *_v3 *_v4 *_v5 *_v6"
-if [[ ! -z $2 ]]; then
-	for i in $2; do
-		ignore_path=$(echo "${ignore_path}" | sed -e "s:^${i} ::" -e "s: ${i} : :"  -e "s: ${i}$::")
+usage() {
+	echo "========================================"
+	echo -e "\033[34mUsage: '$0 find_str' or '$0 [options]'\033[0m"
+	echo -e "\033[34moptions:\033[0m"
+	echo -e "\033[34m-s find_str\033[0m     : Specify the find string."
+	echo -e "\033[34m-p find_path\033[0m    : Specify the find path."
+	echo                   "                  The default value is current dir."
+	echo -e "\033[34m-i ignore_path\033[0m  : Specify the ignore dir names to process."
+	echo                   "                  The default value is all the dir names related to version."
+	echo -e "\033[34m-u used_path\033[0m    : Specify the dir names which will be removed from the ignored dir names."
+	echo                   "                  The default value is 'arch-v5 armv8-a dsp-v3 ai-v2'."
+	echo "========================================"
+}
+
+if [ $# -eq 0 ]; then
+	usage
+	exit 1
+elif [ $# -eq 1 ] && [[ $1 != '-h' ]]; then
+	find_str=$1
+else
+	while getopts "s:p:i:u:h" opt; do
+		case $opt in
+			s) find_str=$OPTARG;;
+			p) find_path=$OPTARG;;
+			i) ignore_path=$OPTARG;;
+			u) used_path=$OPTARG;;
+			h) usage; exit 0;;
+			*) echo "Error option: -$opt"; usage; exit 1;;
+		esac
 	done
-else
-	i="\*_v6"
-	ignore_path=$(echo "${ignore_path}" | sed -e "s:^${i} ::" -e "s: ${i} : :"  -e "s: ${i}$::")
 fi
 
-if [[ ! -z $3 ]]; then
-	find_suffix=$3
-else
-	find_suffix="c h cc cpp c++ hh hpp hxx"
-fi
+for i in ${used_path}; do
+	ignore_path=$(echo "${ignore_path}" | sed -e "s:^${i} ::" -e "s: ${i} : :"  -e "s: ${i}$::")
+done
 
 start_time_sec=`date +%s`
 
 cmd=$(echo find ${find_path} -path \'*/.git\' -prune \
-	$(echo "${ignore_path}" | sed "s:\([*a-zA-Z0-9_]\+\):-o -path '*/\1' -prune:g") \
-	$(echo "${find_suffix}" | sed 's:\([*a-zA-Z0-9_+]\+\):-o -iname "*.\1" -print:g'))
+	$(echo "${ignore_path}" | sed "s:\([*a-zA-Z0-9_\-]\+\):-o -path '*/\1' -prune:g") \
+	-o -name \"${find_str}\" -print)
 
+cd `pwd`
 eval $cmd
 
 end_time_sec=`date +%s`
-echo -e "\033[34mTotal: $(( $end_time_sec - $start_time_sec )) seconds.\033[0m"
-echo -e "\033[32m$cmd\033[0m""
+echo -e "\033[34mCost $(( $end_time_sec - $start_time_sec )) seconds.\033[0m"
+echo -e "\033[32m$cmd\033[0m"
+```
+
+* 例子 ctags.sh: 对指定目录下的源码文件生成 ctags 索引文件
+    * 用法: `./ctags.sh` or `./ctags.sh [options]`，可使用 `./ctags.sh -h` 查看详细帮助信息
+    * 用户可以修改 `ignore_path` `used_path` 对应他自己的工程
+
+
+```sh
+#!/bin/bash
+
+# ctags和omnicppcomplete配合自动补全 ctags --c++-kinds=+p --fields=+ialS --extra=+q
+# --c++-kinds=+p  : 为C++文件增加函数原型的标签
+# --fields=+ialS  : 在标签文件中加入继承信息(i)、类成员的访问控制信息(a)、 源文件语言包含信息(l)、以及函数的指纹(S)
+# --extra=+q      : 为标签增加类修饰符，如果没有此选项，将不能对类成员补全
+
+ctags=ctags
+more_options="--c++-kinds=+p --fields=+ialS --extra=+q"
+find_path=
+ignore_path="arch-v1 arch-v2 arch-v3 arch-v4 arch-v5 armv7-a-hf armv8-a dsp-v1 dsp-v2 dsp-v3 ai-v1 ai-v2 linux* out"
+used_path="arch-v5 armv8-a dsp-v3 ai-v2"
+find_suffix="c h cc cpp c++ hh hpp hxx"
+
+usage() {
+	echo "========================================"
+	echo -e "\033[34mUsage: '$0' or '$0 [options]'\033[0m"
+	echo -e "\033[34moptions:\033[0m"
+	echo -e "\033[34m-m\033[0m              : Specify using 'ctags ${more_options}'."
+	echo -e "\033[34m-p find_path\033[0m    : Specify the find path."
+	echo                   "                  The default value is current dir."
+	echo -e "\033[34m-i ignore_path\033[0m  : Specify the ignore dir names to process."
+	echo                   "                  The default value is all the dir names related to version."
+	echo -e "\033[34m-u used_path\033[0m    : Specify the dir names which will be removed from the ignored dir names."
+	echo                   "                  The default value is 'arch-v5 armv8-a dsp-v3 ai-v2'."
+	echo "========================================"
+}
+
+while getopts "mp:i:u:h" opt; do
+	case $opt in
+		m) ctags="ctags ${more_options}";;
+		p) find_path=$OPTARG;;
+		i) ignore_path=$OPTARG;;
+		u) used_path=$OPTARG;;
+		h) usage; exit 0;;
+		*) echo "Error option: -$opt"; usage; exit 1;;
+	esac
+done
+
+for i in ${used_path}; do
+	ignore_path=$(echo "${ignore_path}" | sed -e "s:^${i} ::" -e "s: ${i} : :"  -e "s: ${i}$::")
+done
+
+start_time_sec=`date +%s`
+
+cmd=$(echo ${ctags} \$\(find ${find_path} -path \'*/.git\' -prune \
+	$(echo "${ignore_path}" | sed "s:\([*a-zA-Z0-9_\-]\+\):-o -path '*/\1' -prune:g") \
+	$(echo "${find_suffix}" | sed 's:\([*a-zA-Z0-9_+\-]\+\):-o -iname "*.\1" -print:g')\))
+
+cd `pwd`
+eval $cmd
+
+end_time_sec=`date +%s`
+echo -e "\033[34mCost $(( $end_time_sec - $start_time_sec )) seconds.\033[0m"
+echo -e "\033[32m$cmd\033[0m"
 ```
 
 ### 文本搜索 [grep](https://www.gnu.org/software/grep/manual/grep.html)
@@ -801,49 +903,71 @@ echo -e "\033[32m$cmd\033[0m""
 <br>
 
 * 例子 grep.sh: 搜索指定目录下的指定后缀的文件中的字符串
-    * 用法: `./grep.sh [grep_str] [grep_path] [keep_path] [grep_suffix]`，例如: `./grep.sh "#define" "dir1 dir2" "\*_v5 \*_v6" "c h"`
-        * grep_str              : 要搜索的字符串
-        * grep_path             : 指定要搜索的文件夹，不指定时默认搜索当前目录
-        * ignore_path           : 忽略的文件夹列表(去除 keep_path 指定的目录，不指定时默认去除 `*_v6`)，`*` 是通配符
-        * grep_suffix           : 指定要查找的文件名后缀，不指定时默认查找全部的 `C` 和 `C++` 源代码
+    * 用法: `./grep.sh [grep_str]` or `./grep.sh [options]`，可使用 `./grep.sh -h` 查看详细帮助信息
+    * 用户可以修改 `ignore_path` `used_path` 对应他自己的工程
 
 ```sh
 #!/bin/bash
 
-grep_str=$1
+grep_option=
+grep_str=
+grep_path=
+ignore_path="arch-v1 arch-v2 arch-v3 arch-v4 arch-v5 armv7-a-hf armv8-a dsp-v1 dsp-v2 dsp-v3 ai-v1 ai-v2 linux* out"
+used_path="arch-v5 armv8-a dsp-v3 ai-v2"
+grep_suffix="c cc cp cxx cpp CPP c++ C h hh hp hxx hpp HPP h++ H"
 
-if [[ ! -z $2 ]]; then
-	grep_path=$2
+usage() {
+	echo "========================================"
+	echo -e "\033[34mUsage: '$0 grep_str' or '$0 [options]'\033[0m"
+	echo -e "\033[34moptions:\033[0m"
+	echo -e "\033[34m-o grep_option\033[0m  : Specify the additional grep options. for example: -o '-w'."
+	echo -e "\033[34m-s grep_str\033[0m     : Specify the grep string."
+	echo -e "\033[34m-p grep_path\033[0m    : Specify the grep path."
+	echo                   "                  The default value is current dir."
+	echo -e "\033[34m-i ignore_path\033[0m  : Specify the ignore dir names to process."
+	echo                   "                  The default value is all the dir names related to version."
+	echo -e "\033[34m-u used_path\033[0m    : Specify the dir names which will be removed from the ignored dir names."
+	echo                   "                  The default value is 'arch-v5 armv8-a dsp-v3 ai-v2'."
+	echo -e "\033[34m-x grep_suffix\033[0m  : Specify the filename suffix to grep."
+	echo                   "                  The default value is the C/C++ source code suffix."
+	echo "========================================"
+}
+
+if [ $# -eq 0 ]; then
+	usage
+	exit 1
+elif [ $# -eq 1 ] && [[ $1 != '-h' ]]; then
+	grep_str=$1
 else
-	grep_path=.
-fi
-
-ignore_path="*_v1 *_v2 *_v3 *_v4 *_v5 *_v6"
-if [[ ! -z $3 ]]; then
-	for i in $3; do
-		ignore_path=$(echo "${ignore_path}" | sed -e "s:^${i} ::" -e "s: ${i} : :"  -e "s: ${i}$::")
+	while getopts "o:s:p:i:u:x:h" opt; do
+		case $opt in
+			o) grep_option=$OPTARG;;
+			s) grep_str=$OPTARG;;
+			p) grep_path=$OPTARG;;
+			i) ignore_path=$OPTARG;;
+			u) used_path=$OPTARG;;
+			x) grep_suffix=$OPTARG;;
+			h) usage; exit 0;;
+			*) echo "Error option: -$opt"; usage; exit 1;;
+		esac
 	done
-else
-	i="\*_v6"
-	ignore_path=$(echo "${ignore_path}" | sed -e "s:^${i} ::" -e "s: ${i} : :"  -e "s: ${i}$::")
 fi
 
-if [[ ! -z $4 ]]; then
-	grep_suffix=$4
-else
-	grep_suffix="c cc cp cxx cpp CPP c++ C h hh hp hxx hpp HPP h++ H"
-fi
+for i in ${used_path}; do
+	ignore_path=$(echo "${ignore_path}" | sed -e "s:^${i} ::" -e "s: ${i} : :"  -e "s: ${i}$::")
+done
 
 start_time_sec=`date +%s`
 
-cmd=$(echo grep -rn \"${grep_str}\" ${grep_path} --exclude-dir=.git \
-	$(echo "${ignore_path}" | sed 's:\([*a-zA-Z0-9_]\+\):--exclude-dir=\1:g') \
-	$(echo "${grep_suffix}" | sed 's:\([*a-zA-Z0-9_+]\+\):--include=*.\1:g'))
+cmd=$(echo grep -rn --color=auto ${grep_option} \"${grep_str}\" ${grep_path} --exclude-dir=.git \
+	$(echo "${ignore_path}" | sed 's:\([*a-zA-Z0-9_\-]\+\):--exclude-dir=\1:g') \
+	$(echo "${grep_suffix}" | sed 's:\([*a-zA-Z0-9_+\-]\+\):--include=*.\1:g'))
 
+cd `pwd`
 eval $cmd
 
 end_time_sec=`date +%s`
-echo -e "\033[34mTotal: $(( $end_time_sec - $start_time_sec )) seconds.\033[0m"
+echo -e "\033[34mCost $(( $end_time_sec - $start_time_sec )) seconds.\033[0m"
 echo -e "\033[32m$cmd\033[0m"
 ```
 
