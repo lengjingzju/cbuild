@@ -13,6 +13,7 @@ endif
 KCONFIG          ?= Kconfig
 CONF_SAVE_PATH   ?= config
 CONF_PREFIX      ?= srctree=$(shell pwd)
+CONF_HEADER      ?= $(shell echo __$(PACKAGE_NAME)_CONFIG_H__ | tr '[:lower:]' '[:upper:]')
 
 CONFIG_PATH       = $(OUT_PATH)/.config
 AUTOCONFIG_PATH   = $(OUT_PATH)/autoconfig/auto.conf
@@ -22,11 +23,9 @@ CONF_OPTIONS      = $(KCONFIG) --configpath $(CONFIG_PATH) \
 					--autoheaderpath $(AUTOHEADER_PATH)
 
 define gen_config_header
-	sed -e 's/^# \(.*\) is not set$$/#define \1\t0/g' \
-		-e 's/^\(.*\)=y$$/#define \1\t1/g' \
-		-e 's/^\(.*\)=m$$/#define \1\t1/g' \
-		-e 's/^\(.*\)=\([^ym].*\)$$/#define \1\t\2/g' \
-		$(CONFIG_PATH) | grep "^#define"> $(AUTOHEADER_PATH)
+	$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --syncconfig && \
+		sed -i -e "1 i #ifndef $(CONF_HEADER)" -e "1 i #define $(CONF_HEADER)" -e '1 i \\' \
+		-e '$$ a \\' -e "\$$ a #endif" $(AUTOHEADER_PATH)
 endef
 
 .PHONY: buildkconfig cleankconfig menuconfig loadconfig cleanconfig
@@ -53,7 +52,7 @@ menuconfig: buildkconfig
 	@mtime="$(if $(wildcard $(CONFIG_PATH)),$(if $(wildcard $(AUTOHEADER_PATH)),$$(stat -c %Y $(CONFIG_PATH)),0),0)"; \
 		$(CONF_PREFIX) $(CONF_PATH)/mconf $(CONF_OPTIONS); \
 		if [ "$${mtime}" != "$$(stat -c %Y $(CONFIG_PATH))" ]; then \
-			$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --syncconfig; \
+			$(call gen_config_header); \
 		fi
 
 ifneq ($(DEF_CONFIG), )
@@ -62,7 +61,7 @@ loadconfig: buildkconfig
 	@if [ ! -e $(AUTOHEADER_PATH) ]; then \
 		cp -f $(CONF_SAVE_PATH)/$(DEF_CONFIG) $(CONFIG_PATH); \
 		$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --defconfig $(CONF_SAVE_PATH)/$(DEF_CONFIG); \
-		$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --syncconfig; \
+		$(call gen_config_header); \
 	fi
 endif
 
@@ -70,13 +69,13 @@ endif
 	@-mkdir -p $(OUT_PATH)
 	@cp -f $< $(CONFIG_PATH)
 	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --defconfig $<
-	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --syncconfig
+	@$(call gen_config_header)
 
 %_defconfig: $(CONF_SAVE_PATH)/%_defconfig buildkconfig
 	@-mkdir -p $(OUT_PATH)
 	@cp -f $< $(CONFIG_PATH)
 	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --defconfig $<
-	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --syncconfig
+	@$(call gen_config_header)
 
 %_saveconfig: $(CONFIG_PATH) buildkconfig
 	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --savedefconfig=$(CONF_SAVE_PATH)/$(subst _saveconfig,_config,$@)

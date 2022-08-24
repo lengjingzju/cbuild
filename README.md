@@ -359,6 +359,8 @@ def2_config  def_config
 * CONF_PATH: kconfig 工具的编译输出目录，和实际一致即可
 * CONF_PREFIX: 设置 conf 运行的变量，主要是 `srctree=$(path_name)`
     * Kconfig 文件中 source 其它配置参数文件的相对的目录是 srctree 指定的目录
+* CONF_HEADER: 设置生成的 config.h 中使用的包含宏，默认值是 `__大写包名_CONFIG_H__`
+    * kconfig 生成的头文件默认不包含宏 `#ifndef xxx ... #define xxx ... #endif`，本模板使用 sed 命令添加了宏
 * KCONFIG: 配置参数文件，默认是包下的 Kconfig 文件
 * CONF_SAVE_PATH: 配置文件的获取和保存目录，默认是包下的 config 目录
 
