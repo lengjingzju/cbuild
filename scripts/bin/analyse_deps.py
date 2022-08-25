@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 
 class Deps:
     def __init__(self):
-        self.MakeList = []
+        self.PathList = []
         self.ItemList = []
 
     def search_make(self, search_file, search_dirs, ignore_dirs = []):
@@ -21,26 +21,36 @@ class Deps:
                     dirs.sort()
 
                 if search_file in files:
-                    fullname = os.path.join(root, search_file)
-                    filename = os.path.dirname(fullname.replace(rootdir + '/', '', 1))
-                    self.MakeList.append((fullname, filename))
+                    self.PathList.append((root, root.replace(rootdir + '/', '', 1)))
                     dirs.clear() # don't continue to search sub dirs.
 
-    def add_item(self, makefile):
-        with open(makefile[0], 'r') as fp:
+    def add_item(self, pathpair, search_file):
+        dep_path = os.path.join(pathpair[0], search_file)
+        with open(dep_path, 'r') as fp:
             dep_flag = False
+            ItemDict = {}
+
             for per_line in fp:
                 # e.g. "#DEPS(mk.ext) a(clean install): b c"
-                ret = re.match(r'#DEPS\s*\(\s*([\w\-\.]*)\s*\)\s*([\w\-\.]+)\s*\(([\s\w\-\.%]*)\)\s*:([\s\w\-\.]*)', per_line)
+                ret = re.match(r'#DEPS\s*\(\s*([\w\-\./]*)\s*\)\s*([\w\-\.]+)\s*\(([\s\w\-\.%]*)\)\s*:([\s\w\-\.]*)', per_line)
                 if ret:
                     dep_flag = True
                     item = {}
-                    item['path'] = os.path.dirname(makefile[0])
-                    item['spath'] = makefile[1]
 
-                    item['make'] = ret.groups()[0]
+                    makestr = ret.groups()[0]
+                    if makestr and '/' in makestr:
+                        makes = os.path.split(makestr)
+                        item['path'] = os.path.join(pathpair[0], makes[0])
+                        item['spath'] = os.path.join(pathpair[1], makes[0])
+                        item['make'] = makes[1]
+                        ItemDict[makestr] = item
+                    else:
+                        item['path'] = pathpair[0]
+                        item['spath'] = pathpair[1]
+                        item['make'] = makestr
+                        self.ItemList.append(item)
+
                     item['target'] = ret.groups()[1]
-
                     targets = ret.groups()[2].strip()
                     if not targets:
                         item['targets'] = []
@@ -54,18 +64,37 @@ class Deps:
                     else:
                         item['deps'] = deps.split()
                         item['count'] = len(item['deps'])
+                    continue
 
-                    #print('[Add] %s: %s: %s' % (item['path'], item['target'], ' '.join(item['deps'])))
-                    self.ItemList.append(item)
+                ret = re.match(r'#INCDEPS\s*:\s*([\s\w\-\./]+)', per_line)
+                if ret:
+                    dep_flag = True
+                    sub_paths = ret.groups()[0].split()
+                    sub_paths.sort()
+
+                    for sub_path in sub_paths:
+                        sub_pathpair = (os.path.join(pathpair[0], sub_path), os.path.join(pathpair[1], sub_path))
+                        sub_dep_path = os.path.join(sub_pathpair[0], search_file)
+                        if os.path.exists(sub_dep_path):
+                            self.add_item(sub_pathpair, search_file)
+                        else:
+                            print('WARNING: ignore: %s' % sub_pathpair[0])
+
+            if ItemDict:
+                keys = [i for i in ItemDict.keys()]
+                keys.sort()
+                for key in keys:
+                    self.ItemList.append(ItemDict[key])
+
             if not dep_flag:
-                print('WARNING: ignore: %s' % makefile[0])
+                print('WARNING: ignore: %s' % pathpair[0])
 
     def sort_items(self):
         temp = self.ItemList
         self.ItemList = []
         finally_flag = True
-        all_targets = [item['target'] for item in temp]
 
+        all_targets = [item['target'] for item in temp]
         while temp:
             lista = []
             listb = []
@@ -129,6 +158,7 @@ class Deps:
                 if keywords:
                     dirs = [ var for var in item['spath'].split('/') if var not in keywords]
                 depth = len(dirs) - 1
+
                 while cur_depth >= 0:
                     back_flag = False
                     if depth < cur_depth:
@@ -150,7 +180,6 @@ class Deps:
                     cur_depth += 1
                     cur_dirs.append(dirs[cur_depth])
                     fp.write('menu "%s"\n\n' % (dirs[cur_depth]))
-                    #print("%d %s %s" % (cur_depth, dirs[cur_depth], item['spath']))
                 self.__write_one_kconfig(fp, item)
 
             while cur_depth >= 0:
@@ -240,7 +269,6 @@ def parse_options():
             dest='kconfig_out',
             help='Specify the output Kconfig path.')
 
-
     parser.add_argument('-f', '--file',
             dest='search_file',
             help='Specify the search filename.')
@@ -270,7 +298,6 @@ def parse_options():
 
     return args
 
-
 def do_analysis(args):
     makefile_out = args.makefile_out
     kconfig_out = args.kconfig_out
@@ -290,12 +317,12 @@ def do_analysis(args):
 
     deps = Deps()
     deps.search_make(search_file, search_dirs, ignore_dirs)
-    if not deps.MakeList:
+    if not deps.PathList:
         print('ERROR: can not find any %s in %s.' % (search_file, ':'.join(search_dirs)))
         sys.exit(1)
 
-    for makefile in deps.MakeList:
-        deps.add_item(makefile)
+    for pathpair in deps.PathList:
+        deps.add_item(pathpair, search_file)
     if not deps.ItemList:
         print('ERROR: can not find any targets in %s in %s.' % (search_file, ':'.join(search_dirs)))
         sys.exit(1)
@@ -307,7 +334,6 @@ def do_analysis(args):
         sys.exit(1)
     deps.gen_make(makefile_out)
     print('Analyse depends OK.')
-
 
 if __name__ == '__main__':
     args = parse_options()

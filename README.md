@@ -261,9 +261,9 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 
 `scripts/core/inc.app.mk` 可设置的变量
 
-* PACKAGE_NAME: 包的名称
-* PACKAGE_DEPS: 包的依赖(多个依赖空格隔开)
-    * 默认将包依赖对应的路径加到当前包的头文件和库文件的搜索路径
+* PACKAGE_NAME: 包的名称，决定头文件等的安装路径(inc.ins.mk 的此变量意义相同)
+* PACKAGE_DEPS: 包的依赖(多个依赖空格隔开)，决定头文件的搜索路径等
+    * 默认将包依赖对应的路径加到当前包的头文件的搜索路径
 * OUT_PATH: 编译输出目录，保持默认即可
 * SRC_PATH: 包中源码所在的目录，默认是包的根目录，也有的包将源码放在 src 下
     * 也可以指定包下多个(不交叉)目录的源码，例如 `SRC_PATH = src1 src2 src3`
@@ -549,6 +549,8 @@ rm -f auto.mk Kconfig
 
 * Makefile_Name: make 运行的 Makefile 的名称 (可以为空)，不为空时 make 会运行指定的 Makefile (`-f Makefile_Name`)
     * Makefile 中必须包含 all clean install 三个目标，默认会加入 all install 和 clean 目标的规则
+    * Makefile 名称可以包含路径(即斜杠 `/`)，支持直接查找子文件夹下的子包，例如 `test1/` or `test2/wrapper.mk`
+    * 也可以用一行语句 `#INCDEPS: Sub_Dirs` 继续查找子文件夹下的依赖文件，支持递归，例如 `#INCDEPS: test1 test2`，通过子文件夹下的依赖文件找到子包
 * Target_Name: 当前包的名称ID
 * Other_Target_Names: 当前包的其它目标，多个目标使用空格隔开 (可以为空)
     * 忽略 Other_Target_Names 中的 all install clean 目标
