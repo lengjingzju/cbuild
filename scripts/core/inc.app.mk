@@ -20,7 +20,7 @@ SRCS           ?= $(shell find $(SRC_PATH) $(patsubst %,-path '*/%' -prune -o,$(
 OBJS            = $(call translate_obj,$(SRCS))
 DEPS            = $(patsubst %.o,%.d,$(OBJS))
 
-CFLAGS         += -I./include/ $(patsubst %,-I%/,$(filter-out .,$(SRC_PATH))) $(patsubst %,-I%/include/,$(filter-out .,$(SRC_PATH))) -I$(OUT_PATH)/
+CFLAGS         += -I./ -I./include/ $(patsubst %,-I%/,$(filter-out .,$(SRC_PATH))) $(patsubst %,-I%/include/,$(filter-out .,$(SRC_PATH))) -I$(OUT_PATH)/
 
 comma          :=,
 ifneq ($(PACKAGE_DEPS), )
