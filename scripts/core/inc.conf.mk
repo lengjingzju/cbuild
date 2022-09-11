@@ -14,6 +14,7 @@ KCONFIG          ?= Kconfig
 CONF_SAVE_PATH   ?= config
 CONF_PREFIX      ?= srctree=$(shell pwd)
 CONF_HEADER      ?= $(shell echo __$(PACKAGE_NAME)_CONFIG_H__ | tr '[:lower:]' '[:upper:]')
+CONF_APPEND_CMD  ?=
 
 CONFIG_PATH       = $(OUT_PATH)/.config
 AUTOCONFIG_PATH   = $(OUT_PATH)/autoconfig/auto.conf
@@ -25,7 +26,8 @@ CONF_OPTIONS      = $(KCONFIG) --configpath $(CONFIG_PATH) \
 define gen_config_header
 	$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --syncconfig && \
 		sed -i -e "1 i #ifndef $(CONF_HEADER)" -e "1 i #define $(CONF_HEADER)" -e '1 i \\' \
-		-e '$$ a \\' -e "\$$ a #endif" $(AUTOHEADER_PATH)
+		-e '$$ a \\' -e "\$$ a #endif" $(AUTOHEADER_PATH) && \
+		$(if $(CONF_APPEND_CMD),$(CONF_APPEND_CMD),:)
 endef
 
 .PHONY: buildkconfig cleankconfig menuconfig loadconfig cleanconfig
