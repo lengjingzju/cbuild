@@ -13,8 +13,10 @@
     * 支持 C(`*.c`) 和 汇编(`*.S`) 混合编译
 * 提供安装编译输出的模板 `inc.ins.mk`
 * 提供 kconfig 配置参数的模板 `inc.conf.mk`
-* 提供根据目标依赖关系自动生成编译开关配置和编译顺序的脚本 `analyse_deps.py`
-* 提供自动收集配置生成总配置的脚本 `analyse_kconf.py`
+* 提供根据目标依赖关系自动生成编译顺序的脚本和编译开关参数的总配置脚本 `analyse_deps.py`
+    * 支持自动生成参与编译的实包和不参与编译的虚包的规则，虚包可用于控制管理一组实包
+    * 支持普通结构(config)、层次结构(menuconfig/menu)、选择结构(choice) 等自动生成
+    * 支持强依赖(depends on)、弱依赖(if...endif)、强选择(select)、弱选择(imply) 等自动生成
 
 ## 笔记
 
@@ -367,8 +369,9 @@ def2_config  def_config
 * OUT_PATH: 编译输出目录，保持默认即可
 * CONF_SRC: kconfig 工具的源码目录，目前是在 `scripts/kconfig`，和实际一致即可
 * CONF_PATH: kconfig 工具的编译输出目录，和实际一致即可
-* CONF_PREFIX: 设置 conf 运行的变量，主要是 `srctree=$(path_name)`
-    * Kconfig 文件中 source 其它配置参数文件的相对的目录是 srctree 指定的目录
+* CONF_PREFIX: 设置 conf 运行的变量，主要是下面两个设置
+    * `srctree=path_name`: Kconfig 文件中 source 其它配置参数文件的相对的目录是 srctree 指定的目录，如果不指定，默认是运行 `conf/mconf` 命令的目录
+    * `CONFIG_=""` : 设置生成的 .config 和 config.h 文件中的选项名称(对比 Kconfig 对应的选项名称)的前缀，不设置时，默认值是 `CONFIG_`，本例的设置是无前缀
 * CONF_HEADER: 设置生成的 config.h 中使用的包含宏，默认值是 `__大写包名_CONFIG_H__`
     * kconfig 生成的头文件默认不包含宏 `#ifndef xxx ... #define xxx ... #endif`，本模板使用 sed 命令添加了宏
 * KCONFIG: 配置参数文件，默认是包下的 Kconfig 文件
@@ -390,7 +393,8 @@ def2_config  def_config
 ```sh
 lengjing@lengjing:~/cbuild/examples/test-conf$ cd ../test-mod
 lengjing@lengjing:~/cbuild/examples/test-mod$ make deps
-Analyse depends OK.
+Generate Kconfig OK.
+Generate auto.mk OK.
 lengjing@lengjing:~/cbuild/examples/test-mod$ make menuconfig
 configuration written to /home/lengjing/cbuild/output/objects/examples/test-mod/.config
 
@@ -501,7 +505,8 @@ mod2-y = a2.o b2.o c2.o
 ```sh
 lengjing@lengjing:~/cbuild/examples/test-mod2$ cd ../test-deps
 lengjing@lengjing:~/cbuild/examples/test-deps$ make deps
-Analyse depends OK.
+Generate Kconfig OK.
+Generate auto.mk OK.
 lengjing@lengjing:~/cbuild/examples/test-deps$ make menuconfig
 configuration written to /home/lengjing/cbuild/output/objects/examples/test-deps/.config
 
@@ -521,7 +526,6 @@ target=all path=/home/lengjing/cbuild/examples/test-deps/pb/pb
 target=install path=/home/lengjing/cbuild/examples/test-deps/pb/pb
 target=all path=/home/lengjing/cbuild/examples/test-deps/pa/pa
 target=install path=/home/lengjing/cbuild/examples/test-deps/pa/pa
-lengjing@lengjing:~/cbuild/examples/test-deps$ make config # 打开自动生成的总参数配置界面
 lengjing@lengjing:~/cbuild/examples/test-deps$ make clean
 ext.mk
 target=clean path=/home/lengjing/cbuild/examples/test-deps/pc/pc
@@ -532,30 +536,25 @@ target=clean path=/home/lengjing/cbuild/examples/test-deps/pa/pa
 rm -f auto.mk Kconfig
 ```
 
-`scripts/bin/analyse_deps.py` 参数
+`scripts/bin/analyse_deps.py` 选项
 
 * `-m <Makefile Name>`: 自动生成的 Makefile 文件名
 * `-k <Kconfig Name>`: 自动生成的 Kconfig 文件名
     * 还会在 Kconfig 同目录生成 Target 文件，列出所有包的文件路径、包名和依赖
-* `-f <Search Depend Name>`: 要搜索的依赖文件名(含有依赖信息)
-* `-d <Search Directories>`: 搜索的目录名，多个目录使用冒号隔开
+* `-d <Search Depend Name>`: 要搜索的依赖文件名(含有依赖规则语句)
+* `-c <Search Kconfig Name>`: 要搜索的配置文件名(含有配置信息)
+* `-v <Search Virtual Depend Name>`: 要搜索的虚拟依赖文件名(含有虚拟依赖规则语句)
+* `-s <Search Directories>`: 搜索的目录名，多个目录使用冒号隔开
 * `-i <Ignore Directories>`: 忽略的目录名，不会搜索指定目录名下的依赖文件，多个目录使用冒号隔开
 * `-t <Max Tier Depth>`: 设置 menuconfig 菜单的最大层数，0 表示菜单平铺，1表示2层菜单，...
 * `-w <Keyword Directories>`: 用于 menuconfig 菜单，如果路径中的目录匹配设置值，则这个路径的层数减1，设置的多个目录使用冒号隔开
-
-`scripts/bin/analyse_kconf.py` 参数
-
-* `-k <Kconfig Name>`: 自动生成的 Kconfig 文件名
-* `-m <Search Kconfig Name>`: 要搜索的配置文件名(含有配置信息)
-* `-f <Search Depend Name>`: 同 analyse_deps.py
-* `-d <Search Directories>`: 同 analyse_deps.py
-* `-i <Ignore Directories>`: 同 analyse_deps.py
-* `-t <Max Tier Depth>`: 同 analyse_deps.py
-* `-w <Keyword Directories>`: 同 analyse_deps.py
+* `-p <prepend Flag>`: 用于 menuconfig，如果用户运行 conf / mconf 时设置了无前缀，则运行此脚本需要设置此 flag 为 1
 
 注: 如果在当前目录下搜索到 `<Search Depend Name>`，不会再继续搜索当前目录的子目录; `<Search Depend Name>` 中可以包含多条依赖信息
 
-依赖信息格式 `#DEPS(Makefile_Name) Target_Name(Other_Target_Names): Depend_Names`
+实依赖信息格式 `#DEPS(Makefile_Name) Target_Name(Other_Target_Names): Depend_Names`
+
+[!实依赖正则表达式](./scripts/bin/regex_deps.png)
 
 * Makefile_Name: make 运行的 Makefile 的名称 (可以为空)，不为空时 make 会运行指定的 Makefile (`-f Makefile_Name`)
     * Makefile 中必须包含 all clean install 三个目标，默认会加入 all install 和 clean 目标的规则
@@ -564,16 +563,47 @@ rm -f auto.mk Kconfig
 * Target_Name: 当前包的名称ID
 * Other_Target_Names: 当前包的其它目标，多个目标使用空格隔开 (可以为空)
     * 忽略 Other_Target_Names 中的 all install clean 目标
+    * `prepare` 关键字是特殊的实目标，表示 make 前运行 make prepare，一般用于当 .config 不存在时加载默认配置到 .config
     * `jobserver` 关键字是特殊的虚拟目标，表示 make 后加上 `$(BUILD_JOBS)`，用户需要 `export BUILD_JOBS=-j8` 才会启动多线程编译
         * 某些包的 Makefile 包含 make 指令时不要加上 jobserver 目标，例如编译外部内核模块
-    * `prepare` 关键字是特殊的虚拟目标，表示 make 前运行 make prepare，一般用于当 .config 不存在时加载默认配置到 .config
 * Depend_Names: 当前包依赖的其它包的名称ID，多个依赖使用空格隔开 (可以为空)
-    * `finally` 关键字是特殊的虚拟依赖，表示此包编译顺序在所有其它包之后，一般用于最后生成文件系统和系统镜像
     * 如果有循环依赖或未定义依赖，解析将会失败，会打印出未解析成功的条目
         * 出现循环依赖，打印 "ERROR: circular deps!"
         * 出现未定义依赖，打印 "ERROR: deps (%s) are not found!"
 
-注: 有效的名称是由字母、数字、下划线、点号组成，Other_Target_Names 还可以使用 `%` 作为通配符
+注: 包的名称ID是由 **小写字母、数字、短划线** 组成，Other_Target_Names 中还可以使用 `%` 作为通配符
+
+Depend_Names 中的特殊依赖
+
+* 特殊依赖(关键字类)
+    * `finally`     : 表示此包编译顺序在所有其它包之后，一般用于最后生成文件系统和系统镜像
+    * `unselect`    : 表示此包默认不编译，即 `default n`，否则此包默认编译，即 `default y`
+    * `nokconfig`   : 表示此包不含 Kconfig 配置。同一目录有多个包时，最多只有一个包有 Kconfig，此包无需设置 `nokconfig`，而其它包需要设置
+* 特殊依赖(前导符类)
+    * `!depname`    : 表示此包和 depname 包冲突，无法同时开启，即 `depends on !depname`
+    * `&depname`    : 表示此包弱选中 depname 包，即 `imply depname`，此包选中后，depname 也被自动选中，此时 depname 也可以手动取消选中
+    * `&&depname`   : 表示此包强选中 depname 包，即 `select depname`，此包选中后，depname 也被自动选中，此时 depname 不可以取消选中
+    * `?depname`    : 表示此包弱依赖(不安装动态库的) depname 包，弱依赖是指即使 depname 包未选中或不存在，依赖它的包也可以选中和编译成功
+    * `??depname`   : 表示此包弱依赖(安装动态库的) depname 包
+    * `*depname`    : 表示此包会被虚拟包 depname 的作用，不要使用 `*choice` 和 `*depend` 的定义ID，会报警告
+
+
+虚依赖信息格式 `#DEPS(Virtual_Type) Virtual_Name Default_MSG Sub_Path`
+
+[!虚依赖正则表达式](./scripts/bin/regex_vdeps.png)
+
+* Virtual_Type      : 必选，表示虚拟包的类型，目前有 6 种类型
+    * `*choice`     : 表示生成 `choice` 虚拟包，当前目录(含子目录)下的所有的包会成为 choice 下的子选项
+    * `choice`      : 表示生成 `choice` 虚拟包，设置了该特殊依赖的实际包会成为 choice 下的子选项
+    * `*depend`     : 表示生成 `menuconfig` 虚拟包，当前目录(含子目录)下的所有的包强依赖此包，且处于该包的菜单目录下
+    * `depend`      : 表示生成 `config` 虚拟包，此包将成为设置了该特殊依赖的实际包的强依赖
+    * `imply`       : 表示生成 `config` 虚拟包，此包选中时会弱选中设置了该特殊依赖的实际包
+    * `select`      : 表示生成 `config` 虚拟包，此包选中时会强选中设置了该特殊依赖的实际包
+* Virtual_Name      : 必选，虚拟包的名称
+* Default_MSG       : 可选，`choice` 虚拟包是默认选中的子项的ID; 其他包是只有一个值 `unselect`， 表示此包默认不选中，否则默认选中
+* Sub_Path          : 可选，只有 `*choice` 和 `*depend` 可能含有此参数，必须以 `/` 开头，表示作用于指定的子目录而不是当前目录
+
+注: 虚依赖是指该包不是实际的包，不会参与编译，只是用来组织管理实际包
 
 ## 测试 Yocto 编译
 
