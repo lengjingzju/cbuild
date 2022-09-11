@@ -155,10 +155,20 @@ install_lib:
 	@install -d $(ENV_INS_ROOT)/usr/lib
 	@cp -drf $(INSTALL_LIBRARY) $(ENV_INS_ROOT)/usr/lib
 
+INSTALL_BASE_LIBRARY ?= $(INSTALL_LIBRARY)
+install_base_lib:
+	@install -d $(ENV_INS_ROOT)/lib
+	@cp -drf $(INSTALL_BASE_LIBRARY) $(ENV_INS_ROOT)/lib
+
 INSTALL_BINARY ?= $(BIN_TARGETS)
 install_bin:
 	@install -d $(ENV_INS_ROOT)/usr/bin
 	@cp -drf $(INSTALL_BINARY) $(ENV_INS_ROOT)/usr/bin
+
+INSTALL_BASE_BINARY ?= $(INSTALL_BINARY)
+install_base_bin:
+	@install -d $(ENV_INS_ROOT)/bin
+	@cp -drf $(INSTALL_BASE_BINARY) $(ENV_INS_ROOT)/bin
 
 install_hdr:
 	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)

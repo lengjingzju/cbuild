@@ -10,9 +10,19 @@ install_libs:
 	@install -d $(ENV_INS_ROOT)/usr/lib
 	@cp -drf $(INSTALL_LIBRARIES) $(ENV_INS_ROOT)/usr/lib
 
+INSTALL_BASE_LIBRARIES ?= $(INSTALL_LIBRARIES)
+install_base_libs:
+	@install -d $(ENV_INS_ROOT)/lib
+	@cp -drf $(INSTALL_BASE_LIBRARIES) $(ENV_INS_ROOT)/lib
+
 install_bins:
 	@install -d $(ENV_INS_ROOT)/usr/bin
 	@cp -drf $(INSTALL_BINARIES) $(ENV_INS_ROOT)/usr/bin
+
+INSTALL_BASE_BINARIES ?= $(INSTALL_BINARIES)
+install_base_bins:
+	@install -d $(ENV_INS_ROOT)/bin
+	@cp -drf $(INSTALL_BASE_BINARIES) $(ENV_INS_ROOT)/bin
 
 install_hdrs:
 	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)

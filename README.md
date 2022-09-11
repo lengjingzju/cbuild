@@ -169,15 +169,19 @@ Build test-app3 Done.
 lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 ```
 
-**特别注意: 第40次提交修改并增加了安装相关的目标和用法，和以前不兼容**
-
 `scripts/core/inc.ins.mk` 支持的目标
 * install_libs: 安装库文件集
     * 用户需要设置被安装的库文件集变量 INSTALL_LIBRARIES
     * 安装目录是 `$(ENV_INS_ROOT)/usr/lib`
+* install_base_libs: 安装库文件集
+    * 用户需要设置被安装的库文件集变量 INSTALL_BASE_LIBRARIES，该变量默认取 INSTALL_LIBRARIES 的值
+    * 安装目录是 `$(ENV_INS_ROOT)/lib`
 * install_bins: 安装可执行文件集
     * 用户需要设置被安装的可执行文件集变量 INSTALL_BINARIES
     * 安装目录是 `$(ENV_INS_ROOT)/usr/bin`
+* install_base_bins: 安装可执行文件集
+    * 用户需要设置被安装的可执行文件集变量 INSTALL_BASE_BINARIES，该变量默认取 INSTALL_BINARIES 的值
+    * 安装目录是 `$(ENV_INS_ROOT)/bin`
 * install_hdrs: 安装头文件集
     * 用户需要设置被安装的头文件集变量 INSTALL_HEADERS
     * 安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
@@ -235,12 +239,18 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 
 * install_lib: 安装库文件集
     * 用户一般不需要设置被安装的库文件集变量 INSTALL_LIBRARY
-    * 编译生成的库文件会加入到 `LIB_TARGETS` 变量，INSTALL_LIBRARY 已经默认赋值为 `$(LIB_TARGETS)`
+    * 编译生成的库文件会加入到 `LIB_TARGETS` 变量，INSTALL_LIBRARY 已默认赋值为 `$(LIB_TARGETS)`
     * 安装目录是 `$(ENV_INS_ROOT)/usr/lib`
+* install_base_lib: 安装库文件集
+    * 用户一般不需要设置被安装的库文件集变量 INSTALL_BASE_LIBRARY，该变量默认取 INSTALL_LIBRARY 的值
+    * 安装目录是 `$(ENV_INS_ROOT)/lib`
 * install_bin: 安装可执行文件集
     * 用户一般不需要设置被安装的可执行文件集变量 INSTALL_BINARY
-    * 编译生成的可执行文件会加入到 `BIN_TARGETS` 变量，INSTALL_BINARY 已经默认赋值为 `$(BIN_TARGETS)`
+    * 编译生成的可执行文件会加入到 `BIN_TARGETS` 变量，INSTALL_BINARY 已默认赋值为 `$(BIN_TARGETS)`
     * 安装目录是 `$(ENV_INS_ROOT)/usr/bin`
+* install_base_bins: 安装可执行文件集
+    * 用户一般不需要设置被安装的库文件集变量 INSTALL_BASE_BINARY，该变量默认取 INSTALL_BINARY 的值
+    * 安装目录是 `$(ENV_INS_ROOT)/bin`
 * install_hdr / install_data / install_data_xxx / install_todir_xxx / install_tofile_xxx:
     * 目标意义同 inc.ins.mk 中对应的目标 install_hdrs / install_datas / install_datas_xxx / install_todirs_xxx / install_tofiles_xxx
     * 且变量名称改为了 INSTALL_HEADER / INSTALL_DATA / INSTALL_DATA_xxx / INSTALL_TODIR_xxx / INSTALL_TOFILE_xxx
