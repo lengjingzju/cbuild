@@ -554,7 +554,7 @@ rm -f auto.mk Kconfig
 
 实依赖信息格式 `#DEPS(Makefile_Name) Target_Name(Other_Target_Names): Depend_Names`
 
-[!实依赖正则表达式](./scripts/bin/regex_deps.png)
+![实依赖正则表达式](./scripts/bin/regex_deps.png)
 
 * Makefile_Name: make 运行的 Makefile 的名称 (可以为空)，不为空时 make 会运行指定的 Makefile (`-f Makefile_Name`)
     * Makefile 中必须包含 all clean install 三个目标，默认会加入 all install 和 clean 目标的规则
@@ -588,9 +588,9 @@ Depend_Names 中的特殊依赖
     * `*depname`    : 表示此包会被虚拟包 depname 的作用，不要使用 `*choice` 和 `*depend` 的定义ID，会报警告
 
 
-虚依赖信息格式 `#DEPS(Virtual_Type) Virtual_Name Default_MSG Sub_Path`
+虚依赖信息格式 `#VDEPS(Virtual_Type) Virtual_Name Default_MSG Sub_Path`
 
-[!虚依赖正则表达式](./scripts/bin/regex_vdeps.png)
+![虚依赖正则表达式](./scripts/bin/regex_vdeps.png)
 
 * Virtual_Type      : 必选，表示虚拟包的类型，目前有 6 种类型
     * `*choice`     : 表示生成 `choice` 虚拟包，当前目录(含子目录)下的所有的包会成为 choice 下的子选项
