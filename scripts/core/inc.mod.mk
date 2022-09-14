@@ -84,7 +84,11 @@ modules_clean:
 	@make $(MOD_MAKES) clean
 
 modules_install:
+ifeq ($(ENV_BUILD_MODE), yocto)
 	@make $(MOD_MAKES) $(if $(ENV_INS_ROOT), INSTALL_MOD_PATH=$(ENV_INS_ROOT)) modules_install
+else
+	@flock $(KERNEL_SRC) -c 'make $(MOD_MAKES) $(if $(ENV_INS_ROOT), INSTALL_MOD_PATH=$(ENV_INS_ROOT)) modules_install'
+endif
 
 install_hdr:
 	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)

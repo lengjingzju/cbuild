@@ -6,6 +6,7 @@ class Deps:
         self.PathList = []
         self.ItemList = []
         self.TargetList = []
+        self.FinallyList = []
         self.VirtualDict = {}
 
         self.conf_name = ''
@@ -258,6 +259,8 @@ class Deps:
                                 append_flag = self.__set_virtual_params(item, dep[1:])
                             else:
                                 item['deps'].append(dep)
+                                if 'finally' in item['deps']:
+                                    self.FinallyList.append(item['target'])
 
                     if append_flag:
                         if makestr and '/' in makestr:
@@ -514,6 +517,22 @@ class Deps:
 
                 fp.write('ifeq ($(CONFIG_%s), y)\n\n' % (self.__escape_toupper(item['target'])))
 
+                if item['target'] in self.FinallyList:
+                    ideps = self.FinallyList + item['deps'] + item['wdeps']
+                    for dep in self.TargetList:
+                        if dep not in ideps:
+                            fp.write('ifeq ($(CONFIG_%s), y)\n' % (self.__escape_toupper(dep)))
+                            fp.write('%s: %s\n' % (item['target'], dep))
+                            fp.write('endif\n')
+                    fp.write('\n')
+
+                if item['wdeps']:
+                    for dep in item['wdeps']:
+                        fp.write('ifeq ($(CONFIG_%s), y)\n' % (self.__escape_toupper(dep)))
+                        fp.write('%s: %s\n' % (item['target'], dep))
+                        fp.write('endif\n')
+                    fp.write('\n')
+
                 deps = []
                 if item['deps']:
                     if 'finally' in item['deps']:
@@ -521,50 +540,31 @@ class Deps:
                     else:
                         deps = [i for i in item['deps']]
                 if deps:
-                    fp.write('%s: %s\n' % (item['target'], ' '.join(deps)))
-                for dep in item['wdeps']:
-                    fp.write('ifeq ($(CONFIG_%s), y)\n' % (self.__escape_toupper(dep)))
-                    fp.write('%s: %s\n' % (item['target'], dep))
-                    fp.write('endif\n')
+                    fp.write('%s: %s\n\n' % (item['target'], ' '.join(deps)))
 
-                fp.write('\nALL_TARGETS += %s\n' % (item['target']))
+                fp.write('ALL_TARGETS += %s\n' % (item['target']))
                 fp.write('%s:\n' % (item['target']))
                 if item['targets'] and 'prepare' in item['targets']:
                     fp.write('\t%s prepare\n' % (make))
                 fp.write('\t%s\n' % (make))
-                fp.write('\t%s install\n' % (make))
+                fp.write('\t%s install\n\n' % (make))
                 phony.append(item['target'])
 
-                fp.write('\nALL_CLEAN_TARGETS += %s_clean\n' % (item['target']))
+                fp.write('ALL_CLEAN_TARGETS += %s_clean\n' % (item['target']))
                 fp.write('%s_clean:\n' % (item['target']))
-                fp.write('\t%s clean\n' % (make))
+                fp.write('\t%s clean\n\n' % (make))
                 phony.append(item['target'] + '_clean')
 
                 for t in item['targets']:
                     if t != 'all' and t != 'clean' and t != 'install' and t != 'prepare' and t != 'jobserver':
-                        fp.write('\n%s_%s:\n' % (item['target'], t))
-                        fp.write('\t%s $(patsubst %s_%%,%%,$@)\n' % (make, item['target']))
+                        fp.write('%s_%s:\n' % (item['target'], t))
+                        fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, item['target']))
                         phony.append('%s_%s' % (item['target'], t))
 
-                fp.write('\n.PHONY: %s\n\n' % (' '.join(phony)))
+                fp.write('.PHONY: %s\n\n' % (' '.join(phony)))
                 fp.write('endif\n\n')
 
-            fp.write('all_targets:\n')
-            for item in self.ItemList:
-                make = '@make'
-                if item['targets'] and 'jobserver' in item['targets']:
-                    make += ' $(BUILD_JOBS)'
-                make += ' -s -C %s' % (item['path'])
-                if item['make']:
-                    make += ' -f %s' % (item['make'])
-
-                fp.write('ifeq ($(CONFIG_%s), y)\n' % (self.__escape_toupper(item['target'])))
-                if item['targets'] and 'prepare' in item['targets']:
-                    fp.write('\t%s prepare\n' % (make))
-                fp.write('\t%s\n' % (make))
-                fp.write('\t%s install\n' % (make))
-                fp.write('endif\n')
-            fp.write('.PHONY: all_targets\n\n')
+            fp.write('%s: %s\n' % ('all_targets', '$(ALL_TARGETS)'))
 
 
 def parse_options():

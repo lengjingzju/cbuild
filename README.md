@@ -490,7 +490,7 @@ mod1-y = a1.o b1.o c1.o
 mod2-y = a2.o b2.o c2.o
 ```
 
-注: 使用源码和编译输出分离时， 需要先将 Kbuild 或 Makefile 复制到 OUT_PATH 目录下，如果不想复制，需要修改内核源码的 `scripts/Makefile.modpost`，最新 linux-5.19 已合并此补丁
+注: 使用源码和编译输出分离时， 需要先将 Kbuild 或 Makefile 复制到 OUT_PATH 目录下，如果不想复制，需要修改内核源码的 `scripts/Makefile.modpost`，linux-5.19 内核和最新版本的 LTS 内核已合并此补丁
 
 ```makefile
 -include $(if $(wildcard $(KBUILD_EXTMOD)/Kbuild), \
@@ -539,6 +539,8 @@ rm -f auto.mk Kconfig
 `scripts/bin/analyse_deps.py` 选项
 
 * `-m <Makefile Name>`: 自动生成的 Makefile 文件名
+    * 可以使用一个顶层 Makefile 包含自动生成的 Makefile，all 目标调用 `make $(BUILD_JOBS) -s MAKEFLAGS= all_targets` 多线程编译所有包
+    * 如果某个包的内部需要启用多线程编译，需要在此包的其它目标中指定 `jobserver`，见下面说明
 * `-k <Kconfig Name>`: 自动生成的 Kconfig 文件名
     * 还会在 Kconfig 同目录生成 Target 文件，列出所有包的文件路径、包名和依赖
 * `-d <Search Depend Name>`: 要搜索的依赖文件名(含有依赖规则语句)
