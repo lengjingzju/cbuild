@@ -201,7 +201,7 @@ class Deps:
 
             for per_line in fp:
                 # e.g. "#DEPS(mk.ext) a(clean install): b c"
-                ret = re.match(r'#DEPS\s*\(\s*([\w\-\./]*)\s*\)\s*([\w\-\.]+)\s*\(([\s\w\-\.%]*)\)\s*:([\s\w\-\.\?\*&!]*)', per_line)
+                ret = re.match(r'#DEPS\s*\(\s*([\w\-\./]*)\s*\)\s*([\w\-\.]+)\s*\(([\s\w\-\.%]*)\)\s*:([\s\w\-\.\?\*&!=,]*)', per_line)
                 if ret:
                     dep_flag = True
                     append_flag = True
@@ -230,6 +230,7 @@ class Deps:
                     item['deps'] = []
                     item['wdeps'] = []
                     item['vdeps'] = []
+                    item['edeps'] = []
                     item['select'] = []
                     item['imply'] = []
                     item['conflict'] = []
@@ -257,6 +258,8 @@ class Deps:
                                     item['wdeps'].append(dep[1:])
                             elif dep[0] == '*':
                                 append_flag = self.__set_virtual_params(item, dep[1:])
+                            elif '=' in dep:
+                                item['edeps'].append(dep)
                             else:
                                 item['deps'].append(dep)
                                 if 'finally' in item['deps']:
@@ -366,13 +369,28 @@ class Deps:
 
         deps = []
         if item['deps']:
-            deps += [('', i) for i in item['deps'] if i != 'finally']
+            deps += ['%s%s' % (config_prepend, self.__escape_toupper(t)) for t in item['deps'] if t != 'finally']
         if item['conflict']:
-            deps += [('!', i) for i in item['conflict']]
+            deps += ['!%s%s' % (config_prepend, self.__escape_toupper(t)) for t in item['conflict']]
         if item['vdeps']:
-            deps += [('', i) for i in item['vdeps']]
+            deps += ['%s%s' % (config_prepend, self.__escape_toupper(t)) for t in item['vdeps']]
+        if item['edeps']:
+            for dep in item['edeps']:
+                if '!=' in dep:
+                    env_pair = dep.split('!=')
+                    env_name = env_pair[0]
+                    env_vals = env_pair[1].split(',')
+                    deps += ['$(%s)!="%s"' % (env_name, t) for t in env_vals]
+                else:
+                    env_pair = dep.split('=')
+                    env_name = env_pair[0]
+                    env_vals = env_pair[1].split(',')
+                    if deps:
+                        deps.append('(%s)' % (' || '.join(['$(%s)="%s"' % (env_name, t) for t in env_vals])))
+                    else:
+                        deps.append('%s' % (' || '.join(['$(%s)="%s"' % (env_name, t) for t in env_vals])))
         if deps:
-            fp.write('\tdepends on %s\n' % (' && '.join(['%s%s%s' % (t[0], config_prepend, self.__escape_toupper(t[1])) for t in deps])))
+            fp.write('\tdepends on %s\n' % (' && '.join([t for t in deps])))
 
         if item['select']:
             for t in item['select']:

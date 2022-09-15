@@ -588,7 +588,9 @@ Depend_Names 中的特殊依赖
     * `?depname`    : 表示此包弱依赖(不安装动态库的) depname 包，弱依赖是指即使 depname 包未选中或不存在，依赖它的包也可以选中和编译成功
     * `??depname`   : 表示此包弱依赖(安装动态库的) depname 包
     * `*depname`    : 表示此包会被虚拟包 depname 的作用，不要使用 `*choice` 和 `*depend` 的定义ID，会报警告
-
+* 特殊依赖(环境变量类)
+    * ENVNAME=val1,val2 : 表示此包依赖环境变量 ENVNAME 的值等于 val1 或 等于 val2
+    * ENVNAME!=val1,val2: 表示此包依赖环境变量 ENVNAME 的值不等于 val1 且不等于 val2
 
 虚依赖信息格式 `#VDEPS(Virtual_Type) Virtual_Name Default_MSG Sub_Path`
 
