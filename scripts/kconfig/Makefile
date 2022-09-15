@@ -24,6 +24,8 @@ HOSTCFLAGS     += -D_GNU_SOURCE -D_DEFAULT_SOURCE
 HOSTLDFLAGS     = -lncurses -ltinfo
 endif
 
+COLORECHO       = $(if $(findstring dash,$(shell readlink /bin/sh)),echo,echo -e)
+
 .PHONY: all clean
 all: $(OUT_PATH)/conf $(OUT_PATH)/mconf
 
@@ -36,31 +38,31 @@ clean:
 
 $(AUTOGEN_BISON): autogen/parser.y
 	@-mkdir -p $(dir $@)
-	@echo "\033[32mbison\033[0m	$@"
+	@$(COLORECHO) "\033[32mbison\033[0m	$@"
 	@bison -o $(basename $@).c --defines=$(basename $@).h -t -l $<
 
 $(AUTOGEN_FLEX): autogen/lexer.l $(AUTOGEN_BISON)
 	@-mkdir -p $(dir $@)
-	@echo "\033[32mflex\033[0m	$@"
+	@$(COLORECHO) "\033[32mflex\033[0m	$@"
 	@flex -o $@ -L $<
 
 $(AUTOGEN_OBJS) : %.o:%.c
 	@-mkdir -p $(dir $@)
 	@$(HOSTCC) $(HOSTCFLAGS) -MM -MT $@ -MF $(patsubst %.o,%.d,$@) $<
-	@echo "\033[32m$(HOSTCC)\033[0m	$<"
+	@$(COLORECHO) "\033[32m$(HOSTCC)\033[0m	$<"
 	@$(HOSTCC) $(HOSTCFLAGS) -c -o $@ $<
 
 $(PARSER_OBJS) $(LXDIALOG_OBJS) $(CONF_OBJS) $(MCONF_OBJS): $(OUT_PATH)/%.o:%.c
 	@-mkdir -p $(dir $@)
 	@$(HOSTCC) $(HOSTCFLAGS) -MM -MT $@ -MF $(patsubst %.o,%.d,$@) $<
-	@echo "\033[32m$(HOSTCC)\033[0m	$<"
+	@$(COLORECHO) "\033[32m$(HOSTCC)\033[0m	$<"
 	@$(HOSTCC) $(HOSTCFLAGS) -c -o $@ $<
 
 $(OUT_PATH)/conf: $(AUTOGEN_OBJS) $(PARSER_OBJS) $(CONF_OBJS)
-	@echo "\033[32m$(HOSTCC)\033[0m	\033[44m$@\033[0m"
+	@$(COLORECHO) "\033[32m$(HOSTCC)\033[0m	\033[44m$@\033[0m"
 	@$(HOSTCC) -o $@ $^ $(HOSTLDFLAGS)
 
 $(OUT_PATH)/mconf: $(AUTOGEN_OBJS) $(PARSER_OBJS) $(LXDIALOG_OBJS) $(MCONF_OBJS)
-	@echo "\033[32m$(HOSTCC)\033[0m	\033[44m$@\033[0m"
+	@$(COLORECHO) "\033[32m$(HOSTCC)\033[0m	\033[44m$@\033[0m"
 	@$(HOSTCC) -o $@ $^ $(HOSTLDFLAGS)
 

@@ -44,6 +44,8 @@ LDFLAGS        += -Wl,--gc-sections
 endif
 #LDFLAGS       += -static
 
+COLORECHO       = $(if $(findstring dash,$(shell readlink /bin/sh)),echo,echo -e)
+
 define all_ver_obj
 $(strip \
 	$(if $(word 4,$(1)), \
@@ -72,7 +74,7 @@ ifneq ($(filter %.$(1),$(SRCS)), )
 $$(patsubst %.$(1),$$(OUT_PATH)/%.o,$$(filter %.$(1),$$(SRCS))): $$(OUT_PATH)/%.o: %.$(1)
 	@mkdir -p $$(dir $$@)
 	@$$(if $$(filter-out $$(patsubst %,\%.%,$$(ASM_SUFFIX)),$$<),$(2) -c $$(CFLAGS) $$(CFLAGS_$$(patsubst %.$(1),%.o,$$<)) -MM -MT $$@ -MF $$(patsubst %.o,%.d,$$@) $$<)
-	@echo "\033[032m$(2)\033[0m	$$<"
+	@$(COLORECHO) "\033[032m$(2)\033[0m	$$<"
 	@$$(if $$(filter-out $$(AS),$(2)),$(2) -c $$(CFLAGS) $$(CFLAGS_$$(patsubst %.$(1),%.o,$$<)) -fPIC -o $$@ $$<,$(AS) $$(AFLAGS) $$(AFLAGS_$$(patsubst %.$(1),%.o,$$<)) -o $$@ $$<)
 endif
 endif
@@ -101,7 +103,7 @@ clean_objs:
 define add-liba-build
 LIB_TARGETS += $$(OUT_PATH)/$(1)
 $$(OUT_PATH)/$(1): $$(call translate_obj,$(2))
-	@echo "\033[032mlib:\033[0m	\033[44m$$@\033[0m"
+	@$(COLORECHO) "\033[032mlib:\033[0m	\033[44m$$@\033[0m"
 	@$$(AR) r $$@ $$^ -c
 endef
 
@@ -110,7 +112,7 @@ libso_names := $(call all_ver_obj,$(1))
 LIB_TARGETS += $(patsubst %,$(OUT_PATH)/%,$(call all_ver_obj,$(1)))
 
 $$(OUT_PATH)/$$(firstword $$(libso_names)): $$(call translate_obj,$(2))
-	@echo "\033[032mlib:\033[0m	\033[44m$$@\033[0m"
+	@$(COLORECHO) "\033[032mlib:\033[0m	\033[44m$$@\033[0m"
 	@$$(call compile_tool,$(2)) -shared -fPIC -o $$@ $$^ $$(LDFLAGS) $(3) \
 		$$(if $$(findstring -soname=,$(3)),,-Wl$$(comma)-soname=$$(if $$(word 2,$(1)),$$(firstword $(1)).$$(word 2,$(1)),$(1)))
 
@@ -134,7 +136,7 @@ endef
 define add-bin-build
 BIN_TARGETS += $$(OUT_PATH)/$(1)
 $$(OUT_PATH)/$(1): $$(call translate_obj,$(2))
-	@echo "\033[032mbin:\033[0m	\033[44m$$@\033[0m"
+	@$(COLORECHO) "\033[032mbin:\033[0m	\033[44m$$@\033[0m"
 	@$$(call compile_tool,$(2)) -o $$@ $$^ $$(LDFLAGS) $(3)
 endef
 

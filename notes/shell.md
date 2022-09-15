@@ -1,6 +1,11 @@
 # Shell 笔记
 
-* 本笔记的 shell 为 bash (`echo $SHELL` 或 `echo $0` 可获知当前使用的是哪种 shell)
+* 本笔记的 shell 为 bash
+* `cat /etc/shells` 可获取系统当前安装的 shell
+* `echo $SHELL` 或 `echo $0` 可获知当前用户的默认 shell (即 `cat /etc/passwd` 对应用户的最后一列)，一般是 `bash`
+    * 修改用户默认 shell 可以使用以下3种方法: 修改 `/etc/passwd` 文件最后一列，`sudo usermod --shell shell命令路径 用户名` 或 `sudo chsh --shell shell命令路径 用户名`
+* Makefile 使用的默认 shell 是 `/bin/sh` 指向的 shell (即 `readlink /bin/sh`)，Ubuntu 一般是 `dash`
+    * 修改 Makefile 默认 shell 可以重新设置符号链接 `cd /bin && sudo ln -sf shell名称 sh`，例如 `cd /bin && sudo ls -sf bash sh`
 
 ## 用户和配置
 
@@ -144,7 +149,7 @@
         * 获取变量值的长度，即字符串包含的字符数
 <br>
 
-* 数组(sh 不支持数组)
+* 数组
     * 普通数组(数字作为数组索引)
         * `array=(test0 test1)`             : 定义一个普通数组
             * 也可以单个定义或修改数组元素的值 `array[0]=test0; array[1]=test1`
@@ -158,6 +163,7 @@
         * `${array[*]}` or `${array[@]}`    : 数组所有元素值组成的列表
         * `${!array[*]}` or `${!array[@]}`  : 数组所有元素索引组成的列表
         * `${#array[*]}` or `${#array[@]}`  : 数组元素个数
+    * 注: dash 中不支持数组
 <br>
 
 * 变量命令
@@ -177,6 +183,7 @@
         * `start` 是负数时必须在 `var` 的冒号后加空格或用小括号把数值括起来
         * 可以省略 `:length`，此时表示切片到字符串结尾
         * `length` 可以使用负数，此时不再表示长度的意思，而是切片到索引(不含)的意思
+        * 注: dash 中不支持变量切片
     * 例子(定义 `var=www.google.com`)
         * `${var: -3}`          : 提取最后3个字符，也可以写成 `${var:(-3)}` ，不可以写成 `${var:-3}`，例子值为 "com"
         * `${var:4}`            : 提取第4个(不含)字符之后的所有字符，也可以写成 `${var: 4}`，例子值为 "google.com"
@@ -224,7 +231,9 @@
             * `\033[4x;3xm`     : 同时设置背景色和前景色(x是数字代表: `0` 黑 `1` 红 `2` 绿 `3` 黄 `4` 蓝 `5` 紫 `6` 天蓝 `7` 白)
             * `\033[4xm`        : 只设置背景色
             * `\033[3xm`        : 只设置前景色
+            * 注: dash 中颜色打印不需要 `-e`
         * `echo { .. }`         : 生成值序列，例如: `echo {a..z}` `echo {0..100}`
+            * 注: dash 不支持这种语法
     * `printf FORMAT [ARGUMENT]`: 格式化打印
         * printf 使用格式化字符，空格分隔的打印的参数，例如: `printf "%3.2f %s\n" 3.1415926 $PATH`
         * printf 默认并不像 echo 命令一样会自动添加换行符
@@ -255,6 +264,7 @@ The age of lengjing is 30.
             * 将 stderr 单独重定向到一个文件，将 stdout 重定向到另一个文件，
         * `cmd 2>&1 output.txt` or `cmd &> output.txt`
             * stderr 和 stdout 都被重定向到同一个文件中
+            * 注: dash 中不支持这种写法，替代写法 `cmd > output.txt 2>&1`
         * `cmd 2> /dev/null`
             * 将 stderr 输出丢弃
     * `cmd | tee output.txt`    : tee只能从stdin中读取，终端中打印，并复制一份输出将它重定向到一个文件中
@@ -375,6 +385,7 @@ done
 
 * 定义函数
     * `function` 可以省略
+        * 注: dash 中没有 `function` 这个关键字
     * 函数括号里面不写参数
     * 函数里面参数用 `$1 $2 ...` 表示，注意函数里面的这些值不再是脚本的参数(`$0` 还是脚本名)
 
@@ -415,7 +426,7 @@ fname() {
     * `[[ $str1 = $str2 ]]`
         * `=` 相等; `==` 相等; `!=` 不等; `<` 小于; `>` 大于
         * 注1: 使用字符串比较时，最好用双中括号，因为有时候采用单个中括号会产生错误
-        * 注2: dash (Ubuntu 默认sh) 中只能用 `=` 表示相等
+        * 注2: dash 中只能用 `=` 表示相等
     * `[[ -z $var ]]`
         * `-z` 空字符串; `-n` 非空字符串
         * 注: `[ -n $var ]` 表示是否定义，变量赋值为空也是定义了
@@ -433,6 +444,7 @@ fname() {
     * 单括号的 TEST 命令不会对 `*` 进行扩展，而双括号 TEST 命令则会对 `*` 进行扩展
     * 单括号的 TEST 命令需要对大于号 `<` 和 小于号 `>` 加转义符 `\`，直接而双括号 TEST 命令不需要
     * `test` 指令相当于单中括号，即 `test condition` 相当于 `[ condition ]`
+    * 注: dash 中只能用单中括号
 <br>
 
 * 例子: 测试单双中括号
@@ -526,7 +538,6 @@ esac
 
 ### 循环语句
 
-
 * for-in 语句: 对 list 中的每一项进行迭代
     * list 可以是一个字符串，也可以是一个序列，也可以是一个数组
     * 例如: `for i in $( seq 1 10 )`  or `for i in {1..10}`
@@ -540,6 +551,7 @@ done
 ```
 
 * for 语句: 类似C语言的 for 循环，注意空格
+    * 注: dash 中不支持此种 for 循环
     * 例如: `for (( i=0; i<10; i++ ))`
 
 ```sh
