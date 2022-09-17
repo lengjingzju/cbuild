@@ -12,5 +12,5 @@ clean: cleanconfig $(ALL_CLEAN_TARGETS)
 	-rm -f auto.mk Kconfig Target
 
 deps:
-	@python3 $(ENV_TOP_DIR)/scripts/bin/analyse_deps.py -m auto.mk -k Kconfig -d mk.deps -c mk.kconf -s pa:pb:pc:pd:pe
+	@python3 $(ENV_TOP_DIR)/scripts/bin/gen_build_chain.py -m auto.mk -k Kconfig -d mk.deps -c mk.kconf -s pa:pb:pc:pd:pe
 

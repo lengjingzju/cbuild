@@ -1,9 +1,19 @@
 import sys, os, re
 from argparse import ArgumentParser
 
+def escape_toupper(var):
+    return var.replace('.', '__dot__').replace('+', '__plus__').replace('-', '_').upper()
+
+
+def escape_tolower(var):
+    return var.lower().replace('_', '-').replace('__dot__', '.').replace('__plus__', '+')
+
+
 class Deps:
     def __init__(self):
+        self.VarDict = {}
         self.PathList = []
+        self.PokyList = []
         self.ItemList = []
         self.ActualList = []
         self.VirtualList = []
@@ -13,6 +23,7 @@ class Deps:
         self.conf_str = ''
         self.keywords = []
         self.prepend_flag = 0
+        self.yocto_flag = False
 
 
     def __init_item(self, item):
@@ -30,11 +41,48 @@ class Deps:
         item['wrule'] = []      # weak dependence rules
         item['cdeps'] = []      # conflict dependences
         item['edeps'] = []      # env dependences
-        item['acount'] = 0      # actual dependence count
+        item['acount'] = 0      # actual dependence items count
         item['select'] = []
         item['imply'] = []
         item['default'] = True
         item['conf'] = ''
+
+
+    def get_env_vars(self, local_config):
+        with open(local_config, 'r') as fp:
+            for per_line in fp:
+                ret = re.match(r'([\w\-\./]+)\s*=\s*"(.*)"', per_line)
+                if ret:
+                    self.VarDict[ret.groups()[0]] = ret.groups()[1]
+
+
+    def get_search_dirs(self, layer_config):
+        dirs = []
+        flag = False
+        with open(layer_config, 'r') as fp:
+            for per_line in fp:
+                if not flag:
+                    if 'BBLAYERS ?=' in per_line:
+                        flag = True
+                else:
+                    if '"' in per_line:
+                        break
+                    else:
+                        print("\033[032mSearch Layer:\033[0m \033[44m%s\033[0m" % per_line[0:-2].strip())
+                        dirs.append(per_line[0:-2].strip())
+        return dirs
+
+
+    def __get_kconfig_path(self, src_path):
+        conf_path = src_path
+        for key in self.VarDict.keys():
+            var = '${%s}' % (key)
+            if var in conf_path:
+                conf_path = conf_path.replace(var, self.VarDict[key])
+
+        if os.path.exists(conf_path) and self.conf_name in os.listdir(conf_path):
+            return conf_path
+        return ''
 
 
     def __get_append_flag(self, item, check_append):
@@ -101,7 +149,11 @@ class Deps:
                 self.__init_item(item)
 
                 item['path'] = root
-                item['spath'] = root.replace(rootdir + '/', '', 1)
+                if self.yocto_flag:
+                    item['spath'] = root.replace(os.path.dirname(rootdir) + '/', '', 1)
+                    item['make'] = vir_name
+                else:
+                    item['spath'] = root.replace(rootdir + '/', '', 1)
 
                 item['vtype'] = ret.groups()[0]
                 if item['vtype'] != 'menuconfig' and item['vtype'] != 'config' and \
@@ -131,7 +183,7 @@ class Deps:
                 self.PathList.append((item['path'], item['spath'], item['target']))
 
 
-    def search_depends(self, dep_name, vir_name, search_dirs, ignore_dirs = []):
+    def search_normal_depends(self, dep_name, vir_name, search_dirs, ignore_dirs = []):
         for rootdir in search_dirs:
             if rootdir[-1] == '/':
                 rootdir = rootdir[:-1]
@@ -151,6 +203,46 @@ class Deps:
                 if dep_name in files:
                     self.PathList.append((root, root.replace(rootdir + '/', '', 1), ''))
                     dirs.clear() # don't continue to search sub dirs.
+
+
+    def search_yocto_depends(self, vir_name, search_dirs, ignore_dirs = []):
+        poky_targets = []
+        for rootdir in search_dirs:
+            if rootdir[-1] == '/':
+                rootdir = rootdir[:-1]
+
+            for root, dirs, files in os.walk(rootdir):
+                if ignore_dirs and dirs and '/poky/' not in rootdir:
+                    for idir in ignore_dirs:
+                        if idir in dirs:
+                            dirs.remove(idir)
+
+                if dirs:
+                    dirs.sort()
+                if files:
+                    files.sort()
+
+                if vir_name and vir_name in files:
+                    self.__add_virtual_deps(vir_name, root, rootdir)
+
+                for fname in files:
+                    if fname.endswith('.bb') and '-native' not in fname:
+                        item = {}
+                        self.__init_item(item)
+
+                        fullname = os.path.join(root, fname)
+                        item['path'] = os.path.dirname(fullname)
+                        item['spath'] = os.path.dirname(fullname.replace(os.path.dirname(rootdir) + '/', '', 1))
+                        item['make'] = fname
+                        item['target'] = fname[0:fname.rindex('_') if '_' in fname else fname.rindex('.')]
+
+                        if '/poky/' in rootdir:
+                            if item['target'] not in poky_targets:
+                                item['default'] = False
+                                self.PokyList.append(item)
+                                poky_targets.append(item['target'])
+                        else:
+                            self.PathList.append((item['path'], item['spath'], '', item['make']))
 
 
     def __add_item_to_list(self, item, refs):
@@ -214,7 +306,7 @@ class Deps:
             refs.append([item])
 
 
-    def add_item(self, pathpair, dep_name, refs):
+    def add_normal_item(self, pathpair, dep_name, refs):
         if pathpair[2]:
             for item in self.VirtualList:
                 if pathpair[2] == item['target']:
@@ -274,7 +366,7 @@ class Deps:
                         sub_pathpair = (os.path.join(pathpair[0], sub_path), os.path.join(pathpair[1], sub_path), '')
                         sub_dep_path = os.path.join(sub_pathpair[0], dep_name)
                         if os.path.exists(sub_dep_path):
-                            self.add_item(sub_pathpair, dep_name, refs)
+                            self.add_normal_item(sub_pathpair, dep_name, refs)
                         else:
                             print('WARNING: ignore: %s' % sub_pathpair[0])
 
@@ -286,6 +378,49 @@ class Deps:
 
             if not dep_flag:
                 print('WARNING: ignore: %s' % pathpair[0])
+
+
+    def add_yocto_item(self, pathpair, refs):
+        if pathpair[2]:
+            for item in self.VirtualList:
+                if pathpair[2] == item['target']:
+                    if self.__get_append_flag(item, True):
+                        self.__add_item_to_list(item, refs)
+                    break
+            return
+
+        extra_deps = []
+        item = {}
+        self.__init_item(item)
+
+        item['path'] = pathpair[0]
+        item['spath'] = pathpair[1]
+        item['make'] = pathpair[3]
+        item['target'] = item['make'] [0:item['make'] .rindex('_') if '_' in item['make']  else item['make'] .rindex('.')]
+
+        fullname = os.path.join(pathpair[0], pathpair[3])
+        with open(fullname, 'r') as fp:
+            for per_line in fp:
+                ret = re.match(r'DEPENDS\s*\+?=\s*"(.*)"', per_line)
+                if ret:
+                    item['asdeps'] += [dep for dep in ret.groups()[0].strip().split() if '-native' not in dep]
+                ret = re.match(r'EXTRADEPS\s*\+?=\s*"(.*)"', per_line)
+                if ret:
+                    extra_deps += [dep for dep in ret.groups()[0].strip().split() if '-native' not in dep]
+
+        bbappend_path = '%sappend' % (fullname)
+        if os.path.exists(bbappend_path):
+            with open(bbappend_path, 'r') as fp:
+                for per_line in fp:
+                    ret = re.match(r'EXTERNALSRC\s*=\s*"(.*)"', per_line)
+                    if ret:
+                        item['conf'] = self.__get_kconfig_path(ret.groups()[0])
+                        break
+
+        if self.__set_item_deps(extra_deps, item, True):
+            self.__add_item_to_list(item, refs)
+
+        self.ActualList.append(item)
 
 
     def check_item(self, item_list, target_list):
@@ -308,7 +443,7 @@ class Deps:
                 if item[depid]:
                     deps = item[depid]
                     item[depid] = [dep for dep in deps if dep in target_list]
-                    if not item['vtype'] and 'asdeps' == depid:
+                    if not self.yocto_flag and not item['vtype'] and 'asdeps' == depid:
                         rmdeps = [dep for dep in deps if dep not in item[depid]]
                         if rmdeps:
                             print('ERROR: deps (%s) in %s:%s are not found' % (' '.join(rmdeps), item['target'], item['path']))
@@ -377,21 +512,17 @@ class Deps:
         return 0
 
 
-    def __escape_toupper(self, var):
-        return var.replace('-', '_').upper()
-
-
     def __write_one_kconfig(self, fp, item, choice_flag, max_depth):
         config_prepend = ''
         if self.prepend_flag:
             config_prepend = 'CONFIG_'
-        target = '%s%s' % (config_prepend, self.__escape_toupper(item['target']))
+        target = '%s%s' % (config_prepend, escape_toupper(item['target']))
 
         if 'choice' in item['vtype']:
             fp.write('choice %s\n' % (target))
             fp.write('\tprompt "%s@virtual (%s)"\n' % (item['target'], item['spath']))
             if item['targets']:
-                fp.write('\tdefault %s%s\n' % (config_prepend, self.__escape_toupper(item['targets'][0])))
+                fp.write('\tdefault %s%s\n' % (config_prepend, escape_toupper(item['targets'][0])))
         elif 'menuconfig' == item['vtype']:
             fp.write('menuconfig %s\n' % (target))
             fp.write('\tbool "%s@virtual (%s)"\n' % (item['target'], item['spath']))
@@ -416,21 +547,21 @@ class Deps:
 
         deps = []
         if item['asdeps']:
-            deps += ['%s%s' % (config_prepend, self.__escape_toupper(t)) for t in item['asdeps']]
+            deps += ['%s%s' % (config_prepend, escape_toupper(t)) for t in item['asdeps']]
         if item['vsdeps']:
-            deps += ['%s%s' % (config_prepend, self.__escape_toupper(t)) for t in item['vsdeps']]
+            deps += ['%s%s' % (config_prepend, escape_toupper(t)) for t in item['vsdeps']]
         if item['cdeps']:
-            deps += ['!%s%s' % (config_prepend, self.__escape_toupper(t)) for t in item['cdeps']]
+            deps += ['!%s%s' % (config_prepend, escape_toupper(t)) for t in item['cdeps']]
 
         if item['wrule']:
             bracket_flag = True if deps or len(item['wrule']) > 1 or item['edeps'] else False
             for rule in item['wrule']:
                 if len(rule) == 1:
-                    deps.append('%s%s' % (config_prepend, self.__escape_toupper(rule[0])))
+                    deps.append('%s%s' % (config_prepend, escape_toupper(rule[0])))
                 elif bracket_flag:
-                    deps.append('(%s)' % (' || '.join(['%s%s' % (config_prepend, self.__escape_toupper(t)) for t in rule])))
+                    deps.append('(%s)' % (' || '.join(['%s%s' % (config_prepend, escape_toupper(t)) for t in rule])))
                 else:
-                    deps.append('%s' % (' || '.join(['%s%s' % (config_prepend, self.__escape_toupper(t)) for t in rule])))
+                    deps.append('%s' % (' || '.join(['%s%s' % (config_prepend, escape_toupper(t)) for t in rule])))
 
         if item['edeps']:
             bracket_flag = True if deps or len(item['edeps']) > 1 else False
@@ -454,10 +585,10 @@ class Deps:
 
         if item['select']:
             for t in item['select']:
-                fp.write('\tselect %s%s\n' % (config_prepend, self.__escape_toupper(t)))
+                fp.write('\tselect %s%s\n' % (config_prepend, escape_toupper(t)))
         if item['imply']:
             for t in item['imply']:
-                fp.write('\timply %s%s\n' % (config_prepend, self.__escape_toupper(t)))
+                fp.write('\timply %s%s\n' % (config_prepend, escape_toupper(t)))
         fp.write('\n')
 
         if item['conf']:
@@ -542,7 +673,7 @@ class Deps:
             fp.write('endmenu\n\n')
 
 
-    def gen_target(self, filename):
+    def gen_normal_target(self, filename):
         with open(filename, 'w') as fp:
             for item in self.ActualList:
                 if item['asdeps'] or item['awdeps']:
@@ -550,6 +681,12 @@ class Deps:
                         ' '.join(item['asdeps'] + item['awdeps'])))
                 else:
                     fp.write('%s:\t%s:\n' % (item['path'], item['target'],))
+
+
+    def gen_yocto_target(self, filename):
+        with open(filename, 'w') as fp:
+            for item in self.PokyList + self.ActualList:
+                fp.write('%s\n' % (item['target']))
 
 
     def gen_make(self, filename, target_list):
@@ -563,20 +700,20 @@ class Deps:
                 if item['make']:
                     make += ' -f %s' % (item['make'])
 
-                fp.write('ifeq ($(CONFIG_%s), y)\n\n' % (self.__escape_toupper(item['target'])))
+                fp.write('ifeq ($(CONFIG_%s), y)\n\n' % (escape_toupper(item['target'])))
 
                 if item['target'] in self.FinallyList:
                     ideps = self.FinallyList + item['asdeps'] + item['awdeps']
                     for dep in target_list:
                         if dep not in ideps:
-                            fp.write('ifeq ($(CONFIG_%s), y)\n' % (self.__escape_toupper(dep)))
+                            fp.write('ifeq ($(CONFIG_%s), y)\n' % (escape_toupper(dep)))
                             fp.write('%s: %s\n' % (item['target'], dep))
                             fp.write('endif\n')
                     fp.write('\n')
 
                 if item['awdeps']:
                     for dep in item['awdeps']:
-                        fp.write('ifeq ($(CONFIG_%s), y)\n' % (self.__escape_toupper(dep)))
+                        fp.write('ifeq ($(CONFIG_%s), y)\n' % (escape_toupper(dep)))
                         fp.write('%s: %s\n' % (item['target'], dep))
                         fp.write('endif\n')
                     fp.write('\n')
@@ -616,16 +753,28 @@ class Deps:
 
 
 def parse_options():
-    parser = ArgumentParser(
-            description='Tool to generate Makefile with chain of dependence')
+    parser = ArgumentParser( description='''
+            Tool to generate build chain.
+            do_normal_analysis must set options (-m -k -d -c -s) and can set options (-v -i -t -w -p).
+            do_yocto_analysis must set options (-r -k -c) and can set options (-v -i -t -w -p).
+            do_image_analysis must set options (-o -r -k) and can set options (-i).')).
+            ''')
 
     parser.add_argument('-m', '--makefile',
             dest='makefile_out',
             help='Specify the output Makefile path.')
 
+    parser.add_argument('-r', '--recipe',
+            dest='recipe_out',
+            help='Specify the path to store recipes.')
+
+    parser.add_argument('-o', '--image',
+            dest='image_out',
+            help='Specify the output image recipe path.')
+
     parser.add_argument('-k', '--kconfig',
             dest='kconfig_out',
-            help='Specify the output Kconfig path.')
+            help='Specify the path to store  Kconfig items.')
 
     parser.add_argument('-d', '--dep',
             dest='dep_name',
@@ -633,7 +782,7 @@ def parse_options():
 
     parser.add_argument('-c', '--conf',
             dest='conf_name',
-            help='Specify the search config filename.')
+            help='Specify the search config filename or .config path.')
 
     parser.add_argument('-v', '--virtual',
             dest='vir_name',
@@ -660,17 +809,33 @@ def parse_options():
             help='Specify the prepend CONFIG_ in items of kconfig_out')
 
     args = parser.parse_args()
-    if not args.makefile_out or not args.kconfig_out or \
-            not args.dep_name or not args.conf_name or \
-            not args.search_dirs:
-        print('ERROR: Invalid parameters.\n')
+    analysis_choice = ''
+    success_flag = True
+
+    if args.makefile_out:
+        analysis_choice = 'normal'
+        if not args.kconfig_out or not args.dep_name or not args.conf_name or not args.search_dirs:
+            success_flag = False
+    elif args.image_out:
+        analysis_choice = 'image'
+        if not args.recipe_out or not args.conf_name:
+            success_flag = False
+    elif args.recipe_out:
+        analysis_choice = 'yocto'
+        if not args.kconfig_out or not args.conf_name:
+            success_flag = False
+    else:
+        success_flag = False
+
+    if not success_flag:
+        print('\033[31mERROR: Invalid parameters.\033[0m\n')
         parser.print_help()
         sys.exit(1)
 
-    return args
+    return (args, analysis_choice)
 
 
-def do_analysis(args):
+def do_normal_analysis(args):
     makefile_out = args.makefile_out
     kconfig_out = args.kconfig_out
     target_out = os.path.join(os.path.dirname(kconfig_out), 'Target')
@@ -703,14 +868,14 @@ def do_analysis(args):
     deps.keywords = keywords
     deps.prepend_flag = prepend_flag
 
-    deps.search_depends(dep_name, vir_name, search_dirs, ignore_dirs)
+    deps.search_normal_depends(dep_name, vir_name, search_dirs, ignore_dirs)
     if not deps.PathList:
         print('ERROR: can not find any %s in %s.' % (dep_name, ':'.join(search_dirs)))
         sys.exit(1)
 
     refs = []
     for pathpair in deps.PathList:
-        deps.add_item(pathpair, dep_name, refs)
+        deps.add_normal_item(pathpair, dep_name, refs)
     if not deps.ItemList:
         print('ERROR: can not find any targets in %s in %s.' % (dep_name, ':'.join(search_dirs)))
         sys.exit(1)
@@ -724,7 +889,7 @@ def do_analysis(args):
     print('\033[32mGenerate %s OK.\033[0m' % kconfig_out)
 
     target_list = [item['target'] for item in deps.ActualList]
-    deps.gen_target(target_out)
+    deps.gen_normal_target(target_out)
     if deps.sort_items(target_list) == -1:
         print('ERROR: sort_items() failed.')
         sys.exit(1)
@@ -732,7 +897,99 @@ def do_analysis(args):
     print('\033[32mGenerate %s OK.\033[0m' % makefile_out)
 
 
+def do_yocto_analysis(args):
+    recipe_out = args.recipe_out
+    kconfig_out = args.kconfig_out
+
+    conf_name = args.conf_name
+    vir_name = ''
+    if args.vir_name:
+        vir_name = args.vir_name
+
+    ignore_dirs = []
+    if args.ignore_dirs:
+        ignore_dirs = [s.strip() for s in args.ignore_dirs.split(':')]
+
+    max_depth = 0
+    if args.max_depth:
+        max_depth = int(args.max_depth)
+
+    keywords = []
+    if args.keywords:
+        keywords = [s.strip() for s in args.keywords.split(':')]
+
+    prepend_flag = 0
+    if args.prepend_flag:
+        prepend_flag = int(args.prepend_flag)
+
+    deps = Deps()
+    deps.conf_name = conf_name
+    deps.keywords = keywords
+    deps.prepend_flag = prepend_flag
+    deps.yocto_flag = True
+
+    deps.get_env_vars('conf/local.conf')
+    search_dirs = deps.get_search_dirs('conf/bblayers.conf')
+    if not search_dirs:
+        print('ERROR: can not find any metas in %s.' % ('conf/bblayers.conf'))
+        sys.exit(1)
+
+    deps.search_yocto_depends(vir_name, search_dirs, ignore_dirs)
+    if not deps.PathList and not deps.PokyList:
+        print('ERROR: can not find any recipes in %s.' % (':'.join(search_dirs)))
+        sys.exit(1)
+
+    refs = []
+    for pathpair in deps.PathList:
+        deps.add_yocto_item(pathpair, refs)
+    target_list = [item['target'] for item in deps.ActualList] \
+                + [item['target'] for item in deps.VirtualList if 'choice' not in item['vtype']]
+    deps.check_item(deps.ItemList, target_list)
+
+    with open(kconfig_out, 'w') as fp:
+        fp.write('mainmenu "Build Configuration"\n\n')
+        if deps.PokyList:
+            deps.gen_kconfig(fp, deps.PokyList, False, max_depth, '')
+        if deps.ItemList:
+            deps.gen_kconfig(fp, deps.ItemList, False, max_depth, '')
+    deps.gen_yocto_target(recipe_out)
+    print('\033[32mGenerate %s OK.\033[0m' % kconfig_out)
+
+
+def do_image_analysis(args):
+    recipe_out = args.recipe_out
+    conf_name = args.conf_name
+    image_out = args.image_out
+    ignore_recipes = []
+    if args.ignore_dirs:
+        ignore_recipes = [s.strip() for s in args.ignore_dirs.split(':')]
+
+    recipe_list = []
+    with open(recipe_out, 'r') as rfp:
+        for per_line in rfp:
+            recipe_list.append(per_line[0:-1])
+
+    with open(image_out, 'w') as wfp:
+        wfp.write('include recipes-core/images/core-image-minimal.bb\n\n')
+        wfp.write('IMAGE_INSTALL:append = " \\\n')
+
+        with open(conf_name, 'r') as rfp:
+            for per_line in rfp:
+                ret = re.match(r'CONFIG_(.*)=y', per_line)
+                if ret:
+                    item = escape_tolower(ret.groups()[0])
+                    if (not ignore_recipes or item not in ignore_recipes) and item in recipe_list:
+                        wfp.write('\t\t\t%s \\\n' % item)
+        wfp.write('\t\t\t"')
+    print('\033[32mGenerate %s OK.\033[0m' % image_out)
+
+
 if __name__ == '__main__':
-    args = parse_options()
-    do_analysis(args)
+    args, analysis_choice = parse_options()
+    if 'normal' == analysis_choice:
+        do_normal_analysis(args)
+    elif 'yocto' == analysis_choice:
+        do_yocto_analysis(args)
+    else:
+        do_image_analysis(args)
 

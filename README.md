@@ -13,10 +13,15 @@
     * 支持 C(`*.c`) 和 汇编(`*.S`) 混合编译
 * 提供安装编译输出的模板 `inc.ins.mk`
 * 提供 kconfig 配置参数的模板 `inc.conf.mk`
-* 提供根据目标依赖关系自动生成编译顺序的脚本和编译开关参数的总配置脚本 `analyse_deps.py`
-    * 支持自动生成参与编译的实包和不参与编译的虚包的规则，虚包可用于控制管理一组实包
-    * 支持普通结构(config)、层次结构(menuconfig/menu)、选择结构(choice) 等自动生成
-    * 支持强依赖(depends on)、弱依赖(if...endif)、强选择(select)、弱选择(imply) 等自动生成
+* 提供根据依赖关系自动生成总系统编译链和配置链的脚本 `gen_build_chain.py`
+    * 同时支持 Yocto 编译和普通编译，极大扩展了 Yocto 中生成 image 的功能，特别是 Yocto 支持弱依赖
+    * 支持通过 make menuconfig 选择是否编译包
+    * 支持收集包下的 Kconfig 配置放在包编译开关项目的 munuconfig 菜单下，编译开关和编译参数一起设置
+    * 支持的依赖规则
+        * 支持自动生成参与编译的实包和不参与编译的虚包的规则，虚包可用于控制管理一组实包
+        * 支持普通结构(config)、层次结构(menuconfig/menu)、选择结构(choice) 等自动生成
+        * 支持强依赖(depends on)、弱依赖(if...endif)、强选择(select)、弱选择(imply) 等自动生成
+        * 支持或规则(||)，例如同一个包有源码包和预编译包，选择依赖其中一个，可选择预编译包加快编译
 
 ## 笔记
 
@@ -498,7 +503,7 @@ mod2-y = a2.o b2.o c2.o
 +include $(if $(wildcard $(src)/Kbuild), $(src)/Kbuild, $(src)/Makefile)
 ```
 
-## 测试自动生成总编译
+## 测试生成总系统编译链和配置链
 
 测试用例位于 `test-deps`，如下测试
 
@@ -536,18 +541,27 @@ target=clean path=/home/lengjing/cbuild/examples/test-deps/pa/pa
 rm -f auto.mk Kconfig
 ```
 
-`scripts/bin/analyse_deps.py` 选项
+命令使用(带中括号表示是可选项，否则是必选项)
 
-* `-m <Makefile Name>`: 自动生成的 Makefile 文件名
+* 普通编译只需要一步自动生成 Kconfig 和 Makefike
+    * `gen_build_chain.py -m MAKEFILE_OUT -k KCONFIG_OUT -d DEP_NAME -c CONF_NAME -s SEARCH_DIRS [-v VIR_NAME] [-i IGNORE_DIRS] [-t MAX_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG]`
+* Yocto 编译需要两步分别自动生成 Kconfig 和 Image 配方，会自动分析 `conf/local.conf` `conf/bblayers.conf` 和层下的配方文件和配方附加文件
+    * `gen_build_chain.py -r RECIPE_OUT -k KCONFIG_OUT -c CONF_NAME [-v VIR_NAME] [-i IGNORE_DIRS] [-t MAX_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG]`
+    * `gen_build_chain.py -r RECIPE_TARGET_NAME -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-i IGNORE_RECIPES]`
+
+`scripts/bin/gen_build_chain.py` 选项
+
+* `-m <Makefile Name>`: 普通编译中自动生成的 Makefile 文件名
     * 可以使用一个顶层 Makefile 包含自动生成的 Makefile，all 目标调用 `make $(BUILD_JOBS) -s MAKEFLAGS= all_targets` 多线程编译所有包
     * 如果某个包的内部需要启用多线程编译，需要在此包的其它目标中指定 `jobserver`，见下面说明
-* `-k <Kconfig Name>`: 自动生成的 Kconfig 文件名
-    * 还会在 Kconfig 同目录生成 Target 文件，列出所有包的文件路径、包名和依赖
+* `-r <Recipe Target Name>`: Yocto 编译中指定存储所有配方名的文件路径
+* `-o <Recipe Image Name>`: Yocto 编译中自动生成的 image 配方文件名
+* `-k <Kconfig Name>`: 指定存储 Kconfig 的所有项目的文件路径，普通编译中还会在 Kconfig 同目录生成 Target 文件，列出所有包的文件路径、包名和依赖
 * `-d <Search Depend Name>`: 要搜索的依赖文件名(含有依赖规则语句)
-* `-c <Search Kconfig Name>`: 要搜索的配置文件名(含有配置信息)
+* `-c <Search Kconfig Name>`: 要搜索的配置文件名(含有配置信息)，在生成 image 配方的命令中指定的是 .config 的路径名
 * `-v <Search Virtual Depend Name>`: 要搜索的虚拟依赖文件名(含有虚拟依赖规则语句)
 * `-s <Search Directories>`: 搜索的目录名，多个目录使用冒号隔开
-* `-i <Ignore Directories>`: 忽略的目录名，不会搜索指定目录名下的依赖文件，多个目录使用冒号隔开
+* `-i <Ignore Directories or Recipes>`: 忽略的目录名，不会搜索指定目录名下的依赖文件，多个目录使用冒号隔开，在生成 image 配方的命令中指定的是忽略的配方名
 * `-t <Max Tier Depth>`: 设置 menuconfig 菜单的最大层数，0 表示菜单平铺，1表示2层菜单，...
 * `-w <Keyword Directories>`: 用于 menuconfig 菜单，如果路径中的目录匹配设置值，则这个路径的层数减1，设置的多个目录使用冒号隔开
 * `-p <prepend Flag>`: 用于 menuconfig，如果用户运行 conf / mconf 时设置了无前缀，则运行此脚本需要设置此 flag 为 1
@@ -558,12 +572,14 @@ rm -f auto.mk Kconfig
 
 ![实依赖正则表达式](./scripts/bin/regex_deps.png)
 
+包含子路径依赖信息格式 `#INCDEPS: Subdir_Names`
+
 ![包含子路径正则表达式](./scripts/bin/regex_incdeps.png)
 
 * Makefile_Name: make 运行的 Makefile 的名称 (可以为空)，不为空时 make 会运行指定的 Makefile (`-f Makefile_Name`)
     * Makefile 中必须包含 all clean install 三个目标，默认会加入 all install 和 clean 目标的规则
     * Makefile 名称可以包含路径(即斜杠 `/`)，支持直接查找子文件夹下的子包，例如 `test1/` or `test2/wrapper.mk`
-    * 也可以用一行语句 `#INCDEPS: Sub_Dirs` 继续查找子文件夹下的依赖文件，支持递归，例如 `#INCDEPS: test1 test2`，通过子文件夹下的依赖文件找到子包
+    * 也可以用一行语句 `#INCDEPS` 继续查找子文件夹下的依赖文件，支持递归，例如 `#INCDEPS: test1 test2`，通过子文件夹下的依赖文件找到子包
 * Target_Name: 当前包的名称ID
 * Other_Target_Names: 当前包的其它目标，多个目标使用空格隔开 (可以为空)
     * 忽略 Other_Target_Names 中的 all install clean 目标
@@ -579,11 +595,11 @@ rm -f auto.mk Kconfig
 
 Depend_Names 中的特殊依赖
 
-* 特殊依赖(关键字类)
-    * `finally`     : 表示此包编译顺序在所有其它包之后，一般用于最后生成文件系统和系统镜像
+* 特殊依赖(关键字)
+    * `finally`     : 表示此包编译顺序在所有其它包之后，一般用于最后生成文件系统和系统镜像，只用在普通编译的强依赖中
     * `unselect`    : 表示此包默认不编译，即 `default n`，否则此包默认编译，即 `default y`
     * `nokconfig`   : 表示此包不含 Kconfig 配置。同一目录有多个包时，最多只有一个包有 Kconfig，此包无需设置 `nokconfig`，而其它包需要设置
-* 特殊依赖(特殊符类)
+* 特殊依赖(特殊符)
     * `!depname`    : 表示此包和 depname 包冲突，无法同时开启，即 `depends on !depname`
     * `&depname`    : 表示此包弱选中 depname 包，即 `imply depname`，此包选中后，depname 也被自动选中，此时 depname 也可以手动取消选中
     * `&&depname`   : 表示此包强选中 depname 包，即 `select depname`，此包选中后，depname 也被自动选中，此时 depname 不可以取消选中
@@ -591,11 +607,21 @@ Depend_Names 中的特殊依赖
     * `??depname`   : 表示此包弱依赖(安装动态库的) depname 包
     * `depa|depb`   : 表示此包弱依赖(不安装动态库的) depa depb ... ，此弱依赖列表中的包至少需要一个 depx 包选中，依赖它的包才可以选中和编译成功
     * `depa||depb`  : 表示此包弱依赖(安装动态库的) depa depb ...，常用于同一个包的两种类型选一: 编译源码后安装或直接安装预编译
-* 特殊依赖(虚拟包类)
+        * 对普通编译来说，`?` `??` 没有区别，`|` `||` 没有区别
+        * 对 Yocto 编译来说，`?` `|` 中的弱依赖只会设置 `DEPENDS`，，`??` `||` 中的弱依赖会同时设置 `DEPENDS` 和 `RDEPENDS:${PN}`
+* 特殊依赖(虚拟包)
     * `*depname`    : 表示此依赖包是虚拟包 depname，去掉 `*` 后 depname 还可以有特殊符，会继续解析
-* 特殊依赖(环境变量类)
-    * ENVNAME=val1,val2 : 表示此包依赖环境变量 ENVNAME 的值等于 val1 或 等于 val2
+* 特殊依赖(环境变量)
+    * ENVNAME=val1,val2 : 表示此包依赖环境变量 ENVNAME 的值等于 val1 或等于 val2
     * ENVNAME!=val1,val2: 表示此包依赖环境变量 ENVNAME 的值不等于 val1 且不等于 val2
+
+
+Yocto 中的特殊依赖
+
+* Yocto 中的特殊依赖是个人扩展的，和 Depend_Names 中的特殊依赖写法相同，只是 Yocto 中的特殊依赖是赋值给配方文件的 `EXTRADEPS` 变量
+* 如果 EXTRADEPS 中含有弱依赖，需要继承类 `inherit weakdep`
+    * `weakdep` 类会解析输出根目录的 `config/.config` 文件，根据是否选中此项来设置 `DEPENDS` 和 `RDEPENDS:${PN}`
+    * 可以设置 `conf/bblayers.conf` 中的 `BBFILES` 变量，指定查找自动生成的 image 配方的路径，例如 `BBFILES ?= "${TOPDIR}/config/*.bb"`
 
 虚依赖信息格式 `#VDEPS(Virtual_Type) Target_Name(Other_Infos): Depend_Names`
 
@@ -615,7 +641,7 @@ Depend_Names 中的特殊依赖
     * 对 menuchoice 类型来说，可以指定默认选择的包
 * Depend_Names      : 可选，依赖项列表，和 `#DEPS` 语句用法基本相同，例如可以设置 `unselect`，config menuchoice 类型不支持 select 和 imply
 
-注: 虚依赖是指该包不是实际的包，不会参与编译，只是用来组织管理实际包
+注: 虚依赖是指该包不是实际的包，不会参与编译，只是用来组织管理实际包，普通编译和 Yocto 编译虚拟包的写法和使用规则相同
 
 ## 测试 Yocto 编译
 
