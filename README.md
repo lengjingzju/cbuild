@@ -587,6 +587,8 @@ Depend_Names 中的特殊依赖
     * `&&depname`   : 表示此包强选中 depname 包，即 `select depname`，此包选中后，depname 也被自动选中，此时 depname 不可以取消选中
     * `?depname`    : 表示此包弱依赖(不安装动态库的) depname 包，弱依赖是指即使 depname 包未选中或不存在，依赖它的包也可以选中和编译成功
     * `??depname`   : 表示此包弱依赖(安装动态库的) depname 包
+    * `depa|depb`   : 表示此包弱依赖(不安装动态库的) depa depb ... ，此弱依赖列表中的包至少需要一个 depx 包选中，依赖它的包才可以选中和编译成功
+    * `depa||depb`  : 表示此包弱依赖(安装动态库的) depa depb ...，常用于同一个包的两种类型选一: 编译源码后安装或直接安装预编译
     * `*depname`    : 表示此包会被虚拟包 depname 的作用，不要使用 `*choice` 和 `*depend` 的定义ID，会报警告
 * 特殊依赖(环境变量类)
     * ENVNAME=val1,val2 : 表示此包依赖环境变量 ENVNAME 的值等于 val1 或 等于 val2

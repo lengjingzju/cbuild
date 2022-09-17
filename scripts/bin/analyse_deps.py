@@ -201,7 +201,7 @@ class Deps:
 
             for per_line in fp:
                 # e.g. "#DEPS(mk.ext) a(clean install): b c"
-                ret = re.match(r'#DEPS\s*\(\s*([\w\-\./]*)\s*\)\s*([\w\-\.]+)\s*\(([\s\w\-\.%]*)\)\s*:([\s\w\-\.\?\*&!=,]*)', per_line)
+                ret = re.match(r'#DEPS\s*\(\s*([\w\-\./]*)\s*\)\s*([\w\-\.]+)\s*\(([\s\w\-\.%]*)\)\s*:([\s\w\|\-\.\?\*&!=,]*)', per_line)
                 if ret:
                     dep_flag = True
                     append_flag = True
@@ -229,11 +229,12 @@ class Deps:
                     item['vtype'] = ''
                     item['deps'] = []
                     item['wdeps'] = []
+                    item['wrule'] = []
                     item['vdeps'] = []
                     item['edeps'] = []
+                    item['cdeps'] = []
                     item['select'] = []
                     item['imply'] = []
-                    item['conflict'] = []
                     item['default'] = True
                     item['conf'] = item['path'] if self.conf_name in os.listdir(item['path']) else ''
 
@@ -245,7 +246,7 @@ class Deps:
                             elif dep == 'unselect':
                                 item['default'] = False
                             elif dep[0] == '!':
-                                item['conflict'].append(dep[1:])
+                                item['cdeps'].append(dep[1:])
                             elif dep[0] == '&':
                                 if dep[1] == '&':
                                     item['select'].append(dep[2:])
@@ -260,6 +261,10 @@ class Deps:
                                 append_flag = self.__set_virtual_params(item, dep[1:])
                             elif '=' in dep:
                                 item['edeps'].append(dep)
+                            elif '|' in dep:
+                                subdeps = dep.split('||') if '||' in dep else dep.split('|')
+                                item['wdeps'] += subdeps
+                                item['wrule'].append(subdeps)
                             else:
                                 item['deps'].append(dep)
                                 if 'finally' in item['deps']:
@@ -319,14 +324,12 @@ class Deps:
                             itemb['count'] -= 1
                 self.ItemList += lista
                 temp = listb
-
             elif finally_flag:
                 finally_flag = False
                 for itemb in listb:
                     if itemb['deps'] and 'finally' in itemb['deps']:
                         itemb['count'] -= 1
                 temp = listb
-
             else:
                 remainder_deps = []
                 print('--------remainder deps--------')
@@ -370,11 +373,23 @@ class Deps:
         deps = []
         if item['deps']:
             deps += ['%s%s' % (config_prepend, self.__escape_toupper(t)) for t in item['deps'] if t != 'finally']
-        if item['conflict']:
-            deps += ['!%s%s' % (config_prepend, self.__escape_toupper(t)) for t in item['conflict']]
         if item['vdeps']:
             deps += ['%s%s' % (config_prepend, self.__escape_toupper(t)) for t in item['vdeps']]
+        if item['cdeps']:
+            deps += ['!%s%s' % (config_prepend, self.__escape_toupper(t)) for t in item['cdeps']]
+
+        if item['wrule']:
+            bracket_flag = True if deps or len(item['wrule']) > 1 or item['edeps'] else False
+            for rule in item['wrule']:
+                if len(rule) == 1:
+                    deps.append('%s%s' % (config_prepend, self.__escape_toupper(rule[0])))
+                elif bracket_flag:
+                    deps.append('(%s)' % (' || '.join(['%s%s' % (config_prepend, self.__escape_toupper(t)) for t in rule])))
+                else:
+                    deps.append('%s' % (' || '.join(['%s%s' % (config_prepend, self.__escape_toupper(t)) for t in rule])))
+
         if item['edeps']:
+            bracket_flag = True if deps or len(item['edeps']) > 1 else False
             for dep in item['edeps']:
                 if '!=' in dep:
                     env_pair = dep.split('!=')
@@ -385,12 +400,13 @@ class Deps:
                     env_pair = dep.split('=')
                     env_name = env_pair[0]
                     env_vals = env_pair[1].split(',')
-                    if deps:
+                    if bracket_flag:
                         deps.append('(%s)' % (' || '.join(['$(%s)="%s"' % (env_name, t) for t in env_vals])))
                     else:
                         deps.append('%s' % (' || '.join(['$(%s)="%s"' % (env_name, t) for t in env_vals])))
+
         if deps:
-            fp.write('\tdepends on %s\n' % (' && '.join([t for t in deps])))
+            fp.write('\tdepends on %s\n' % (' && '.join(deps)))
 
         if item['select']:
             for t in item['select']:
@@ -700,9 +716,20 @@ def do_analysis(args):
     for item in item_list:
         if item['vtype']:
             continue
+        if item['cdeps']:
+            cdeps = item['cdeps']
+            item['cdeps'] = [dep for dep in cdeps if dep in deps.TargetList]
         if item['wdeps']:
             wdeps = item['wdeps']
             item['wdeps'] = [dep for dep in wdeps if dep in deps.TargetList]
+        if item['wrule']:
+            for rule in item['wrule']:
+                for dep in rule:
+                    if dep not in deps.TargetList:
+                        rule.remove(dep)
+                if not rule:
+                    print('ERROR: All weak deps in %s in %s are not found.' % (item['target'], item['path']))
+                    sys.exit(1)
         item['count'] = len(item['deps']) + len(item['wdeps'])
 
     with open(kconfig_out, 'w') as fp:
