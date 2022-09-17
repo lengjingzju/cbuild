@@ -558,6 +558,8 @@ rm -f auto.mk Kconfig
 
 ![实依赖正则表达式](./scripts/bin/regex_deps.png)
 
+![包含子路径正则表达式](./scripts/bin/regex_incdeps.png)
+
 * Makefile_Name: make 运行的 Makefile 的名称 (可以为空)，不为空时 make 会运行指定的 Makefile (`-f Makefile_Name`)
     * Makefile 中必须包含 all clean install 三个目标，默认会加入 all install 和 clean 目标的规则
     * Makefile 名称可以包含路径(即斜杠 `/`)，支持直接查找子文件夹下的子包，例如 `test1/` or `test2/wrapper.mk`
@@ -581,7 +583,7 @@ Depend_Names 中的特殊依赖
     * `finally`     : 表示此包编译顺序在所有其它包之后，一般用于最后生成文件系统和系统镜像
     * `unselect`    : 表示此包默认不编译，即 `default n`，否则此包默认编译，即 `default y`
     * `nokconfig`   : 表示此包不含 Kconfig 配置。同一目录有多个包时，最多只有一个包有 Kconfig，此包无需设置 `nokconfig`，而其它包需要设置
-* 特殊依赖(前导符类)
+* 特殊依赖(特殊符类)
     * `!depname`    : 表示此包和 depname 包冲突，无法同时开启，即 `depends on !depname`
     * `&depname`    : 表示此包弱选中 depname 包，即 `imply depname`，此包选中后，depname 也被自动选中，此时 depname 也可以手动取消选中
     * `&&depname`   : 表示此包强选中 depname 包，即 `select depname`，此包选中后，depname 也被自动选中，此时 depname 不可以取消选中
@@ -589,25 +591,29 @@ Depend_Names 中的特殊依赖
     * `??depname`   : 表示此包弱依赖(安装动态库的) depname 包
     * `depa|depb`   : 表示此包弱依赖(不安装动态库的) depa depb ... ，此弱依赖列表中的包至少需要一个 depx 包选中，依赖它的包才可以选中和编译成功
     * `depa||depb`  : 表示此包弱依赖(安装动态库的) depa depb ...，常用于同一个包的两种类型选一: 编译源码后安装或直接安装预编译
-    * `*depname`    : 表示此包会被虚拟包 depname 的作用，不要使用 `*choice` 和 `*depend` 的定义ID，会报警告
+* 特殊依赖(虚拟包类)
+    * `*depname`    : 表示此依赖包是虚拟包 depname，去掉 `*` 后 depname 还可以有特殊符，会继续解析
 * 特殊依赖(环境变量类)
     * ENVNAME=val1,val2 : 表示此包依赖环境变量 ENVNAME 的值等于 val1 或 等于 val2
     * ENVNAME!=val1,val2: 表示此包依赖环境变量 ENVNAME 的值不等于 val1 且不等于 val2
 
-虚依赖信息格式 `#VDEPS(Virtual_Type) Virtual_Name Default_MSG Sub_Path`
+虚依赖信息格式 `#VDEPS(Virtual_Type) Target_Name(Other_Infos): Depend_Names`
 
 ![虚依赖正则表达式](./scripts/bin/regex_vdeps.png)
 
 * Virtual_Type      : 必选，表示虚拟包的类型，目前有 6 种类型
-    * `*choice`     : 表示生成 `choice` 虚拟包，当前目录(含子目录)下的所有的包会成为 choice 下的子选项
-    * `choice`      : 表示生成 `choice` 虚拟包，设置了该特殊依赖的实际包会成为 choice 下的子选项
-    * `*depend`     : 表示生成 `menuconfig` 虚拟包，当前目录(含子目录)下的所有的包强依赖此包，且处于该包的菜单目录下
-    * `depend`      : 表示生成 `config` 虚拟包，此包将成为设置了该特殊依赖的实际包的强依赖
-    * `imply`       : 表示生成 `config` 虚拟包，此包选中时会弱选中设置了该特殊依赖的实际包
-    * `select`      : 表示生成 `config` 虚拟包，此包选中时会强选中设置了该特殊依赖的实际包
+    * `menuconfig`  : 表示生成 `menuconfig` 虚拟包，当前目录(含子目录)下的所有的包强依赖此包，且处于该包的菜单目录下
+    * `config`      : 表示生成 `config` 虚拟包
+    * `menuchoice`  : 表示生成 `choice` 虚拟包，当前目录(含子目录)下的所有的包会成为 choice 下的子选项
+    * `choice`      : 表示生成 `choice` 虚拟包，Other_Infos 下的包列表会成为 choice 下的子选项
+
 * Virtual_Name      : 必选，虚拟包的名称
-* Default_MSG       : 可选，`choice` 虚拟包是默认选中的子项的ID; 其他包是只有一个值 `unselect`， 表示此包默认不选中，否则默认选中
-* Sub_Path          : 可选，只有 `*choice` 和 `*depend` 可能含有此参数，必须以 `/` 开头，表示作用于指定的子目录而不是当前目录
+* Other_Infos       : choice 类型必选，其它类型可选
+    * 对所有类型来说，可以出现一个以 `/` 开头的路径名项(可选)，表示作用于指定的子目录而不是当前目录
+        * 对 config choice 类型来说，路径名项可以指定一个虚拟路径，例如 `/virtual` (virtual 可以是任意单词)，此时虚拟项目在当前目录(而不是上层目录)下显示
+    * 对 choice 类型来说，空格分开的包列表会成为 choice 下的子选项，其中第一个包为默认选择的包
+    * 对 menuchoice 类型来说，可以指定默认选择的包
+* Depend_Names      : 可选，依赖项列表，和 `#DEPS` 语句用法基本相同，例如可以设置 `unselect`，config menuchoice 类型不支持 select 和 imply
 
 注: 虚依赖是指该包不是实际的包，不会参与编译，只是用来组织管理实际包
 
