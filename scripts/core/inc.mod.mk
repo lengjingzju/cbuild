@@ -78,7 +78,7 @@ export PACKAGE_DEPS ENV_DEP_ROOT
 .PHONY: modules modules_clean modules_install install_hdr install_data
 
 modules:
-	@make $(MOD_MAKES) $(if $(PACKAGE_DEPS), KBUILD_EXTRA_SYMBOLS="$(patsubst %,$(ENV_DEP_ROOT)/usr/include/%/Module.symvers,$(PACKAGE_DEPS))") modules
+	@make $(MOD_MAKES) $(if $(PACKAGE_DEPS), KBUILD_EXTRA_SYMBOLS="$(wildcard $(patsubst %,$(ENV_DEP_ROOT)/usr/include/%/Module.symvers,$(PACKAGE_DEPS)))") modules
 
 modules_clean:
 	@make $(MOD_MAKES) clean
