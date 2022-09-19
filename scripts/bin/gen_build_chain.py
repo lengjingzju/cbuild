@@ -128,6 +128,8 @@ class Deps:
                     item['edeps'].append(dep)
                 elif '|' in dep:
                     subdeps = dep.split('||') if '||' in dep else dep.split('|')
+                    if not subdeps[0]:
+                        subdeps[0] = 'prebuild-' + subdeps[1]
                     item[wdeps] += subdeps
                     item['wrule'].append(subdeps)
                 else:

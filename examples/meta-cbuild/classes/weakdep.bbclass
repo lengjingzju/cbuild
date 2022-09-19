@@ -11,10 +11,14 @@ python() {
     for dep in extradeps:
         if '||' in dep:
             subdeps = dep.split('||')
+            if not subdeps[0]:
+                subdeps[0] = 'prebuild-' + subdeps[1]
             weakdeps += subdeps
             weakrdeps += subdeps
         elif '|' in dep:
             subdeps = dep.split('|')
+            if not subdeps[0]:
+                subdeps[0] = 'prebuild-' + subdeps[1]
             weakdeps += subdeps
         elif dep[0] == '?':
             if dep[1] == '?':
