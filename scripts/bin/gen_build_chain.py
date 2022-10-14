@@ -21,6 +21,7 @@ class Deps:
 
         self.conf_name = ''
         self.conf_str = ''
+        self.user_metas = []
         self.keywords = []
         self.prepend_flag = 0
         self.yocto_flag = False
@@ -213,8 +214,12 @@ class Deps:
             if rootdir[-1] == '/':
                 rootdir = rootdir[:-1]
 
+            user_flag = False
+            if self.user_metas and rootdir.split('/')[-1] in self.user_metas:
+                user_flag = True
+
             for root, dirs, files in os.walk(rootdir):
-                if ignore_dirs and dirs and '/poky/' not in rootdir:
+                if ignore_dirs and dirs and user_flag:
                     for idir in ignore_dirs:
                         if idir in dirs:
                             dirs.remove(idir)
@@ -238,7 +243,7 @@ class Deps:
                         item['make'] = fname
                         item['target'] = fname[0:fname.rindex('_') if '_' in fname else fname.rindex('.')]
 
-                        if '/poky/' in rootdir:
+                        if not user_flag:
                             if item['target'] not in poky_targets:
                                 item['default'] = False
                                 self.PokyList.append(item)
@@ -798,6 +803,10 @@ def parse_options():
             dest='ignore_dirs',
             help='Specify the ignore directorys.')
 
+    parser.add_argument('-u', '--usermeta',
+            dest='user_metas',
+            help='Specify the user metas whose recipes will be selected by default')
+
     parser.add_argument('-t', '--maxtier',
             dest='max_depth',
             help='Specify the max tier depth for menuconfig')
@@ -912,6 +921,10 @@ def do_yocto_analysis(args):
     if args.ignore_dirs:
         ignore_dirs = [s.strip() for s in args.ignore_dirs.split(':')]
 
+    user_metas = []
+    if args.user_metas:
+        user_metas = [s.strip() for s in args.user_metas.split(':')]
+
     max_depth = 0
     if args.max_depth:
         max_depth = int(args.max_depth)
@@ -926,6 +939,7 @@ def do_yocto_analysis(args):
 
     deps = Deps()
     deps.conf_name = conf_name
+    deps.user_metas = user_metas
     deps.keywords = keywords
     deps.prepend_flag = prepend_flag
     deps.yocto_flag = True
@@ -972,9 +986,7 @@ def do_image_analysis(args):
             recipe_list.append(per_line[0:-1])
 
     with open(image_out, 'w') as wfp:
-        wfp.write('include recipes-core/images/core-image-minimal.bb\n\n')
         wfp.write('IMAGE_INSTALL:append = " \\\n')
-
         with open(conf_name, 'r') as rfp:
             for per_line in rfp:
                 ret = re.match(r'CONFIG_(.*)=y', per_line)

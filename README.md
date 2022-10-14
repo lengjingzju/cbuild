@@ -546,7 +546,7 @@ rm -f auto.mk Kconfig
 * 普通编译只需要一步自动生成 Kconfig 和 Makefike
     * `gen_build_chain.py -m MAKEFILE_OUT -k KCONFIG_OUT -d DEP_NAME -c CONF_NAME -s SEARCH_DIRS [-v VIR_NAME] [-i IGNORE_DIRS] [-t MAX_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG]`
 * Yocto 编译需要两步分别自动生成 Kconfig 和 Image 配方，会自动分析 `conf/local.conf` `conf/bblayers.conf` 和层下的配方文件和配方附加文件
-    * `gen_build_chain.py -r RECIPE_OUT -k KCONFIG_OUT -c CONF_NAME [-v VIR_NAME] [-i IGNORE_DIRS] [-t MAX_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG]`
+    * `gen_build_chain.py -r RECIPE_OUT -k KCONFIG_OUT -c CONF_NAME [-v VIR_NAME] [-i IGNORE_DIRS] [-t MAX_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG] [-u USER_METAS]`
     * `gen_build_chain.py -r RECIPE_TARGET_NAME -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-i IGNORE_RECIPES]`
 
 `scripts/bin/gen_build_chain.py` 选项
@@ -555,7 +555,7 @@ rm -f auto.mk Kconfig
     * 可以使用一个顶层 Makefile 包含自动生成的 Makefile，all 目标调用 `make $(BUILD_JOBS) -s MAKEFLAGS= all_targets` 多线程编译所有包
     * 如果某个包的内部需要启用多线程编译，需要在此包的其它目标中指定 `jobserver`，见下面说明
 * `-r <Recipe Target Name>`: Yocto 编译中指定存储所有配方名的文件路径
-* `-o <Recipe Image Name>`: Yocto 编译中自动生成的 image 配方文件名
+* `-o <Recipe Image Name>`: Yocto 编译中自动生成的 image 需要打包的软件列表文件
 * `-k <Kconfig Name>`: 指定存储 Kconfig 的所有项目的文件路径，普通编译中还会在 Kconfig 同目录生成 Target 文件，列出所有包的文件路径、包名和依赖
 * `-d <Search Depend Name>`: 要搜索的依赖文件名(含有依赖规则语句)
 * `-c <Search Kconfig Name>`: 要搜索的配置文件名(含有配置信息)，在生成 image 配方的命令中指定的是 .config 的路径名
@@ -565,6 +565,7 @@ rm -f auto.mk Kconfig
 * `-t <Max Tier Depth>`: 设置 menuconfig 菜单的最大层数，0 表示菜单平铺，1表示2层菜单，...
 * `-w <Keyword Directories>`: 用于 menuconfig 菜单，如果路径中的目录匹配设置值，则这个路径的层数减1，设置的多个目录使用冒号隔开
 * `-p <prepend Flag>`: 用于 menuconfig，如果用户运行 conf / mconf 时设置了无前缀，则运行此脚本需要设置此 flag 为 1
+* `-u <User Metas>`: Yocto 编译中指定用户层，多个层使用冒号隔开，只有用户层的包才会: 分析依赖关系，默认选中，托管Kconfig，支持 `EXTRADEPS` 特殊依赖和虚拟依赖
 
 注: 如果在当前目录下搜索到 `<Search Depend Name>`，不会再继续搜索当前目录的子目录; `<Search Depend Name>` 中可以包含多条依赖信息
 
@@ -610,13 +611,12 @@ Depend_Names 中的特殊依赖
     * 其它说明:
         * 省略 `|` `||` 前面的单词会被隐式推导使用预编译包或源码包中选一，例如 `||libtest` 被隐式推导为 `prebuild-libtest||libtest`
         * 对普通编译来说，`?` `??` 没有区别，`|` `||` 没有区别
-        * 对 Yocto 编译来说，`?` `|` 中的弱依赖只会设置 `DEPENDS`，，`??` `||` 中的弱依赖会同时设置 `DEPENDS` 和 `RDEPENDS:${PN}`
+        * 对 Yocto 编译来说，`?` `|` 中的弱依赖只会设置 `DEPENDS`，`??` `||` 中的弱依赖会同时设置 `DEPENDS` 和 `RDEPENDS:${PN}`
 * 特殊依赖(虚拟包)
     * `*depname`    : 表示此依赖包是虚拟包 depname，去掉 `*` 后 depname 还可以有特殊符，会继续解析
 * 特殊依赖(环境变量)
     * ENVNAME=val1,val2 : 表示此包依赖环境变量 ENVNAME 的值等于 val1 或等于 val2
     * ENVNAME!=val1,val2: 表示此包依赖环境变量 ENVNAME 的值不等于 val1 且不等于 val2
-
 
 Yocto 中的特殊依赖
 
