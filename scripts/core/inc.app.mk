@@ -16,7 +16,7 @@ ASM_SUFFIX     ?= S s asm
 
 SRCS           ?= $(shell find $(SRC_PATH) $(patsubst %,-path '*/%' -prune -o,$(IGNORE_PATH)) \
                       $(shell echo '$(patsubst %,-o -name "*.%" -print,$(REG_SUFFIX))' | sed 's/^...//') \
-                  | sed "s/\(\.\/\)\(.*\)/\2/g" | xargs)
+                  | sed "s/^\(\.\/\)\(.*\)/\2/g" | xargs)
 OBJS            = $(call translate_obj,$(SRCS))
 DEPS            = $(patsubst %.o,%.d,$(OBJS))
 
