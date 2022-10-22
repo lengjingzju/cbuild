@@ -1,13 +1,4 @@
-ifneq ($(KERNELRELEASE),)
-
-MOD_NAME       ?= hello
-obj-m          := $(patsubst %,%.o,$(MOD_NAME))
-
-ccflags-y      += $(patsubst %,-I%/,$(src) $(src)/include $(obj))
-ifneq ($(PACKAGE_DEPS), )
-ccflags-y      += $(patsubst %,-I$(ENV_DEP_ROOT)%,/usr/include/ /usr/local/include/)
-ccflags-y      += $(patsubst %,-I$(ENV_DEP_ROOT)/usr/include/%/,$(PACKAGE_DEPS))
-endif
+ifneq ($(KERNELRELEASE), )
 
 define translate_obj
 $(patsubst $(src)/%,%,$(patsubst %,%.o,$(basename $(1))))
@@ -16,6 +7,16 @@ endef
 define set_flags
 $(foreach v,$(2),$(eval $(1)_$(call translate_obj,$(v)) = $(3)))
 endef
+
+MOD_NAME       ?= hello
+obj-m          := $(patsubst %,%.o,$(MOD_NAME))
+
+ccflags-y      += $(patsubst %,-I%,$(src) $(src)/include $(obj))
+ifneq ($(PACKAGE_DEPS), )
+ccflags-y      += $(patsubst %,-I$(ENV_DEP_ROOT)%,/usr/include /usr/local/include)
+ccflags-y      += $(patsubst %,-I$(ENV_DEP_ROOT)/usr/include/%,$(PACKAGE_DEPS))
+endif
+
 
 ifeq ($(words $(MOD_NAME)), 1)
 
@@ -45,13 +46,12 @@ else
 KERNEL_SRC     ?= /lib/modules/$(shell uname -r)/build
 MOD_MAKES      += $(BUILD_JOBS) -s -C $(KERNEL_SRC) $(if $(KERNEL_OUT),O=$(KERNEL_OUT))
 
-ifeq ($(findstring $(ENV_BUILD_MODE),external yocto),)
+ifeq ($(findstring $(ENV_BUILD_MODE),external yocto), )
 
 MOD_MAKES      += M=$(shell pwd)
 
 else
 
-OUT_PATH       ?= $(patsubst $(ENV_TOP_DIR)/%,$(ENV_OUT_ROOT)/%,$(shell pwd))
 MOD_MAKES      += M=$(OUT_PATH) src=$(shell pwd)
 KBUILD_MK       = $(if $(wildcard Kbuild),Kbuild,Makefile)
 
@@ -90,32 +90,11 @@ else
 	@flock $(KERNEL_SRC) -c 'make $(MOD_MAKES) $(if $(ENV_INS_ROOT), INSTALL_MOD_PATH=$(ENV_INS_ROOT)) modules_install'
 endif
 
-install_hdr:
+symvers_install:
 	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
 	@cp -dfp $(OUT_PATH)/Module.symvers $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
-	@cp -drfp $(INSTALL_HEADER) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
 
-install_data:
-	@install -d $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
-	@cp -drf $(INSTALL_DATA) $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
-
-install_data_%:
-	@icp="$(if $(findstring /include,$(lastword $(INSTALL_DATA_$(patsubst install_data_%,%,$@)))),cp -drfp,cp -drf)"; \
-		isrc="$(patsubst $(lastword $(INSTALL_DATA_$(patsubst install_data_%,%,$@))),,$(INSTALL_DATA_$(patsubst install_data_%,%,$@)))"; \
-		idst="$(ENV_INS_ROOT)/usr/share$(lastword $(INSTALL_DATA_$(patsubst install_data_%,%,$@)))"; \
-		install -d $${idst} && $${icp} $${isrc} $${idst}
-
-install_todir_%:
-	@icp="$(if $(findstring /include,$(lastword $(INSTALL_TODIR_$(patsubst install_todir_%,%,$@)))),cp -drfp,cp -drf)"; \
-		isrc="$(patsubst $(lastword $(INSTALL_TODIR_$(patsubst install_todir_%,%,$@))),,$(INSTALL_TODIR_$(patsubst install_todir_%,%,$@)))"; \
-		idst="$(ENV_INS_ROOT)$(lastword $(INSTALL_TODIR_$(patsubst install_todir_%,%,$@)))"; \
-		install -d $${idst} && $${icp} $${isrc} $${idst}
-
-install_tofile_%:
-	@icp="$(if $(findstring /include,$(lastword $(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))),cp -dfp,cp -df)"; \
-		isrc="$(word 1,$(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))"; \
-		idst="$(ENV_INS_ROOT)$(lastword $(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))"; \
-		install -d $(dir $(ENV_INS_ROOT)$(lastword $(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))) && $${icp} $${isrc} $${idst}
+install_hdrs: symvers_install
 
 endif
 

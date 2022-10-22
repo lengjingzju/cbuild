@@ -1,11 +1,9 @@
-ifeq ($(ENV_BUILD_MODE), external)
-OUT_PATH       ?= $(patsubst $(ENV_TOP_DIR)/%,$(ENV_OUT_ROOT)/%,$(shell pwd))
-else
-OUT_PATH       ?= .
-endif
-
 define translate_obj
 $(patsubst %,$(OUT_PATH)/%.o,$(basename $(1)))
+endef
+
+define set_flags
+$(foreach v,$(2),$(eval $(1)_$(patsubst %,%.o,$(basename $(v))) = $(3)))
 endef
 
 SRC_PATH       ?= .
@@ -20,14 +18,14 @@ SRCS           ?= $(shell find $(SRC_PATH) $(patsubst %,-path '*/%' -prune -o,$(
 OBJS            = $(call translate_obj,$(SRCS))
 DEPS            = $(patsubst %.o,%.d,$(OBJS))
 
-CFLAGS         += -I./ -I./include/ $(patsubst %,-I%/,$(filter-out .,$(SRC_PATH))) $(patsubst %,-I%/include/,$(filter-out .,$(SRC_PATH))) -I$(OUT_PATH)/
+CFLAGS         += -I. -I./include $(patsubst %,-I%,$(filter-out .,$(SRC_PATH))) $(patsubst %,-I%/include,$(filter-out .,$(SRC_PATH))) -I$(OUT_PATH)
 
 comma          :=,
 ifneq ($(PACKAGE_DEPS), )
-CFLAGS         += $(patsubst %,-I$(ENV_DEP_ROOT)%,/usr/include/ /usr/local/include/)
-CFLAGS         += $(patsubst %,-I$(ENV_DEP_ROOT)/usr/include/%/,$(PACKAGE_DEPS))
-LDFLAGS        += $(patsubst %,-L$(ENV_DEP_ROOT)%,/lib/ /usr/lib/ /usr/local/lib/)
-LDFLAGS        += $(patsubst %,-Wl$(comma)-rpath-link=$(ENV_DEP_ROOT)%,/lib/ /usr/lib/ /usr/local/lib/)
+CFLAGS         += $(patsubst %,-I$(ENV_DEP_ROOT)%,/usr/include /usr/local/include)
+CFLAGS         += $(patsubst %,-I$(ENV_DEP_ROOT)/usr/include/%,$(PACKAGE_DEPS))
+LDFLAGS        += $(patsubst %,-L$(ENV_DEP_ROOT)%,/lib /usr/lib /usr/local/lib)
+LDFLAGS        += $(patsubst %,-Wl$(comma)-rpath-link=$(ENV_DEP_ROOT)%,/lib /usr/lib /usr/local/lib)
 endif
 
 CFLAGS         += -Wall # This enables all the warnings about constructions that some users consider questionable.
@@ -62,10 +60,6 @@ endef
 
 define compile_tool
 $(if $(filter $(patsubst %,\%.%,$(CPP_SUFFIX)),$(1)),$(CXX),$(CC))
-endef
-
-define set_flags
-$(foreach v,$(2),$(eval $(1)_$(patsubst %,%.o,$(basename $(v))) = $(3)))
 endef
 
 define compile_obj
@@ -152,49 +146,6 @@ ifneq ($(BIN_NAME), )
 $(eval $(call add-bin-build,$(BIN_NAME),$(SRCS)))
 endif
 
-INSTALL_LIBRARY ?= $(LIB_TARGETS)
-install_lib:
-	@install -d $(ENV_INS_ROOT)/usr/lib
-	@cp -drf $(INSTALL_LIBRARY) $(ENV_INS_ROOT)/usr/lib
-
-INSTALL_BASE_LIBRARY ?= $(INSTALL_LIBRARY)
-install_base_lib:
-	@install -d $(ENV_INS_ROOT)/lib
-	@cp -drf $(INSTALL_BASE_LIBRARY) $(ENV_INS_ROOT)/lib
-
-INSTALL_BINARY ?= $(BIN_TARGETS)
-install_bin:
-	@install -d $(ENV_INS_ROOT)/usr/bin
-	@cp -drf $(INSTALL_BINARY) $(ENV_INS_ROOT)/usr/bin
-
-INSTALL_BASE_BINARY ?= $(INSTALL_BINARY)
-install_base_bin:
-	@install -d $(ENV_INS_ROOT)/bin
-	@cp -drf $(INSTALL_BASE_BINARY) $(ENV_INS_ROOT)/bin
-
-install_hdr:
-	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
-	@cp -drfp $(INSTALL_HEADER) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
-
-install_data:
-	@install -d $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
-	@cp -drf $(INSTALL_DATA) $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
-
-install_data_%:
-	@icp="$(if $(findstring /include,$(lastword $(INSTALL_DATA_$(patsubst install_data_%,%,$@)))),cp -drfp,cp -drf)"; \
-		isrc="$(patsubst $(lastword $(INSTALL_DATA_$(patsubst install_data_%,%,$@))),,$(INSTALL_DATA_$(patsubst install_data_%,%,$@)))"; \
-		idst="$(ENV_INS_ROOT)/usr/share$(lastword $(INSTALL_DATA_$(patsubst install_data_%,%,$@)))"; \
-		install -d $${idst} && $${icp} $${isrc} $${idst}
-
-install_todir_%:
-	@icp="$(if $(findstring /include,$(lastword $(INSTALL_TODIR_$(patsubst install_todir_%,%,$@)))),cp -drfp,cp -drf)"; \
-		isrc="$(patsubst $(lastword $(INSTALL_TODIR_$(patsubst install_todir_%,%,$@))),,$(INSTALL_TODIR_$(patsubst install_todir_%,%,$@)))"; \
-		idst="$(ENV_INS_ROOT)$(lastword $(INSTALL_TODIR_$(patsubst install_todir_%,%,$@)))"; \
-		install -d $${idst} && $${icp} $${isrc} $${idst}
-
-install_tofile_%:
-	@icp="$(if $(findstring /include,$(lastword $(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))),cp -dfp,cp -df)"; \
-		isrc="$(word 1,$(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))"; \
-		idst="$(ENV_INS_ROOT)$(lastword $(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))"; \
-		install -d $(dir $(ENV_INS_ROOT)$(lastword $(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))) && $${icp} $${isrc} $${idst}
+INSTALL_LIBRARIES ?= $(LIB_TARGETS)
+INSTALL_BINARIES  ?= $(BIN_TARGETS)
 

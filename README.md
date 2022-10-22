@@ -70,21 +70,21 @@ Date:   Tue May 17 18:51:28 2022 +0800
     So the kernel should change the included path to avoid the copy operation.
 ```
 
-## 初始化编译环境
+## 设置编译环境
 
 初始化编译环境运行如下命令
 
 ```sh
 lengjing@lengjing:~/cbuild$ source scripts/build.env
 ============================================================
-ARCH             :
-CROSS_COMPILE    :
+ENV_BUILD_MODE   : external
+ENV_BUILD_ARCH   :
+ENV_BUILD_TOOL   :
 ENV_TOP_DIR      : /home/lengjing/cbuild
 ENV_TOP_OUT      : /home/lengjing/cbuild/output
 ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
 ENV_INS_ROOT     : /home/lengjing/cbuild/output/sysroot
 ENV_DEP_ROOT     : /home/lengjing/cbuild/output/sysroot
-ENV_BUILD_MODE   : external
 ============================================================
 ```
 
@@ -93,38 +93,111 @@ ENV_BUILD_MODE   : external
 ```sh
 lengjing@lengjing:~/cbuild$ source scripts/build.env arm64 arm-linux-gnueabihf-
 ============================================================
-ARCH             : arm64
-CROSS_COMPILE    : arm-linux-gnueabihf-
+ENV_BUILD_MODE   : external
+ENV_BUILD_ARCH   : arm64
+ENV_BUILD_TOOL   : arm-linux-gnueabihf-
 ENV_TOP_DIR      : /home/lengjing/cbuild
 ENV_TOP_OUT      : /home/lengjing/cbuild/output
 ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
 ENV_INS_ROOT     : /home/lengjing/cbuild/output/sysroot
 ENV_DEP_ROOT     : /home/lengjing/cbuild/output/sysroot
-ENV_BUILD_MODE   : external
 ============================================================
-
 ```
 
 `scripts/build.env` 中，导出的自定义环境变量
 
 ```sh
+ENV_BUILD_MODE=external  # external internal yocto
+ENV_BUILD_ARCH=$1
+ENV_BUILD_TOOL=$2
+
 ENV_TOP_DIR=$(pwd | sed 's:/cbuild.*::')/cbuild
 ENV_TOP_OUT=${ENV_TOP_DIR}/output
 ENV_OUT_ROOT=${ENV_TOP_OUT}/objects
 ENV_INS_ROOT=${ENV_TOP_OUT}/sysroot
 ENV_DEP_ROOT=${ENV_INS_ROOT}
-ENV_BUILD_MODE=external  # external internal yocto
 ```
+
+* ENV_BUILD_MODE: 设置编译模式: external, 源码和编译输出分离; internal, 编译输出到源码; yocto, Yocto 编译方式
+    * external 时，编译输出目录是把包的源码目录的 ENV_TOP_DIR 部分换成了 ENV_OUT_ROOT
+* ENV_BUILD_ARCH: 指定交叉编译 linux 模块的 ARCH
+* ENV_BUILD_TOOL: 指定交叉编译器前缀
 
 * ENV_TOP_DIR: 工程的根目录
 * ENV_TOP_OUT: 工程的输出根目录，编译输出、安装文件、生成镜像等都在此目录下定义
 * ENV_OUT_ROOT: 源码和编译输出分离时的编译输出根目录
 * ENV_INS_ROOT: 工程安装文件的根目录
 * ENV_DEP_ROOT: 工程搜索库和头文件的根目录
-* ENV_BUILD_MODE: 设置编译模式: external, 源码和编译输出分离; internal, 编译输出到源码; yocto, Yocto 编译方式
-    * external 时，编译输出目录是把包的源码目录的 ENV_TOP_DIR 部分换成了 ENV_OUT_ROOT
 
 注: yocto 编译时，由于 BitBake 任务无法直接使用当前 shell 的环境变量，所以自定义环境变量应由配方文件导出，不需要 source 这个环境脚本
+
+`scripts/core/inc.env.mk` 环境设置模板
+
+* Yocto 编译时编译输出目录交叉编译环境由 `bitbake` 设置并导出，此模板没有做任何操作
+* 其它编译时此模板作用是设置编译输出目录 `OUT_PATH`，设置并导出交叉编译环境
+
+## 安装模板
+
+* 安装模板被应用编译和内核模块编译共用
+
+`scripts/core/inc.ins.mk` 支持的目标和对应需要设置的变量
+
+* install_libs: 安装库文件集
+    * 用户需要设置被安装的库文件集变量 INSTALL_LIBRARIES
+    * 编译应用时 `inc.app.mk`，编译生成的库文件会加入到 `LIB_TARGETS` 变量，INSTALL_LIBRARIES 已默认赋值为 `$(LIB_TARGETS)`
+    * 安装目录是 `$(ENV_INS_ROOT)/usr/lib`
+* install_base_libs: 安装库文件集
+    * 用户需要设置被安装的库文件集变量 INSTALL_BASE_LIBRARIES，该变量默认取 INSTALL_LIBRARIES 的值
+    * 安装目录是 `$(ENV_INS_ROOT)/lib`
+* install_bins: 安装可执行文件集
+    * 用户需要设置被安装的可执行文件集变量 INSTALL_BINARIES
+    * 编译应用时 `inc.app.mk`，编译生成的可执行文件会加入到 `BIN_TARGETS` 变量，INSTALL_BINARIES 已默认赋值为 `$(BIN_TARGETS)`
+    * 安装目录是 `$(ENV_INS_ROOT)/usr/bin`
+* install_base_bins: 安装可执行文件集
+    * 用户需要设置被安装的可执行文件集变量 INSTALL_BASE_BINARIES，该变量默认取 INSTALL_BINARIES 的值
+    * 安装目录是 `$(ENV_INS_ROOT)/bin`
+* install_hdrs: 安装头文件集
+    * 用户需要设置被安装的头文件集变量 INSTALL_HEADERS
+    * 安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
+* install_datas: 安装数据文件集
+    * 用户需要设置被安装的数据文件集变量 INSTALL_DATAS
+    * 安装目录是 `$(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)`
+
+* install_datas_xxx / install_todir_xxx / install_tofile_xxx: 安装文件集到特定文件夹
+    * 要安装的文件集分别由 INSTALL_DATAS_xxx / INSTALL_TODIR_xxx / INSTALL_TOFILE_xxx 定义
+    * 定义的值前面部分是要安装的文件集，最后一项是以斜杆 `/` 开头的安装目标路径
+    * install_datas_xxx 安装到目录 `$(ENV_INS_ROOT)/usr/share$(INSTALL_DATAS_xxx最后一项)`
+    * install_todir_xxx 安装到目录`$(ENV_INS_ROOT)$(INSTALL_TODIR_xxx最后一项)`
+    * install_tofile_xxx 安装到文件`$(ENV_INS_ROOT)$(INSTALL_TOFILE_xxx最后一项)` ，INSTALL_TOFILE_xxx 的值有且只有两项
+    * 例子:
+        * 创建2个空白文件 testa 和 testb，Makefile 内容如下:
+        ```makefile
+        INSTALL_DATAS_test = testa testb /testa/testb
+        INSTALL_TODIR_test = testa testb /usr/local/bin
+        INSTALL_TOFILE_testa = testa /etc/a.conf
+        INSTALL_TOFILE_testb = testa /etc/b.conf
+
+        all: install_datas_test install_todir_test install_tofile_testa install_tofile_testb
+        include $(ENV_TOP_DIR)/scripts/core/inc.ins.mk
+        ```
+        * 运行 make 安装后的文件树
+        ```
+        output/
+        └── sysroot
+            ├── etc
+            │   ├── a.conf
+            │   └── b.conf
+            └── usr
+                ├── local
+                │   └── bin
+                │       ├── testa
+                │       └── testb
+                └── share
+                    └── testa
+                        └── testb
+                            ├── testa
+                            └── testb
+        ```
 
 ## 测试编译应用
 
@@ -176,64 +249,10 @@ Build test-app3 Done.
 lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 ```
 
-`scripts/core/inc.ins.mk` 支持的目标
-* install_libs: 安装库文件集
-    * 用户需要设置被安装的库文件集变量 INSTALL_LIBRARIES
-    * 安装目录是 `$(ENV_INS_ROOT)/usr/lib`
-* install_base_libs: 安装库文件集
-    * 用户需要设置被安装的库文件集变量 INSTALL_BASE_LIBRARIES，该变量默认取 INSTALL_LIBRARIES 的值
-    * 安装目录是 `$(ENV_INS_ROOT)/lib`
-* install_bins: 安装可执行文件集
-    * 用户需要设置被安装的可执行文件集变量 INSTALL_BINARIES
-    * 安装目录是 `$(ENV_INS_ROOT)/usr/bin`
-* install_base_bins: 安装可执行文件集
-    * 用户需要设置被安装的可执行文件集变量 INSTALL_BASE_BINARIES，该变量默认取 INSTALL_BINARIES 的值
-    * 安装目录是 `$(ENV_INS_ROOT)/bin`
-* install_hdrs: 安装头文件集
-    * 用户需要设置被安装的头文件集变量 INSTALL_HEADERS
-    * 安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
-* install_datas: 安装数据文件集
-    * 用户需要设置被安装的数据文件集变量 INSTALL_DATAS
-    * 安装目录是 `$(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)`
-* install_datas_xxx / install_todirs_xxx / install_tofiles_xxx: 安装文件集到特定文件夹
-    * 要安装的文件集分别由 INSTALL_DATAS_xxx / INSTALL_TODIRS_xxx / INSTALL_TOFILES_xxx 定义
-    * 定义的值前面部分是要安装的文件集，最后一项是以斜杆 `/` 开头的安装目标路径
-    * install_datas_xxx 安装到目录 `$(ENV_INS_ROOT)/usr/share$(INSTALL_DATAS_xxx最后一项)`
-    * install_todirs_xxx 安装到目录`$(ENV_INS_ROOT)$(INSTALL_TODIRS_xxx最后一项)`
-    * install_tofiles_xxx 安装到文件`$(ENV_INS_ROOT)$(INSTALL_TOFILES_xxx最后一项)` ，INSTALL_TOFILES_xxx 的值有且只有两项
-    * 例子:
-        * 创建2个空白文件 testa 和 testb，Makefile 内容如下:
-        ```makefile
-        INSTALL_DATAS_test = testa testb /testa/testb
-        INSTALL_TODIRS_test = testa testb /usr/local/bin
-        INSTALL_TOFILES_testa = testa /etc/a.conf
-        INSTALL_TOFILES_testb = testa /etc/b.conf
-
-        all: install_datas_test install_todirs_test install_tofiles_testa install_tofiles_testb
-        include $(ENV_TOP_DIR)/scripts/core/inc.ins.mk
-        ```
-        * 运行 make 安装后的文件树
-        ```
-        output/
-        └── sysroot
-            ├── etc
-            │   ├── a.conf
-            │   └── b.conf
-            └── usr
-                ├── local
-                │   └── bin
-                │       ├── testa
-                │       └── testb
-                └── share
-                    └── testa
-                        └── testb
-                            ├── testa
-                            └── testb
-        ```
-
 `scripts/core/inc.app.mk` 支持的目标
 
 * LIBA_NAME: 编译静态库时需要设置静态库名
+    * 编译生成的静态库文件路径会加入到 `LIB_TARGETS` 变量
 * LIBSO_NAME: 编译动态库时需要设置动态库名
     * LIBSO_NAME 可以设置为 `库名 主版本号 次版本号 补丁版本号` 格式，例如
         * `LIBSO_NAME = libtest.so 1 2 3` 编译生成动态库 libtest.so.1.2.3，并创建符号链接 libtest.so 和 libtest.so.1
@@ -242,25 +261,9 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
         * `LIBSO_NAME = libtest.so`       编译生成动态库 libtest.so
     * 如果 LIBSO_NAME 带版本号，默认指定的 soname 是 `libxxxx.so.x`，可以通过 LDFLAGS 覆盖默认值
         * 例如 `LDFLAGS += -Wl,-soname=libxxxx.so`
+    * 编译生成的动态库文件路径和符号链接路径会加入到 `LIB_TARGETS` 变量
 * BIN_NAME: 编译可执行文件时需要设置可执行文件名
-
-* install_lib: 安装库文件集
-    * 用户一般不需要设置被安装的库文件集变量 INSTALL_LIBRARY
-    * 编译生成的库文件会加入到 `LIB_TARGETS` 变量，INSTALL_LIBRARY 已默认赋值为 `$(LIB_TARGETS)`
-    * 安装目录是 `$(ENV_INS_ROOT)/usr/lib`
-* install_base_lib: 安装库文件集
-    * 用户一般不需要设置被安装的库文件集变量 INSTALL_BASE_LIBRARY，该变量默认取 INSTALL_LIBRARY 的值
-    * 安装目录是 `$(ENV_INS_ROOT)/lib`
-* install_bin: 安装可执行文件集
-    * 用户一般不需要设置被安装的可执行文件集变量 INSTALL_BINARY
-    * 编译生成的可执行文件会加入到 `BIN_TARGETS` 变量，INSTALL_BINARY 已默认赋值为 `$(BIN_TARGETS)`
-    * 安装目录是 `$(ENV_INS_ROOT)/usr/bin`
-* install_base_bins: 安装可执行文件集
-    * 用户一般不需要设置被安装的库文件集变量 INSTALL_BASE_BINARY，该变量默认取 INSTALL_BINARY 的值
-    * 安装目录是 `$(ENV_INS_ROOT)/bin`
-* install_hdr / install_data / install_data_xxx / install_todir_xxx / install_tofile_xxx:
-    * 目标意义同 inc.ins.mk 中对应的目标 install_hdrs / install_datas / install_datas_xxx / install_todirs_xxx / install_tofiles_xxx
-    * 且变量名称改为了 INSTALL_HEADER / INSTALL_DATA / INSTALL_DATA_xxx / INSTALL_TODIR_xxx / INSTALL_TOFILE_xxx
+    * 编译生成的可执行文件会加入到 `BIN_TARGETS` 变量
 
 `scripts/core/inc.app.mk` 提供的函数
 
@@ -281,7 +284,6 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 * PACKAGE_NAME: 包的名称，决定头文件等的安装路径(inc.ins.mk 的此变量意义相同)
 * PACKAGE_DEPS: 包的依赖(多个依赖空格隔开)，决定头文件的搜索路径等
     * 默认将包依赖对应的路径加到当前包的头文件的搜索路径
-* OUT_PATH: 编译输出目录，保持默认即可
 * SRC_PATH: 包中源码所在的目录，默认是包的根目录，也有的包将源码放在 src 下
     * 也可以指定包下多个(不交叉)目录的源码，例如 `SRC_PATH = src1 src2 src3`
 * IGNORE_PATH: 查找源码文件时，忽略搜索的目录名集合，默认已忽略 `.git scripts output` 文件夹
@@ -381,6 +383,7 @@ def2_config  def_config
     * kconfig 生成的头文件默认不包含宏 `#ifndef xxx ... #define xxx ... #endif`，本模板使用 sed 命令添加了宏
 * KCONFIG: 配置参数文件，默认是包下的 Kconfig 文件
 * CONF_SAVE_PATH: 配置文件的获取和保存目录，默认是包下的 config 目录
+* CONF_APPEND_CMD: config 改变时追加运行的命令
 
 注: 目录下的 [Kconfig](./examples/test-conf/Kconfig) 文件也说明了如何写配置参数
 
@@ -459,9 +462,8 @@ Build test-mod2 Done.
 
 * modules: 编译外部内核模块
 * modules_clean: 清理内核模块的编译输出
-* modules_install: 安装内核模块到指定位置
     * 外部内核模块默认的安装路径为 `$(ENV_INS_ROOT)/lib/modules/<kernel_release>/extra/`
-* install_hdr / install_data / install_data_xxx / install_todir_xxx / install_tofile_xxx: 和 inc.app.mk 中对应目标、变量和使用方法完全一致
+* symvers_install: 安装 Module.symvers 符号文件到指定位置(已设置此目标为 `install_hdrs` 目标的依赖)
 
 `scripts/core/inc.mod.mk` 可设置的变量(KERNELRELEASE 为空时)
 
@@ -469,7 +471,6 @@ Build test-mod2 Done.
 * PACKAGE_DEPS: 包的依赖(多个依赖空格隔开)
     * 默认将包依赖对应的路径加到当前包的头文件的搜索路径
 * MOD_MAKES: 用户指定一些模块自己的信息，例如 XXXX=xxxx
-* OUT_PATH: 编译输出目录，保持默认即可 (只在源码和编译输出分离时有效)
 * KERNEL_SRC: Linux 内核源码目录 (必须）
 * KERNEL_OUT: Linux 内核编译输出目录 （`make -O $(KERNEL_OUT)` 编译内核的情况下必须）
 

@@ -1,10 +1,6 @@
-ifeq ($(ENV_BUILD_MODE), external)
-OUT_PATH       ?= $(patsubst $(ENV_TOP_DIR)/%,$(ENV_OUT_ROOT)/%,$(shell pwd))
-else
-OUT_PATH       ?= .
-endif
+ifeq ($(KERNELRELEASE), )
 
-.PHONY: install_libs install_bins install_hdrs install_datas
+.PHONY: install_libs install_base_libs install_bins install_base_bins install_hdrs install_datas
 
 install_libs:
 	@install -d $(ENV_INS_ROOT)/usr/lib
@@ -38,15 +34,16 @@ install_datas_%:
 		idst="$(ENV_INS_ROOT)/usr/share$(lastword $(INSTALL_DATAS_$(patsubst install_datas_%,%,$@)))"; \
 		install -d $${idst} && $${icp} $${isrc} $${idst}
 
-install_todirs_%:
-	@icp="$(if $(findstring /include,$(lastword $(INSTALL_TODIRS_$(patsubst install_todirs_%,%,$@)))),cp -drfp,cp -drf)"; \
-		isrc="$(patsubst $(lastword $(INSTALL_TODIRS_$(patsubst install_todirs_%,%,$@))),,$(INSTALL_TODIRS_$(patsubst install_todirs_%,%,$@)))"; \
-		idst="$(ENV_INS_ROOT)$(lastword $(INSTALL_TODIRS_$(patsubst install_todirs_%,%,$@)))"; \
+install_todir_%:
+	@icp="$(if $(findstring /include,$(lastword $(INSTALL_TODIR_$(patsubst install_todir_%,%,$@)))),cp -drfp,cp -drf)"; \
+		isrc="$(patsubst $(lastword $(INSTALL_TODIR_$(patsubst install_todir_%,%,$@))),,$(INSTALL_TODIR_$(patsubst install_todir_%,%,$@)))"; \
+		idst="$(ENV_INS_ROOT)$(lastword $(INSTALL_TODIR_$(patsubst install_todir_%,%,$@)))"; \
 		install -d $${idst} && $${icp} $${isrc} $${idst}
 
-install_tofiles_%:
-	@icp="$(if $(findstring /include,$(lastword $(INSTALL_TOFILES_$(patsubst install_tofiles_%,%,$@)))),cp -dfp,cp -df)"; \
-		isrc="$(word 1,$(INSTALL_TOFILES_$(patsubst install_tofiles_%,%,$@)))"; \
-		idst="$(ENV_INS_ROOT)$(lastword $(INSTALL_TOFILES_$(patsubst install_tofiles_%,%,$@)))"; \
-		install -d $(dir $(ENV_INS_ROOT)$(lastword $(INSTALL_TOFILES_$(patsubst install_tofiles_%,%,$@)))) && $${icp} $${isrc} $${idst}
+install_tofile_%:
+	@icp="$(if $(findstring /include,$(lastword $(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))),cp -dfp,cp -df)"; \
+		isrc="$(word 1,$(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))"; \
+		idst="$(ENV_INS_ROOT)$(lastword $(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))"; \
+		install -d $(dir $(ENV_INS_ROOT)$(lastword $(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))) && $${icp} $${isrc} $${idst}
 
+endif

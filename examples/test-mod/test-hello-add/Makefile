@@ -6,7 +6,7 @@ MOD_NAME = hello_add
 else
 
 PACKAGE_NAME ?= test-hello-add
-INSTALL_HEADER ?= hello_add.h
+INSTALL_HEADERS ?= hello_add.h
 
 all: modules
 	@echo "Build $(PACKAGE_NAME) Done."
@@ -14,8 +14,10 @@ all: modules
 clean: modules_clean
 	@echo "Clean $(PACKAGE_NAME) Done."
 
-install: modules_install install_hdr
+install: modules_install install_hdrs
 
 endif
 
+include $(ENV_TOP_DIR)/scripts/core/inc.env.mk
 include $(ENV_TOP_DIR)/scripts/core/inc.mod.mk
+include $(ENV_TOP_DIR)/scripts/core/inc.ins.mk

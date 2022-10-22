@@ -18,4 +18,5 @@ install: modules_install
 
 endif
 
+include $(ENV_TOP_DIR)/scripts/core/inc.env.mk
 include $(ENV_TOP_DIR)/scripts/core/inc.mod.mk
