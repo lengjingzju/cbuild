@@ -605,10 +605,11 @@ Depend_Names 中的特殊依赖
     * `&depname`    : 表示此包弱选中 depname 包，即 `imply depname`，此包选中后，depname 也被自动选中，此时 depname 也可以手动取消选中
     * `&&depname`   : 表示此包强选中 depname 包，即 `select depname`，此包选中后，depname 也被自动选中，此时 depname 不可以取消选中
     * `?depname`    : 表示此包弱依赖(不安装动态库的) depname 包，弱依赖是指即使 depname 包未选中或不存在，依赖它的包也可以选中和编译成功
-    * `??depname`   : 表示此包弱依赖(安装动态库的) depname 包
+    * `??depname`   : 类似 `?depname`，表示此包弱依赖(安装动态库的) depname 包
     * `depa|depb`   : 表示此包弱依赖(不安装动态库的) depa depb ... ，此弱依赖列表中的包至少需要一个 depx 包选中，依赖它的包才可以选中和编译成功
-    * `depa||depb`  : 表示此包弱依赖(安装动态库的) depa depb ...
+    * `depa||depb`  : 类似 `depa|depb`，表示此包弱依赖(安装动态库的) depa depb ...
     * 其它说明:
+        * `&` 可以和 `?` 合并使用，不要求组合顺序，表示选中并弱依赖，例如 `&&??depname` 表示强选中弱依赖，`??&depname` 表示弱依赖弱选中
         * 省略 `|` `||` 前面的单词会被隐式推导使用预编译包或源码包中选一，例如 `||libtest` 被隐式推导为 `prebuild-libtest||libtest`
         * 对普通编译来说，`?` `??` 没有区别，`|` `||` 没有区别
         * 对 Yocto 编译来说，`?` `|` 中的弱依赖只会设置 `DEPENDS`，`??` `||` 中的弱依赖会同时设置 `DEPENDS` 和 `RDEPENDS:${PN}`

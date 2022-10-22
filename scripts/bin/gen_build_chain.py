@@ -115,16 +115,25 @@ class Deps:
                     item['default'] = False
                 elif dep[0] == '!':
                     item['cdeps'].append(dep[1:])
-                elif dep[0] == '&':
-                    if dep[1] == '&':
-                        item['select'].append(dep[2:])
+                elif dep[0] == '&' or dep[0] == '?':
+                    amp_num = 0
+                    que_num = 0
+                    for i in range(len(dep)):
+                        if dep[i] == '&':
+                            amp_num += 1
+                        elif dep[i] == '?':
+                            que_num += 1
+                        else:
+                            break
+                    dep = dep[amp_num + que_num:]
+                    if amp_num == 2:
+                        item['select'].append(dep)
+                    elif amp_num == 1:
+                        item['imply'].append(dep)
                     else:
-                        item['imply'].append(dep[1:])
-                elif dep[0] == '?':
-                    if dep[1] == '?':
-                        item[wdeps].append(dep[2:])
-                    else:
-                        item[wdeps].append(dep[1:])
+                        pass
+                    if que_num:
+                        item[wdeps].append(dep)
                 elif '=' in dep:
                     item['edeps'].append(dep)
                 elif '|' in dep:
