@@ -29,7 +29,7 @@ LD             := $(CROSS_COMPILE)ld
 AR             := $(CROSS_COMPILE)ar
 RANLIB         := $(CROSS_COMPILE)ranlib
 OBJCOPY        := $(CROSS_COMPILE)objcopy
-STRIP          := $(CROSS_COMPILE)STRIP
+STRIP          := $(CROSS_COMPILE)strip
 export CC CXX CPP AS LD AR RANLIB OBJCOPY STRIP
 
 endif

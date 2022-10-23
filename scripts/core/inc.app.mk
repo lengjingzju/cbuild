@@ -1,11 +1,3 @@
-define translate_obj
-$(patsubst %,$(OUT_PATH)/%.o,$(basename $(1)))
-endef
-
-define set_flags
-$(foreach v,$(2),$(eval $(1)_$(patsubst %,%.o,$(basename $(v))) = $(3)))
-endef
-
 SRC_PATH       ?= .
 IGNORE_PATH    ?= .git scripts output
 REG_SUFFIX     ?= c cpp S
@@ -15,8 +7,6 @@ ASM_SUFFIX     ?= S s asm
 SRCS           ?= $(shell find $(SRC_PATH) $(patsubst %,-path '*/%' -prune -o,$(IGNORE_PATH)) \
                       $(shell echo '$(patsubst %,-o -name "*.%" -print,$(REG_SUFFIX))' | sed 's/^...//') \
                   | sed "s/^\(\.\/\)\(.*\)/\2/g" | xargs)
-OBJS            = $(call translate_obj,$(SRCS))
-DEPS            = $(patsubst %.o,%.d,$(OBJS))
 
 CFLAGS         += -I. -I./include $(patsubst %,-I%,$(filter-out .,$(SRC_PATH))) $(patsubst %,-I%/include,$(filter-out .,$(SRC_PATH))) -I$(OUT_PATH)
 
@@ -43,6 +33,14 @@ endif
 #LDFLAGS       += -static
 
 COLORECHO       = $(if $(findstring dash,$(shell readlink /bin/sh)),echo,echo -e)
+
+define translate_obj
+$(patsubst %,$(OUT_PATH)/%.o,$(basename $(1)))
+endef
+
+define set_flags
+$(foreach v,$(2),$(eval $(1)_$(patsubst %,%.o,$(basename $(v))) = $(3)))
+endef
 
 define all_ver_obj
 $(strip \
@@ -86,10 +84,12 @@ $(eval $(call compile_obj,S,$$(CC)))
 $(eval $(call compile_obj,s,$$(AS)))
 $(eval $(call compile_obj,asm,$$(AS)))
 
+OBJS            = $(call translate_obj,$(SRCS))
+DEPS            = $(patsubst %.o,%.d,$(OBJS))
 $(OBJS): $(MAKEFILE_LIST)
 -include $(DEPS)
 
-.PHONY: clean_objs install_lib install_bin install_hdr install_data
+.PHONY: clean_objs
 
 clean_objs:
 	@-rm -rf $(OBJS) $(DEPS)

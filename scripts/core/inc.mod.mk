@@ -1,13 +1,5 @@
 ifneq ($(KERNELRELEASE), )
 
-define translate_obj
-$(patsubst $(src)/%,%,$(patsubst %,%.o,$(basename $(1))))
-endef
-
-define set_flags
-$(foreach v,$(2),$(eval $(1)_$(call translate_obj,$(v)) = $(3)))
-endef
-
 MOD_NAME       ?= hello
 obj-m          := $(patsubst %,%.o,$(MOD_NAME))
 
@@ -17,6 +9,13 @@ ccflags-y      += $(patsubst %,-I$(ENV_DEP_ROOT)%,/usr/include /usr/local/includ
 ccflags-y      += $(patsubst %,-I$(ENV_DEP_ROOT)/usr/include/%,$(PACKAGE_DEPS))
 endif
 
+define translate_obj
+$(patsubst $(src)/%,%,$(patsubst %,%.o,$(basename $(1))))
+endef
+
+define set_flags
+$(foreach v,$(2),$(eval $(1)_$(call translate_obj,$(v)) = $(3)))
+endef
 
 ifeq ($(words $(MOD_NAME)), 1)
 
@@ -75,7 +74,7 @@ endif
 
 export PACKAGE_DEPS ENV_DEP_ROOT
 
-.PHONY: modules modules_clean modules_install install_hdr install_data
+.PHONY: modules modules_clean modules_install symvers_install
 
 modules:
 	@make $(MOD_MAKES) $(if $(PACKAGE_DEPS), KBUILD_EXTRA_SYMBOLS="$(wildcard $(patsubst %,$(ENV_DEP_ROOT)/usr/include/%/Module.symvers,$(PACKAGE_DEPS)))") modules
