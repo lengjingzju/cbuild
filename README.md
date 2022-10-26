@@ -559,7 +559,9 @@ rm -f auto.mk Kconfig
 * `-o <Recipe Image Name>`: Yocto 编译中自动生成的 image 需要打包的软件列表文件
 * `-k <Kconfig Name>`: 指定存储 Kconfig 的所有项目的文件路径，普通编译中还会在 Kconfig 同目录生成 Target 文件，列出所有包的文件路径、包名和依赖
 * `-d <Search Depend Name>`: 要搜索的依赖文件名(含有依赖规则语句)，`<Search Depend Name>` 文件中可以包含多条依赖信息
-* `-c <Search Kconfig Name>`: 要搜索的配置文件名(含有配置信息)，在生成 image 配方的命令中指定的是 .config 的路径名
+* `-c <Search Kconfig Name>`: 要搜索的 Kconfig 配置文件名(含有配置信息)，在生成 image 配方的命令中指定的是 .config 的路径名
+    * 在 Yocto 编译中， Kconfig 配置文件优先查找当前目录下的 `配方名.bbconfig` 文件，找不到才在 bbappend 文件中 EXTERNALSRC 变量指定的路径下查找指定配置文件
+    * 在其它编译中，查找和 `<Search Depend Name>` 同目录的指定配置文件
 * `-v <Search Virtual Depend Name>`: 要搜索的虚拟依赖文件名(含有虚拟依赖规则语句)
 * `-s <Search Directories>`: 搜索的目录文件路径名，多个目录使用冒号隔开
 * `-i <Ignore Directories or Recipes>`: 忽略的目录名，不会搜索指定目录名下的依赖文件，多个目录使用冒号隔开，在生成 image 配方的命令中指定的是忽略的配方名

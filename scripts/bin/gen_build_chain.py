@@ -82,7 +82,7 @@ class Deps:
                 conf_path = conf_path.replace(var, self.VarDict[key])
 
         if os.path.exists(conf_path) and self.conf_name in os.listdir(conf_path):
-            return conf_path
+            return os.path.join(conf_path, self.conf_name)
         return ''
 
 
@@ -363,7 +363,7 @@ class Deps:
                     else:
                         item['targets'] = targets.split()
 
-                    item['conf'] = item['path'] if self.conf_name in os.listdir(item['path']) else ''
+                    item['conf'] = os.path.join(item['path'], self.conf_name) if self.conf_name in os.listdir(item['path']) else ''
                     if self.__set_item_deps(ret.groups()[3].strip().split(), item, True):
                         if makestr and '/' in makestr:
                             ItemDict[makestr] = item
@@ -413,7 +413,7 @@ class Deps:
         item['path'] = pathpair[0]
         item['spath'] = pathpair[1]
         item['make'] = pathpair[3]
-        item['target'] = item['make'] [0:item['make'] .rindex('_') if '_' in item['make']  else item['make'] .rindex('.')]
+        item['target'] = item['make'] [0:item['make'].rindex('_') if '_' in item['make'] else item['make'].rindex('.')]
 
         fullname = os.path.join(pathpair[0], pathpair[3])
         with open(fullname, 'r') as fp:
@@ -425,14 +425,19 @@ class Deps:
                 if ret:
                     extra_deps += [dep for dep in ret.groups()[0].strip().split() if '-native' not in dep]
 
+        bbconfig_path = os.path.join(os.path.dirname(fullname), item['target'] + '.bbconfig')
         bbappend_path = '%sappend' % (fullname)
-        if os.path.exists(bbappend_path):
+        if os.path.exists(bbconfig_path):
+            item['conf'] = bbconfig_path
+        elif os.path.exists(bbappend_path):
             with open(bbappend_path, 'r') as fp:
                 for per_line in fp:
                     ret = re.match(r'EXTERNALSRC\s*=\s*"(.*)"', per_line)
                     if ret:
                         item['conf'] = self.__get_kconfig_path(ret.groups()[0])
                         break
+        else:
+            pass
 
         if self.__set_item_deps(extra_deps, item, True):
             self.__add_item_to_list(item, refs)
@@ -611,10 +616,10 @@ class Deps:
         if item['conf']:
             if choice_flag:
                 conf_str = 'if %s\nmenu "%s (%s)"\nsource "%s"\nendmenu\nendif\n\n' % (target,
-                        item['target'], item['spath'], os.path.join(item['conf'], self.conf_name))
+                        item['target'], item['spath'], item['conf'])
                 self.conf_str += conf_str
             else:
-                conf_str = 'if %s\nsource "%s"\nendif\n\n' % (target, os.path.join(item['conf'], self.conf_name))
+                conf_str = 'if %s\nsource "%s"\nendif\n\n' % (target, item['conf'])
                 fp.write('%s' % (conf_str))
 
         if 'choice' in item['vtype']:
