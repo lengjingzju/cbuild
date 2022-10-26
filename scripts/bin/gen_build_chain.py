@@ -195,7 +195,7 @@ class Deps:
                 self.PathList.append((item['path'], item['spath'], item['target']))
 
 
-    def search_normal_depends(self, dep_name, vir_name, search_dirs, ignore_dirs = []):
+    def search_normal_depends(self, dep_name, vir_name, search_dirs, ignore_dirs = [], go_on_dirs = []):
         for rootdir in search_dirs:
             if rootdir[-1] == '/':
                 rootdir = rootdir[:-1]
@@ -214,7 +214,8 @@ class Deps:
 
                 if dep_name in files:
                     self.PathList.append((root, root.replace(rootdir + '/', '', 1), ''))
-                    dirs.clear() # don't continue to search sub dirs.
+                    if not go_on_dirs or rootdir not in go_on_dirs:
+                        dirs.clear() # don't continue to search sub dirs.
 
 
     def search_yocto_depends(self, vir_name, search_dirs, ignore_dirs = []):
@@ -771,7 +772,7 @@ class Deps:
 def parse_options():
     parser = ArgumentParser( description='''
             Tool to generate build chain.
-            do_normal_analysis must set options (-m -k -d -c -s) and can set options (-v -i -t -w -p).
+            do_normal_analysis must set options (-m -k -d -c -s) and can set options (-v -i -g -t -w -p).
             do_yocto_analysis must set options (-r -k -c) and can set options (-v -i -t -w -p).
             do_image_analysis must set options (-o -r -k) and can set options (-i).')).
             ''')
@@ -811,6 +812,10 @@ def parse_options():
     parser.add_argument('-i', '--ignore',
             dest='ignore_dirs',
             help='Specify the ignore directorys.')
+
+    parser.add_argument('-g', '--go-on',
+            dest='go_on_dirs',
+            help='Specify the go on directorys.')
 
     parser.add_argument('-u', '--usermeta',
             dest='user_metas',
@@ -870,6 +875,9 @@ def do_normal_analysis(args):
     ignore_dirs = []
     if args.ignore_dirs:
         ignore_dirs = [s.strip() for s in args.ignore_dirs.split(':')]
+    go_on_dirs = []
+    if args.go_on_dirs:
+        go_on_dirs = [s.strip() for s in args.go_on_dirs.split(':')]
 
     max_depth = 0
     if args.max_depth:
@@ -888,7 +896,7 @@ def do_normal_analysis(args):
     deps.keywords = keywords
     deps.prepend_flag = prepend_flag
 
-    deps.search_normal_depends(dep_name, vir_name, search_dirs, ignore_dirs)
+    deps.search_normal_depends(dep_name, vir_name, search_dirs, ignore_dirs, go_on_dirs)
     if not deps.PathList:
         print('ERROR: can not find any %s in %s.' % (dep_name, ':'.join(search_dirs)))
         sys.exit(1)

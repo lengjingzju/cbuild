@@ -545,7 +545,7 @@ rm -f auto.mk Kconfig
 命令使用(带中括号表示是可选项，否则是必选项)
 
 * 普通编译只需要一步自动生成 Kconfig 和 Makefike
-    * `gen_build_chain.py -m MAKEFILE_OUT -k KCONFIG_OUT -d DEP_NAME -c CONF_NAME -s SEARCH_DIRS [-v VIR_NAME] [-i IGNORE_DIRS] [-t MAX_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG]`
+    * `gen_build_chain.py -m MAKEFILE_OUT -k KCONFIG_OUT -d DEP_NAME -c CONF_NAME -s SEARCH_DIRS [-v VIR_NAME] [-i IGNORE_DIRS] [-g GO_ON_DIRS] [-t MAX_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG]`
 * Yocto 编译需要两步分别自动生成 Kconfig 和 Image 配方，会自动分析 `conf/local.conf` `conf/bblayers.conf` 和层下的配方文件和配方附加文件
     * `gen_build_chain.py -r RECIPE_OUT -k KCONFIG_OUT -c CONF_NAME [-v VIR_NAME] [-i IGNORE_DIRS] [-t MAX_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG] [-u USER_METAS]`
     * `gen_build_chain.py -r RECIPE_TARGET_NAME -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-i IGNORE_RECIPES]`
@@ -558,17 +558,17 @@ rm -f auto.mk Kconfig
 * `-r <Recipe Target Name>`: Yocto 编译中指定存储所有配方名的文件路径
 * `-o <Recipe Image Name>`: Yocto 编译中自动生成的 image 需要打包的软件列表文件
 * `-k <Kconfig Name>`: 指定存储 Kconfig 的所有项目的文件路径，普通编译中还会在 Kconfig 同目录生成 Target 文件，列出所有包的文件路径、包名和依赖
-* `-d <Search Depend Name>`: 要搜索的依赖文件名(含有依赖规则语句)
+* `-d <Search Depend Name>`: 要搜索的依赖文件名(含有依赖规则语句)，`<Search Depend Name>` 文件中可以包含多条依赖信息
 * `-c <Search Kconfig Name>`: 要搜索的配置文件名(含有配置信息)，在生成 image 配方的命令中指定的是 .config 的路径名
 * `-v <Search Virtual Depend Name>`: 要搜索的虚拟依赖文件名(含有虚拟依赖规则语句)
-* `-s <Search Directories>`: 搜索的目录名，多个目录使用冒号隔开
+* `-s <Search Directories>`: 搜索的目录文件路径名，多个目录使用冒号隔开
 * `-i <Ignore Directories or Recipes>`: 忽略的目录名，不会搜索指定目录名下的依赖文件，多个目录使用冒号隔开，在生成 image 配方的命令中指定的是忽略的配方名
+* `-g <Go On Directories>`: 继续搜索的的目录文件路径名，多个目录使用冒号隔开
+    * 如果在当前目录下搜索到 `<Search Depend Name>`，`<Go On Directories>` 没有指定或当前目录不在它里面，不会再继续搜索当前目录的子目录
 * `-t <Max Tier Depth>`: 设置 menuconfig 菜单的最大层数，0 表示菜单平铺，1表示2层菜单，...
 * `-w <Keyword Directories>`: 用于 menuconfig 菜单，如果路径中的目录匹配设置值，则这个路径的层数减1，设置的多个目录使用冒号隔开
 * `-p <prepend Flag>`: 用于 menuconfig，如果用户运行 conf / mconf 时设置了无前缀，则运行此脚本需要设置此 flag 为 1
 * `-u <User Metas>`: Yocto 编译中指定用户层，多个层使用冒号隔开，只有用户层的包才会: 分析依赖关系，默认选中，托管Kconfig，支持 `EXTRADEPS` 特殊依赖和虚拟依赖
-
-注: 如果在当前目录下搜索到 `<Search Depend Name>`，不会再继续搜索当前目录的子目录; `<Search Depend Name>` 中可以包含多条依赖信息
 
 实依赖信息格式 `#DEPS(Makefile_Name) Target_Name(Other_Target_Names): Depend_Names`
 
