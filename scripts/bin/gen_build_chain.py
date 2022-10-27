@@ -214,7 +214,7 @@ class Deps:
 
                 if dep_name in files:
                     self.PathList.append((root, root.replace(rootdir + '/', '', 1), ''))
-                    if not go_on_dirs or rootdir not in go_on_dirs:
+                    if not go_on_dirs or root not in go_on_dirs:
                         dirs.clear() # don't continue to search sub dirs.
 
 
@@ -812,15 +812,15 @@ def parse_options():
 
     parser.add_argument('-s', '--search',
             dest='search_dirs',
-            help='Specify the search directorys.')
+            help='Specify the search directories.')
 
     parser.add_argument('-i', '--ignore',
             dest='ignore_dirs',
-            help='Specify the ignore directorys.')
+            help='Specify the ignore directories.')
 
     parser.add_argument('-g', '--go-on',
             dest='go_on_dirs',
-            help='Specify the go on directorys.')
+            help='Specify the go on directories.')
 
     parser.add_argument('-u', '--usermeta',
             dest='user_metas',
