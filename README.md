@@ -366,6 +366,7 @@ def2_config  def_config
 * loadconfig: 加载默认配置
     * 如果 .config 不存在，加载 DEF_CONFIG 指定的配置
 * menuconfig: 图形化配置工具
+* syncconfig: 手动更改 .config 后更新 config.h
 * cleanconfig: 清理配置文件
 * xxx_config: 将 CONF_SAVE_PATH 下的 xxx_config 作为当前配置
 * xxx_saveconfig: 将当前配置保存到 CONF_SAVE_PATH 下的 xxx_config

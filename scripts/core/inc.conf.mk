@@ -30,6 +30,14 @@ define gen_config_header
 		$(if $(CONF_APPEND_CMD),$(CONF_APPEND_CMD),:)
 endef
 
+define sync_config_header
+	if [ -e $(CONFIG_PATH) ] && [ -e $(AUTOHEADER_PATH) ]; then \
+		if [ $$(stat -c %Y $(CONFIG_PATH)) -gt $$(stat -c %Y $(AUTOHEADER_PATH)) ]; then \
+			$(call gen_config_header); \
+		fi; \
+	fi
+endef
+
 .PHONY: buildkconfig cleankconfig menuconfig loadconfig cleanconfig
 
 ifneq ($(ENV_BUILD_MODE), yocto)
@@ -55,6 +63,8 @@ menuconfig: buildkconfig
 		$(CONF_PREFIX) $(CONF_PATH)/mconf $(CONF_OPTIONS); \
 		if [ "$${mtime}" != "$$(stat -c %Y $(CONFIG_PATH))" ]; then \
 			$(call gen_config_header); \
+		else \
+			$(call sync_config_header); \
 		fi
 
 ifneq ($(DEF_CONFIG), )
@@ -64,8 +74,13 @@ loadconfig: buildkconfig
 		cp -f $(CONF_SAVE_PATH)/$(DEF_CONFIG) $(CONFIG_PATH); \
 		$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --defconfig $(CONF_SAVE_PATH)/$(DEF_CONFIG); \
 		$(call gen_config_header); \
+	else \
+		$(call sync_config_header); \
 	fi
 endif
+
+syncconfig:
+	@$(call sync_config_header)
 
 %_config: $(CONF_SAVE_PATH)/%_config buildkconfig
 	@-mkdir -p $(OUT_PATH)
