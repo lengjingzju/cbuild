@@ -304,6 +304,7 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
         include $(ENV_TOP_DIR)/scripts/core/inc.app.mk
         $(eval $(call compile_obj,CXX,$$(CXX)))
         ```
+* USING_CXX_BUILD_C: 设置为 y 时 `*.c` 文件也用 CXX 编译
 * SRCS: 所有的 C 源码文件，默认是 SRC_PATH 下的所有的 `*.c *.cpp *.S` 文件
     * 如果用户指定了 SRCS，也可以设置 SRC_PATH 将 SRC_PATH 和 SRC_PATH 下的 include 加入到头文件搜索的目录
     * 如果用户指定了 SRCS，忽略 IGNORE_PATH 的值

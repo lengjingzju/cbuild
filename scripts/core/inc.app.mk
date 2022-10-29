@@ -1,7 +1,11 @@
 SRC_PATH       ?= .
 IGNORE_PATH    ?= .git scripts output
 REG_SUFFIX     ?= c cpp S
+ifeq ($(USING_CXX_BUILD_C), y)
+CPP_SUFFIX     ?= c cc cp cxx cpp CPP c++ C
+else
 CPP_SUFFIX     ?= cc cp cxx cpp CPP c++ C
+endif
 ASM_SUFFIX     ?= S s asm
 
 SRCS           ?= $(shell find $(SRC_PATH) $(patsubst %,-path '*/%' -prune -o,$(IGNORE_PATH)) \
@@ -72,7 +76,11 @@ endif
 endif
 endef
 
+ifeq ($(USING_CXX_BUILD_C), y)
+$(eval $(call compile_obj,c,$$(CXX)))
+else
 $(eval $(call compile_obj,c,$$(CC)))
+endif
 $(eval $(call compile_obj,cc,$$(CXX)))
 $(eval $(call compile_obj,cp,$$(CXX)))
 $(eval $(call compile_obj,cxx,$$(CXX)))
