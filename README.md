@@ -597,7 +597,14 @@ rm -f auto.mk Kconfig
         * 出现循环依赖，打印 "ERROR: circular deps!"
         * 出现未定义依赖，打印 "ERROR: deps (%s) are not found!"
 
-注: 包的名称ID是由 **小写字母、数字、短划线** 组成，Other_Target_Names 中还可以使用 `%` 作为通配符
+注:  包的名称ID (Target_Name Depend_Names) 是由 **小写字母、数字、短划线** 组成；Other_Target_Names 无此要求，还可以使用 `%` 作为通配符
+
+编译命令说明
+
+* 可以 `make 包名` 先编译某个包的依赖包(有依赖时)再编译这个包
+* 可以 `make 包名_single` 有依赖时才有这类目标，仅仅编译这个包
+* 可以 `make 包名_目标名` 先编译某个包的依赖包(有依赖时)再编译这个包的特定目标(特定目标需要在 Other_Target_Names 中定义)
+* 可以 `make 包名_目标名_single` 有依赖时才有这类目标，仅仅编译这个包的特定目标(特定目标需要在 Other_Target_Names 中定义)
 
 Depend_Names 中的特殊依赖
 

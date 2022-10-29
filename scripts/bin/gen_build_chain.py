@@ -715,6 +715,9 @@ class Deps:
         with open(filename, 'w') as fp:
             for item in self.ActualList:
                 phony = []
+                dep_target_name = '%s_depends' % (item['target'])
+                dep_target_flag = False
+
                 make = '@make'
                 if item['targets'] and 'jobserver' in item['targets']:
                     make += ' $(BUILD_JOBS)'
@@ -734,9 +737,10 @@ class Deps:
                     fp.write('\n')
 
                 if item['awdeps']:
+                    dep_target_flag = True
                     for dep in item['awdeps']:
                         fp.write('ifeq ($(CONFIG_%s), y)\n' % (escape_toupper(dep)))
-                        fp.write('%s: %s\n' % (item['target'], dep))
+                        fp.write('%s: %s\n' % (dep_target_name, dep))
                         fp.write('endif\n')
                     fp.write('\n')
 
@@ -747,27 +751,60 @@ class Deps:
                     else:
                         deps = [dep for dep in item['asdeps']]
                 if deps:
-                    fp.write('%s: %s\n\n' % (item['target'], ' '.join(deps)))
+                    dep_target_flag = True
+                    phony.append(dep_target_name)
+                    fp.write('%s: %s\n\n' % (dep_target_name, ' '.join(deps)))
+                else:
+                    if dep_target_flag:
+                        phony.append(dep_target_name)
+                        fp.write('%s:\n\t@\n\n' % (dep_target_name))
 
-                fp.write('ALL_TARGETS += %s\n' % (item['target']))
-                fp.write('%s:\n' % (item['target']))
+                if dep_target_flag:
+                    phony.append(item['target'])
+                    phony.append('%s_single' % (item['target']))
+                    fp.write('%s: %s\n' % (item['target'], dep_target_name))
+                    fp.write('%s %s_single:\n' % (item['target'], item['target']))
+                else:
+                    fp.write('%s:\n' % (item['target']))
                 if item['targets'] and 'prepare' in item['targets']:
                     fp.write('\t%s prepare\n' % (make))
                 fp.write('\t%s\n' % (make))
                 fp.write('\t%s install\n\n' % (make))
-                phony.append(item['target'])
 
-                fp.write('ALL_CLEAN_TARGETS += %s_clean\n' % (item['target']))
                 fp.write('%s_clean:\n' % (item['target']))
                 fp.write('\t%s clean\n\n' % (make))
                 phony.append(item['target'] + '_clean')
 
-                for t in item['targets']:
-                    if t != 'all' and t != 'clean' and t != 'install' and t != 'prepare' and t != 'jobserver':
-                        fp.write('%s_%s:\n' % (item['target'], t))
-                        fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, item['target']))
-                        phony.append('%s_%s' % (item['target'], t))
+                ignore_targets = ['all', 'clean', 'install', 'prepare', 'jobserver']
+                targets = ['%s_%s' % (item['target'], t) for t in item['targets'] if t not in ignore_targets]
+                if targets:
+                    targets1 = [t for t in targets if '%' not in t]
+                    targets2 = [t for t in targets if '%' in t]
+                    if targets1:
+                        phony += targets1
+                        if dep_target_flag:
+                            targets1_single = ['%s_single' % (t) for t in targets1]
+                            phony += targets1_single
+                            fp.write('%s: %s\n' % (' '.join(targets1), dep_target_name))
+                            fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, item['target']))
+                            fp.write('%s:\n' % (' '.join(targets1_single)))
+                            fp.write('\t%s $(patsubst %s_%%,%%,$(patsubst %%_single,%%,$@))\n\n' % (make, item['target']))
+                        else:
+                            fp.write('%s:\n' % (' '.join(targets1)))
+                            fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, item['target']))
+                    if targets2:
+                        for target in targets2:
+                            if dep_target_flag:
+                                fp.write('%s: %s\n' % (target, dep_target_name))
+                                fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, item['target']))
+                                fp.write('%s_single:\n' % (target))
+                                fp.write('\t%s $(patsubst %s_%%,%%,$(patsubst %%_single,%%,$@))\n\n' % (make, item['target']))
+                            else:
+                                fp.write('%s:\n' % (target))
+                                fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, item['target']))
 
+                fp.write('ALL_TARGETS += %s\n' % (item['target']))
+                fp.write('ALL_CLEAN_TARGETS += %s_clean\n' % (item['target']))
                 fp.write('.PHONY: %s\n\n' % (' '.join(phony)))
                 fp.write('endif\n\n')
 
@@ -775,11 +812,10 @@ class Deps:
 
 
 def parse_options():
-    parser = ArgumentParser( description='''
-            Tool to generate build chain.
+    parser = ArgumentParser( description='''Tool to generate build chain.
             do_normal_analysis must set options (-m -k -d -c -s) and can set options (-v -i -g -t -w -p).
             do_yocto_analysis must set options (-r -k -c) and can set options (-v -i -t -w -p).
-            do_image_analysis must set options (-o -r -k) and can set options (-i).')).
+            do_image_analysis must set options (-o -r -k) and can set options (-i).
             ''')
 
     parser.add_argument('-m', '--makefile',
