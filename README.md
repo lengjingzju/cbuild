@@ -587,6 +587,7 @@ rm -f auto.mk Kconfig
     * Makefile 名称可以包含路径(即斜杠 `/`)，支持直接查找子文件夹下的子包，例如 `test1/` or `test2/wrapper.mk`
     * 也可以用一行语句 `#INCDEPS` 继续查找子文件夹下的依赖文件，支持递归，例如 `#INCDEPS: test1 test2`，通过子文件夹下的依赖文件找到子包
 * Target_Name: 当前包的名称ID
+    * `ignore` 关键字是特殊的ID，表示此包不是一个包，用来屏蔽当前目录的搜索，一般写为 `#DEPS() ignore():`
 * Other_Target_Names: 当前包的其它目标，多个目标使用空格隔开 (可以为空)
     * 忽略 Other_Target_Names 中的 all install clean 目标
     * `prepare` 关键字是特殊的实目标，表示 make 前运行 make prepare，一般用于当 .config 不存在时加载默认配置到 .config

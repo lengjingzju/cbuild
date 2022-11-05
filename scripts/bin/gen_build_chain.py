@@ -346,6 +346,9 @@ class Deps:
                     self.__init_item(item)
 
                     item['target'] = ret.groups()[1]
+                    if item['target'] == 'ignore':
+                        continue
+
                     makestr = ret.groups()[0]
                     if makestr and '/' in makestr:
                         makes = os.path.split(makestr)
