@@ -547,31 +547,32 @@ rm -f auto.mk Kconfig
 命令使用(带中括号表示是可选项，否则是必选项)
 
 * 普通编译只需要一步自动生成 Kconfig 和 Makefike
-    * `gen_build_chain.py -m MAKEFILE_OUT -k KCONFIG_OUT -d DEP_NAME -c CONF_NAME -s SEARCH_DIRS [-v VIR_NAME] [-i IGNORE_DIRS] [-g GO_ON_DIRS] [-t MAX_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG]`
+    * `gen_build_chain.py -m MAKEFILE_OUT -k KCONFIG_OUT [-t TARGET_OUT] -d DEP_NAME [-v VIR_NAME] [-c CONF_NAME] -s SEARCH_DIRS [-i IGNORE_DIRS] [-g GO_ON_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG]`
 * Yocto 编译需要两步分别自动生成 Kconfig 和 Image 配方，会自动分析 `conf/local.conf` `conf/bblayers.conf` 和层下的配方文件和配方附加文件
-    * `gen_build_chain.py -r RECIPE_OUT -k KCONFIG_OUT -c CONF_NAME [-v VIR_NAME] [-i IGNORE_DIRS] [-t MAX_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG] [-u USER_METAS]`
-    * `gen_build_chain.py -r RECIPE_TARGET_NAME -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-i IGNORE_RECIPES]`
+    * `gen_build_chain.py -k KCONFIG_OUT -t TARGET_OUT [-v VIR_NAME] [-c CONF_NAME] [-i IGNORE_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG] [-u USER_METAS]`
+    * `gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-i IGNORE_RECIPES]`
 
 `scripts/bin/gen_build_chain.py` 选项
 
-* `-m <Makefile Name>`: 普通编译中自动生成的 Makefile 文件名
+* `-m <Makefile Path>`: 普通编译中自动生成的 Makefile 文件名
     * 可以使用一个顶层 Makefile 包含自动生成的 Makefile，all 目标调用 `make $(BUILD_JOBS) -s MAKEFLAGS= all_targets` 多线程编译所有包
     * 如果某个包的内部需要启用多线程编译，需要在此包的其它目标中指定 `jobserver`，见下面说明
-* `-r <Recipe Target Name>`: Yocto 编译中指定存储所有配方名的文件路径
-* `-o <Recipe Image Name>`: Yocto 编译中自动生成的 image 需要打包的软件列表文件
-* `-k <Kconfig Name>`: 指定存储 Kconfig 的所有项目的文件路径，普通编译中还会在 Kconfig 同目录生成 Target 文件，列出所有包的文件路径、包名和依赖
-* `-d <Search Depend Name>`: 要搜索的依赖文件名(含有依赖规则语句)，`<Search Depend Name>` 文件中可以包含多条依赖信息
-* `-c <Search Kconfig Name>`: 要搜索的 Kconfig 配置文件名(含有配置信息)，在生成 image 配方的命令中指定的是 .config 的路径名
+* `-k <Kconfig Path>`: 指定存储 Kconfig 的所有项目的文件路径
+* `-t <Target Path>`: 指定存储所有包的文件路径、包名列表的文件路径
+* `-o <Image Path>`: Yocto 编译中指定存储打包到 rootfs 的软件列表文件
+* `-d <Search Depend Name>`: 普通编译中要搜索的依赖文件名(含有依赖规则语句)，`<Search Depend Name>` 文件中可以包含多条依赖信息
+* `-c <Search Kconfig Name>`: 要搜索的 Kconfig 配置文件名(含有配置信息)
+    * 在普通编译中，查找和 `<Search Depend Name>` 同目录的指定配置文件
     * 在 Yocto 编译中， Kconfig 配置文件优先查找当前目录下的 `配方名.bbconfig` 文件，找不到才在 bbappend 文件中 EXTERNALSRC 变量指定的路径下查找指定配置文件
-    * 在其它编译中，查找和 `<Search Depend Name>` 同目录的指定配置文件
+    * 在 Yocto 编译生成 image 配方的命令中指定的是 .config 的路径名
 * `-v <Search Virtual Depend Name>`: 要搜索的虚拟依赖文件名(含有虚拟依赖规则语句)
-* `-s <Search Directories>`: 搜索的目录文件路径名，多个目录使用冒号隔开
+* `-s <Search Directories>`: 普通编译中搜索的目录文件路径名，多个目录使用冒号隔开，Yocto 编译从 `conf/bblayers.conf` 获取搜索路径
 * `-i <Ignore Directories or Recipes>`: 忽略的目录名，不会搜索指定目录名下的依赖文件，多个目录使用冒号隔开，在生成 image 配方的命令中指定的是忽略的配方名
 * `-g <Go On Directories>`: 继续搜索的的目录文件路径名，多个目录使用冒号隔开
     * 如果在当前目录下搜索到 `<Search Depend Name>`，`<Go On Directories>` 没有指定或当前目录不在它里面，不会再继续搜索当前目录的子目录
-* `-t <Max Tier Depth>`: 设置 menuconfig 菜单的最大层数，0 表示菜单平铺，1表示2层菜单，...
+* `-l <Max Layer Depth>`: 设置 menuconfig 菜单的最大层数，0 表示菜单平铺，1表示2层菜单，...
 * `-w <Keyword Directories>`: 用于 menuconfig 菜单，如果路径中的目录匹配设置值，则这个路径的层数减1，设置的多个目录使用冒号隔开
-* `-p <prepend Flag>`: 用于 menuconfig，如果用户运行 conf / mconf 时设置了无前缀，则运行此脚本需要设置此 flag 为 1
+* `-p <Prepend Flag>`: 用于 menuconfig，如果用户运行 conf / mconf 时设置了无前缀，则运行此脚本需要设置此 flag 为 1
 * `-u <User Metas>`: Yocto 编译中指定用户层，多个层使用冒号隔开，只有用户层的包才会: 分析依赖关系，默认选中，托管Kconfig，支持 `EXTRADEPS` 特殊依赖和虚拟依赖
 
 实依赖信息格式 `#DEPS(Makefile_Name) Target_Name(Other_Target_Names): Depend_Names`

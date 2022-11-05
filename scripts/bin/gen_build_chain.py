@@ -30,6 +30,7 @@ class Deps:
     def __init_item(self, item):
         item['path'] = ''
         item['spath'] = ''
+        item['src'] = ''
         item['make'] = ''
         item['vtype'] = ''
         item['member'] = []
@@ -72,18 +73,6 @@ class Deps:
                         print("\033[032mSearch Layer:\033[0m \033[44m%s\033[0m" % per_line[0:-2].strip())
                         dirs.append(per_line[0:-2].strip())
         return dirs
-
-
-    def __get_kconfig_path(self, src_path):
-        conf_path = src_path
-        for key in self.VarDict.keys():
-            var = '${%s}' % (key)
-            if var in conf_path:
-                conf_path = conf_path.replace(var, self.VarDict[key])
-
-        if os.path.exists(conf_path) and self.conf_name in os.listdir(conf_path):
-            return os.path.join(conf_path, self.conf_name)
-        return ''
 
 
     def __get_append_flag(self, item, check_append):
@@ -366,7 +355,8 @@ class Deps:
                     else:
                         item['targets'] = targets.split()
 
-                    item['conf'] = os.path.join(item['path'], self.conf_name) if self.conf_name in os.listdir(item['path']) else ''
+                    item['conf'] = os.path.join(item['path'], self.conf_name) \
+                        if self.conf_name and self.conf_name in os.listdir(item['path']) else ''
                     if self.__set_item_deps(ret.groups()[3].strip().split(), item, True):
                         if makestr and '/' in makestr:
                             ItemDict[makestr] = item
@@ -428,17 +418,28 @@ class Deps:
                 if ret:
                     extra_deps += [dep for dep in ret.groups()[0].strip().split() if '-native' not in dep]
 
-        bbconfig_path = os.path.join(os.path.dirname(fullname), item['target'] + '.bbconfig')
         bbappend_path = '%sappend' % (fullname)
-        if os.path.exists(bbconfig_path):
-            item['conf'] = bbconfig_path
-        elif os.path.exists(bbappend_path):
+        if os.path.exists(bbappend_path):
             with open(bbappend_path, 'r') as fp:
                 for per_line in fp:
                     ret = re.match(r'EXTERNALSRC\s*=\s*"(.*)"', per_line)
                     if ret:
-                        item['conf'] = self.__get_kconfig_path(ret.groups()[0])
+                        src = ret.groups()[0]
+                        for key in self.VarDict.keys():
+                            var = '${%s}' % (key)
+                            if var in src:
+                                src = src.replace(var, self.VarDict[key])
+                                if '$' not in src:
+                                    break
+                        item['src'] = src
                         break
+
+        bbconfig_path = os.path.join(os.path.dirname(fullname), item['target'] + '.bbconfig')
+        if os.path.exists(bbconfig_path):
+            item['conf'] = bbconfig_path
+        elif item['src'] and os.path.exists(item['src']) and \
+            self.conf_name and self.conf_name in os.listdir(item['src']):
+            item['conf'] = os.path.join(item['src'], self.conf_name)
         else:
             pass
 
@@ -711,7 +712,7 @@ class Deps:
     def gen_yocto_target(self, filename):
         with open(filename, 'w') as fp:
             for item in self.PokyList + self.ActualList:
-                fp.write('%s\n' % (item['target']))
+                fp.write('%s:\t%s\n' % (item['src'] if item['src'] else 'localsrc', item['target']))
 
 
     def gen_make(self, filename, target_list):
@@ -815,19 +816,16 @@ class Deps:
 
 
 def parse_options():
-    parser = ArgumentParser( description='''Tool to generate build chain.
-            do_normal_analysis must set options (-m -k -d -c -s) and can set options (-v -i -g -t -w -p).
-            do_yocto_analysis must set options (-r -k -c) and can set options (-v -i -t -w -p).
-            do_image_analysis must set options (-o -r -k) and can set options (-i).
+    parser = ArgumentParser( description='''
+            Tool to generate build chain.
+            do_normal_analysis must set options (-m -k -d -s) and can set options (-v -c -t -i -g -l -w -p).
+            do_yocto_analysis must set options (-t -k) and can set options (-v -c -i -l -w -p).
+            do_image_analysis must set options (-o -t -c) and can set options (-i).
             ''')
 
     parser.add_argument('-m', '--makefile',
             dest='makefile_out',
             help='Specify the output Makefile path.')
-
-    parser.add_argument('-r', '--recipe',
-            dest='recipe_out',
-            help='Specify the path to store recipes.')
 
     parser.add_argument('-o', '--image',
             dest='image_out',
@@ -835,7 +833,11 @@ def parse_options():
 
     parser.add_argument('-k', '--kconfig',
             dest='kconfig_out',
-            help='Specify the path to store  Kconfig items.')
+            help='Specify the path to store Kconfig items.')
+
+    parser.add_argument('-t', '--target',
+            dest='target_out',
+            help='Specify the out target file path to store package names.')
 
     parser.add_argument('-d', '--dep',
             dest='dep_name',
@@ -865,9 +867,9 @@ def parse_options():
             dest='user_metas',
             help='Specify the user metas whose recipes will be selected by default')
 
-    parser.add_argument('-t', '--maxtier',
+    parser.add_argument('-l', '--maxlayer',
             dest='max_depth',
-            help='Specify the max tier depth for menuconfig')
+            help='Specify the max layer depth for menuconfig')
 
     parser.add_argument('-w', '--keyword',
             dest='keywords',
@@ -883,15 +885,15 @@ def parse_options():
 
     if args.makefile_out:
         analysis_choice = 'normal'
-        if not args.kconfig_out or not args.dep_name or not args.conf_name or not args.search_dirs:
+        if not args.kconfig_out or not args.dep_name or not args.search_dirs:
             success_flag = False
     elif args.image_out:
         analysis_choice = 'image'
-        if not args.recipe_out or not args.conf_name:
+        if not args.target_out or not args.conf_name:
             success_flag = False
-    elif args.recipe_out:
+    elif args.target_out:
         analysis_choice = 'yocto'
-        if not args.kconfig_out or not args.conf_name:
+        if not args.kconfig_out:
             success_flag = False
     else:
         success_flag = False
@@ -907,8 +909,7 @@ def parse_options():
 def do_normal_analysis(args):
     makefile_out = args.makefile_out
     kconfig_out = args.kconfig_out
-    target_out = os.path.join(os.path.dirname(kconfig_out), 'Target')
-
+    target_out = args.target_out
     dep_name = args.dep_name
     conf_name = args.conf_name
     vir_name = ''
@@ -961,7 +962,8 @@ def do_normal_analysis(args):
     print('\033[32mGenerate %s OK.\033[0m' % kconfig_out)
 
     target_list = [item['target'] for item in deps.ActualList]
-    deps.gen_normal_target(target_out)
+    if target_out:
+        deps.gen_normal_target(target_out)
     if deps.sort_items(target_list) == -1:
         print('ERROR: sort_items() failed.')
         sys.exit(1)
@@ -970,9 +972,8 @@ def do_normal_analysis(args):
 
 
 def do_yocto_analysis(args):
-    recipe_out = args.recipe_out
     kconfig_out = args.kconfig_out
-
+    target_out = args.target_out
     conf_name = args.conf_name
     vir_name = ''
     if args.vir_name:
@@ -1029,12 +1030,12 @@ def do_yocto_analysis(args):
             deps.gen_kconfig(fp, deps.PokyList, False, max_depth, '')
         if deps.ItemList:
             deps.gen_kconfig(fp, deps.ItemList, False, max_depth, '')
-    deps.gen_yocto_target(recipe_out)
+    deps.gen_yocto_target(target_out)
     print('\033[32mGenerate %s OK.\033[0m' % kconfig_out)
 
 
 def do_image_analysis(args):
-    recipe_out = args.recipe_out
+    target_out = args.target_out
     conf_name = args.conf_name
     image_out = args.image_out
     ignore_recipes = []
@@ -1042,7 +1043,7 @@ def do_image_analysis(args):
         ignore_recipes = [s.strip() for s in args.ignore_dirs.split(':')]
 
     recipe_list = []
-    with open(recipe_out, 'r') as rfp:
+    with open(target_out, 'r') as rfp:
         for per_line in rfp:
             recipe_list.append(per_line[0:-1])
 
