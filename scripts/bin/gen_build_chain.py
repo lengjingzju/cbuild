@@ -355,9 +355,23 @@ class Deps:
                     else:
                         item['targets'] = targets.split()
 
-                    item['conf'] = os.path.join(item['path'], self.conf_name) \
-                        if self.conf_name and self.conf_name in os.listdir(item['path']) else ''
-                    if self.__set_item_deps(ret.groups()[3].strip().split(), item, True):
+                    depends = ret.groups()[3].strip().split()
+                    conf_pri_path = ''
+                    conf_pub_path = ''
+
+                    if self.conf_name and 'nokconfig' not in depends:
+                        if '.' in self.conf_name:
+                            conf_pri_path = os.path.join(item['path'], '%s.%s' % (item['target'], self.conf_name.split('.')[-1]))
+                        conf_pub_path = os.path.join(item['path'], self.conf_name)
+
+                    if conf_pri_path and os.path.exists(conf_pri_path):
+                        item['conf'] = conf_pri_path
+                    elif conf_pub_path and os.path.exists(conf_pub_path):
+                        item['conf'] = conf_pub_path
+                    else:
+                        item['conf'] = ''
+
+                    if self.__set_item_deps(depends, item, True):
                         if makestr and '/' in makestr:
                             ItemDict[makestr] = item
                         else:
@@ -434,14 +448,25 @@ class Deps:
                         item['src'] = src
                         break
 
-        bbconfig_path = os.path.join(os.path.dirname(fullname), item['target'] + '.bbconfig')
-        if os.path.exists(bbconfig_path):
+        bbconfig_path = ''
+        conf_pri_path = ''
+        conf_pub_path = ''
+
+        if 'nokconfig' not in extra_deps:
+            bbconfig_path = os.path.join(item['path'], item['target'] + '.bbconfig')
+            if self.conf_name and item['src']:
+                if '.' in self.conf_name:
+                    conf_pri_path = os.path.join(item['src'], '%s.%s' % (item['target'], self.conf_name.split('.')[-1]))
+                conf_pub_path = os.path.join(item['src'], self.conf_name)
+
+        if bbconfig_path and os.path.exists(bbconfig_path):
             item['conf'] = bbconfig_path
-        elif item['src'] and os.path.exists(item['src']) and \
-            self.conf_name and self.conf_name in os.listdir(item['src']):
-            item['conf'] = os.path.join(item['src'], self.conf_name)
+        elif conf_pri_path and os.path.exists(conf_pri_path):
+            item['conf'] = conf_pri_path
+        elif conf_pub_path and os.path.exists(conf_pub_path):
+            item['conf'] = conf_pub_path
         else:
-            pass
+            item['conf'] = ''
 
         if self.__set_item_deps(extra_deps, item, True):
             self.__add_item_to_list(item, refs)

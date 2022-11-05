@@ -1,0 +1,2 @@
+#DEPS(f1.mk) f1(): f2
+#DEPS(f2.mk) f2(): a

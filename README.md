@@ -521,19 +521,31 @@ configuration written to /home/lengjing/cbuild/output/objects/examples/test-deps
 *** End of the configuration.
 *** Execute 'make' to start the build or try 'make help'.
 
-lengjing@lengjing:~/cbuild/examples/test-deps$ make all
-ext.mk
-target=all path=/home/lengjing/cbuild/examples/test-deps/pc/pc
-ext.mk
-target=install path=/home/lengjing/cbuild/examples/test-deps/pc/pc
+engjing@lengjing:~/cbuild/examples/test-deps$ make d
 target=all path=/home/lengjing/cbuild/examples/test-deps/pe/pe
 target=install path=/home/lengjing/cbuild/examples/test-deps/pe/pe
 target=all path=/home/lengjing/cbuild/examples/test-deps/pd/pd
+target=install path=/home/lengjing/cbuild/examples/test-deps/pd/pd
+lengjing@lengjing:~/cbuild/examples/test-deps$ make d_single
+target=all path=/home/lengjing/cbuild/examples/test-deps/pd/pd
+target=install path=/home/lengjing/cbuild/examples/test-deps/pd/pd
+lengjing@lengjing:~/cbuild/examples/test-deps$ make
+ext.mk
+target=all path=/home/lengjing/cbuild/examples/test-deps/pe/pe
+target=all path=/home/lengjing/cbuild/examples/test-deps/pc/pc
+target=install path=/home/lengjing/cbuild/examples/test-deps/pe/pe
+ext.mk
+target=all path=/home/lengjing/cbuild/examples/test-deps/pd/pd
+target=install path=/home/lengjing/cbuild/examples/test-deps/pc/pc
 target=install path=/home/lengjing/cbuild/examples/test-deps/pd/pd
 target=all path=/home/lengjing/cbuild/examples/test-deps/pb/pb
 target=install path=/home/lengjing/cbuild/examples/test-deps/pb/pb
 target=all path=/home/lengjing/cbuild/examples/test-deps/pa/pa
 target=install path=/home/lengjing/cbuild/examples/test-deps/pa/pa
+target=all path=/home/lengjing/cbuild/examples/test-deps/pf/pf
+target=install path=/home/lengjing/cbuild/examples/test-deps/pf/pf
+target=all path=/home/lengjing/cbuild/examples/test-deps/pf/pf
+target=install path=/home/lengjing/cbuild/examples/test-deps/pf/pf
 lengjing@lengjing:~/cbuild/examples/test-deps$ make clean
 ext.mk
 target=clean path=/home/lengjing/cbuild/examples/test-deps/pc/pc
@@ -541,7 +553,9 @@ target=clean path=/home/lengjing/cbuild/examples/test-deps/pe/pe
 target=clean path=/home/lengjing/cbuild/examples/test-deps/pd/pd
 target=clean path=/home/lengjing/cbuild/examples/test-deps/pb/pb
 target=clean path=/home/lengjing/cbuild/examples/test-deps/pa/pa
-rm -f auto.mk Kconfig
+target=clean path=/home/lengjing/cbuild/examples/test-deps/pf/pf
+target=clean path=/home/lengjing/cbuild/examples/test-deps/pf/pf
+rm -f auto.mk Kconfig Target
 ```
 
 命令使用(带中括号表示是可选项，否则是必选项)
@@ -562,8 +576,8 @@ rm -f auto.mk Kconfig
 * `-o <Image Path>`: Yocto 编译中指定存储打包到 rootfs 的软件列表文件
 * `-d <Search Depend Name>`: 普通编译中要搜索的依赖文件名(含有依赖规则语句)，`<Search Depend Name>` 文件中可以包含多条依赖信息
 * `-c <Search Kconfig Name>`: 要搜索的 Kconfig 配置文件名(含有配置信息)
-    * 在普通编译中，查找和 `<Search Depend Name>` 同目录的指定配置文件
-    * 在 Yocto 编译中， Kconfig 配置文件优先查找当前目录下的 `配方名.bbconfig` 文件，找不到才在 bbappend 文件中 EXTERNALSRC 变量指定的路径下查找指定配置文件
+    * 在普通编译中，查找和 `<Search Depend Name>` 同目录的配置文件，先查找和 `<Search Kconfig Name>` 同后缀的文件名为包名的文件，找不到才查找指定配置文件
+    * 在 Yocto 编译中， Kconfig 配置文件优先查找当前目录下的 `配方名.bbconfig` 文件，找不到才在 bbappend 文件中 EXTERNALSRC 变量指定的路径下查找配置文件，先查找和 `<Search Kconfig Name>` 同后缀的文件名为包名的文件，找不到才查找指定配置文件
     * 在 Yocto 编译生成 image 配方的命令中指定的是 .config 的路径名
 * `-v <Search Virtual Depend Name>`: 要搜索的虚拟依赖文件名(含有虚拟依赖规则语句)
 * `-s <Search Directories>`: 普通编译中搜索的目录文件路径名，多个目录使用冒号隔开，Yocto 编译从 `conf/bblayers.conf` 获取搜索路径
@@ -613,7 +627,7 @@ Depend_Names 中的特殊依赖
 * 特殊依赖(关键字)
     * `finally`     : 表示此包编译顺序在所有其它包之后，一般用于最后生成文件系统和系统镜像，只用在普通编译的强依赖中
     * `unselect`    : 表示此包默认不编译，即 `default n`，否则此包默认编译，即 `default y`
-    * `nokconfig`   : 表示此包不含 Kconfig 配置。同一目录有多个包时，最多只有一个包有 Kconfig，此包无需设置 `nokconfig`，而其它包需要设置
+    * `nokconfig`   : 表示此包不含 Kconfig 配置。同一目录有多个包时，此包无需设置 `nokconfig`，而其它包也有配置可以将配置的文件名设为 **包名.配置的后缀** ，否则需要设置 nokconfig
 * 特殊依赖(特殊符)
     * `!depname`    : 表示此包和 depname 包冲突，无法同时开启，即 `depends on !depname`
     * `&depname`    : 表示此包弱选中 depname 包，即 `imply depname`，此包选中后，depname 也被自动选中，此时 depname 也可以手动取消选中

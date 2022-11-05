@@ -1,0 +1,2 @@
+config BUILD_PF1
+    bool "Build PF1"
