@@ -2,7 +2,7 @@
 
 ## 特点
 
-* Linux 下纯粹的 Makefile 编译
+* Linux 下纯粹的 Makefile 编译，支持 Makefile 封装包已有的 `makefile` `cmake` `autotools` 以实现对它们的支持
 * 支持交叉编译，支持自动分析头文件和编译脚本文件作为编译依赖，支持分别指定源文件的 CFLAGS
 * 一个 Makefile 同时支持 Yocto 编译方式、源码和编译输出分离模式和不分离模式
 * 一个 Makefile 支持生成多个库、可执行文件或模块
@@ -12,14 +12,14 @@
 * 提供编译外部内核模块的模板 `inc.mod.mk`
     * 支持 C(`*.c`) 和 汇编(`*.S`) 混合编译
 * 提供安装编译输出的模板 `inc.ins.mk`
-* 提供 kconfig 配置参数的模板 `inc.conf.mk`
+* 提供 Kconfig 配置参数的模板 `inc.conf.mk`
 * 提供根据依赖关系自动生成总系统编译链和配置链的脚本 `gen_build_chain.py`
     * 同时支持 Yocto 编译和普通编译，极大扩展了 Yocto 中生成 image 的功能，特别是 Yocto 支持弱依赖
     * 支持通过 make menuconfig 选择是否编译包
-    * 支持收集包下的 Kconfig 配置放在包编译开关项目的 munuconfig 菜单下，编译开关和编译参数一起设置
+    * 支持收集包下的 Kconfig 配置放在包编译开关项目的 menuconfig 菜单下，编译开关和编译参数一起设置
     * 支持的依赖规则
         * 支持自动生成参与编译的实包和不参与编译的虚包的规则，虚包可用于控制管理一组实包
-        * 支持普通结构(config)、层次结构(menuconfig/menu)、选择结构(choice) 等自动生成
+        * 支持普通结构(config)、层次结构(menuconfi)、选择结构(choice) 等自动生成
         * 支持强依赖(depends on)、弱依赖(if...endif)、强选择(select)、弱选择(imply) 等自动生成
         * 支持或规则(||)，例如同一个包有源码包和预编译包，选择依赖其中一个，可选择预编译包加快编译
 
@@ -129,7 +129,7 @@ ENV_DEP_ROOT=${ENV_INS_ROOT}
 * ENV_INS_ROOT: 工程安装文件的根目录
 * ENV_DEP_ROOT: 工程搜索库和头文件的根目录
 
-注: yocto 编译时，由于 BitBake 任务无法直接使用当前 shell 的环境变量，所以自定义环境变量应由配方文件导出，不需要 source 这个环境脚本
+注: Yocto 编译时，由于 BitBake 任务无法直接使用当前 shell 的环境变量，所以自定义环境变量应由配方文件导出，不需要 source 这个环境脚本
 
 `scripts/core/inc.env.mk` 环境设置模板
 
@@ -464,6 +464,7 @@ Build test-mod2 Done.
 
 * modules: 编译外部内核模块
 * modules_clean: 清理内核模块的编译输出
+* modules_install: 安装内核模块
     * 外部内核模块默认的安装路径为 `$(ENV_INS_ROOT)/lib/modules/<kernel_release>/extra/`
 * symvers_install: 安装 Module.symvers 符号文件到指定位置(已设置此目标为 `install_hdrs` 目标的依赖)
 
@@ -574,10 +575,10 @@ rm -f auto.mk Kconfig Target
 * `-k <Kconfig Path>`: 指定存储 Kconfig 的所有项目的文件路径
 * `-t <Target Path>`: 指定存储所有包的文件路径、包名列表的文件路径
 * `-o <Image Path>`: Yocto 编译中指定存储打包到 rootfs 的软件列表文件
-* `-d <Search Depend Name>`: 普通编译中要搜索的依赖文件名(含有依赖规则语句)，`<Search Depend Name>` 文件中可以包含多条依赖信息
+* `-d <Search Depend Name>`: 普通编译中要搜索的依赖文件名(含有依赖规则语句)，依赖文件中可以包含多条依赖信息
 * `-c <Search Kconfig Name>`: 要搜索的 Kconfig 配置文件名(含有配置信息)
-    * 在普通编译中，查找和 `<Search Depend Name>` 同目录的配置文件，先查找和 `<Search Kconfig Name>` 同后缀的文件名为包名的文件，找不到才查找指定配置文件
-    * 在 Yocto 编译中， Kconfig 配置文件优先查找当前目录下的 `配方名.bbconfig` 文件，找不到才在 bbappend 文件中 EXTERNALSRC 变量指定的路径下查找配置文件，先查找和 `<Search Kconfig Name>` 同后缀的文件名为包名的文件，找不到才查找指定配置文件
+    * 在普通编译中，查找依赖文件同目录的配置文件，先查找配置文件同后缀的文件名为包名的文件，找不到才查找指定配置文件
+    * 在 Yocto 编译中， Kconfig 配置文件优先查找当前目录下的 `配方名.bbconfig` 文件，找不到才在 bbappend 文件中 EXTERNALSRC 变量指定的路径下查找配置文件，先查找和配置文件同后缀的文件名为包名的文件，找不到才查找指定配置文件
     * 在 Yocto 编译生成 image 配方的命令中指定的是 .config 的路径名
 * `-v <Search Virtual Depend Name>`: 要搜索的虚拟依赖文件名(含有虚拟依赖规则语句)
 * `-s <Search Directories>`: 普通编译中搜索的目录文件路径名，多个目录使用冒号隔开，Yocto 编译从 `conf/bblayers.conf` 获取搜索路径
@@ -586,7 +587,7 @@ rm -f auto.mk Kconfig Target
     * 如果在当前目录下搜索到 `<Search Depend Name>`，`<Go On Directories>` 没有指定或当前目录不在它里面，不会再继续搜索当前目录的子目录
 * `-l <Max Layer Depth>`: 设置 menuconfig 菜单的最大层数，0 表示菜单平铺，1表示2层菜单，...
 * `-w <Keyword Directories>`: 用于 menuconfig 菜单，如果路径中的目录匹配设置值，则这个路径的层数减1，设置的多个目录使用冒号隔开
-* `-p <Prepend Flag>`: 用于 menuconfig，如果用户运行 conf / mconf 时设置了无前缀，则运行此脚本需要设置此 flag 为 1
+* `-p <Prepend Flag>`: 用于 menuconfig，如果用户运行 conf / mconf 时设置了无前缀 `CONFIG_=""`，则运行此脚本需要设置此 flag 为 1
 * `-u <User Metas>`: Yocto 编译中指定用户层，多个层使用冒号隔开，只有用户层的包才会: 分析依赖关系，默认选中，托管Kconfig，支持 `EXTRADEPS` 特殊依赖和虚拟依赖
 
 实依赖信息格式 `#DEPS(Makefile_Name) Target_Name(Other_Target_Names): Depend_Names`
@@ -622,8 +623,29 @@ rm -f auto.mk Kconfig Target
 * 可以 `make 包名_目标名` 先编译某个包的依赖包(有依赖时)再编译这个包的特定目标(特定目标需要在 Other_Target_Names 中定义)
 * 可以 `make 包名_目标名_single` 有依赖时才有这类目标，仅仅编译这个包的特定目标(特定目标需要在 Other_Target_Names 中定义)
 
-Depend_Names 中的特殊依赖
+虚依赖信息格式 `#VDEPS(Virtual_Type) Target_Name(Other_Infos): Depend_Names`
 
+![虚依赖正则表达式](./scripts/bin/regex_vdeps.png)
+
+* Virtual_Type      : 必选，表示虚拟包的类型，目前有 4 种类型
+    * `menuconfig`  : 表示生成 `menuconfig` 虚拟包，当前目录(含子目录)下的所有的包强依赖此包，且处于该包的菜单目录下
+    * `config`      : 表示生成 `config` 虚拟包
+    * `menuchoice`  : 表示生成 `choice` 虚拟包，当前目录(含子目录)下的所有的包会成为 choice 下的子选项
+    * `choice`      : 表示生成 `choice` 虚拟包，Other_Infos 下的包列表会成为 choice 下的子选项
+* Virtual_Name      : 必选，虚拟包的名称
+* Other_Infos       : choice 类型必选，其它类型可选
+    * 对所有类型来说，可以出现一个以 `/` 开头的路径名项(可选)，表示作用于指定的子目录而不是当前目录
+        * 对 config choice 类型来说，路径名项可以指定一个虚拟路径，例如 `/virtual` (virtual 可以是任意单词)，此时虚拟项目在当前目录(而不是上层目录)下显示
+    * 对 choice 类型来说，空格分开的包列表会成为 choice 下的子选项，其中第一个包为默认选择的包
+    * 对 menuchoice 类型来说，可以指定默认选择的包
+* Depend_Names      : 可选，依赖项列表，和 `#DEPS` 语句用法基本相同，例如可以设置 `unselect`，choice 和 menuchoice 类型不支持 select 和 imply
+
+注: 虚依赖是指该包不是实际的包，不会参与编译，只是用来组织管理实际包，普通编译和 Yocto 编译虚拟包的写法和使用规则相同
+
+特殊依赖
+
+* 特殊依赖(虚拟包)
+    * `*depname`    : 表示此依赖包是虚拟包 depname，去掉 `*` 后 depname 还可以有特殊符，会继续解析，例如 `*&&depname`
 * 特殊依赖(关键字)
     * `finally`     : 表示此包编译顺序在所有其它包之后，一般用于最后生成文件系统和系统镜像，只用在普通编译的强依赖中
     * `unselect`    : 表示此包默认不编译，即 `default n`，否则此包默认编译，即 `default y`
@@ -641,38 +663,16 @@ Depend_Names 中的特殊依赖
         * 省略 `|` `||` 前面的单词会被隐式推导使用预编译包或源码包中选一，例如 `||libtest` 被隐式推导为 `prebuild-libtest||libtest`
         * 对普通编译来说，`?` `??` 没有区别，`|` `||` 没有区别
         * 对 Yocto 编译来说，`?` `|` 中的弱依赖只会设置 `DEPENDS`，`??` `||` 中的弱依赖会同时设置 `DEPENDS` 和 `RDEPENDS:${PN}`
-* 特殊依赖(虚拟包)
-    * `*depname`    : 表示此依赖包是虚拟包 depname，去掉 `*` 后 depname 还可以有特殊符，会继续解析
 * 特殊依赖(环境变量)
     * ENVNAME=val1,val2 : 表示此包依赖环境变量 ENVNAME 的值等于 val1 或等于 val2
     * ENVNAME!=val1,val2: 表示此包依赖环境变量 ENVNAME 的值不等于 val1 且不等于 val2
 
 Yocto 中的特殊依赖
 
-* Yocto 中的特殊依赖是个人扩展的，和 Depend_Names 中的特殊依赖写法相同，只是 Yocto 中的特殊依赖是赋值给配方文件的 `EXTRADEPS` 变量
+* Yocto 中的特殊依赖是个人扩展的，特殊依赖在一般编译时设置 '#DEPS' 语句的 `Depend_Names` 元素，Yocto 中是赋值给配方文件的 `EXTRADEPS` 变量
 * 如果 EXTRADEPS 中含有弱依赖，需要继承类 `inherit weakdep`
     * `weakdep` 类会解析输出根目录的 `config/.config` 文件，根据是否选中此项来设置 `DEPENDS` 和 `RDEPENDS:${PN}`
     * 可以设置 `conf/bblayers.conf` 中的 `BBFILES` 变量，指定查找自动生成的 image 配方的路径，例如 `BBFILES ?= "${TOPDIR}/config/*.bb"`
-
-虚依赖信息格式 `#VDEPS(Virtual_Type) Target_Name(Other_Infos): Depend_Names`
-
-![虚依赖正则表达式](./scripts/bin/regex_vdeps.png)
-
-* Virtual_Type      : 必选，表示虚拟包的类型，目前有 6 种类型
-    * `menuconfig`  : 表示生成 `menuconfig` 虚拟包，当前目录(含子目录)下的所有的包强依赖此包，且处于该包的菜单目录下
-    * `config`      : 表示生成 `config` 虚拟包
-    * `menuchoice`  : 表示生成 `choice` 虚拟包，当前目录(含子目录)下的所有的包会成为 choice 下的子选项
-    * `choice`      : 表示生成 `choice` 虚拟包，Other_Infos 下的包列表会成为 choice 下的子选项
-
-* Virtual_Name      : 必选，虚拟包的名称
-* Other_Infos       : choice 类型必选，其它类型可选
-    * 对所有类型来说，可以出现一个以 `/` 开头的路径名项(可选)，表示作用于指定的子目录而不是当前目录
-        * 对 config choice 类型来说，路径名项可以指定一个虚拟路径，例如 `/virtual` (virtual 可以是任意单词)，此时虚拟项目在当前目录(而不是上层目录)下显示
-    * 对 choice 类型来说，空格分开的包列表会成为 choice 下的子选项，其中第一个包为默认选择的包
-    * 对 menuchoice 类型来说，可以指定默认选择的包
-* Depend_Names      : 可选，依赖项列表，和 `#DEPS` 语句用法基本相同，例如可以设置 `unselect`，config menuchoice 类型不支持 select 和 imply
-
-注: 虚依赖是指该包不是实际的包，不会参与编译，只是用来组织管理实际包，普通编译和 Yocto 编译虚拟包的写法和使用规则相同
 
 ## 测试 Yocto 编译
 
@@ -773,19 +773,22 @@ lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行
     * 编译继承类
         * 使用 menuconfig 需要继承 `inherit kconfig`
             * 如果是 `make -f wrapper.mk menuconfig`，需要设置 `KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"`
-            * 如果 .congfig 输出目录是编译输出目录，需要设置 `KCONFIG_CONFIG_PATH = "${OUT_PATH}/.config"`
+            * 如果 .config 输出目录是编译输出目录，需要设置 `KCONFIG_CONFIG_PATH = "${OUT_PATH}/.config"`
         * 使用 Makefile 编译应用继承 `inherit sanity`，使用 cmake 编译应用继承 `inherit cmake`
         * 编译外部内核模块继承 `inherit module`
         * 编译主机本地工具继承 `inherit native`
     * 安装和打包
-        * 继承 `inherit sanity` 或 `inherit cmake` 时需要按实际情况指定打包的目录，否则 do_package 任务出错
+        * 设置的变量
             * includedir 指 xxx/usr/include
             * base_libdir 指 xxx/lib;  libdir指 xxx/usr/lib;  bindir指 xxx/usr/bin; datadir 指 xxx/usr/share
+            * 有时候需要精确指定打包的文件而不是目录，防止多个打包的目录有重合导致打包出错
             * 更多目录信息参考poky工程的 `meta/conf/bitbake.conf` 文件
             ```
             FILES:${PN}-dev = "${includedir}"
             FILES:${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
             ```
+        * 继承 `inherit sanity` 或 `inherit cmake` 时需要按实际情况指定打包的目录，否则 do_package 任务出错
+        * 继承 `inherit module` 不需要指定头文件和模块文件的打包的目录，但如果安装其它文件时，需要指定这个文件的打包目录
         * 忽略某些警告和错误
             * `ALLOW_EMPTY:${PN} = "1"` 忽略包安装的文件只有头文件或为空，生成镜像时 do_rootfs 错误
             * `INSANE_SKIP:${PN} += "dev-so"` 忽略安装的文件是符号链接的错误
@@ -839,7 +842,7 @@ FILES:${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
 ```
 
 * 编写配方附加文件 (xxx.bbappend)
-    * 配方附加文件指示了包的源码路径和 Makefile 路径
+    * 配方附加文件指示了包的源码路径和运行 make 的路径，一般这两个路径相同
 
 ```
 inherit externalsrc

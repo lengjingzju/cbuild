@@ -181,7 +181,7 @@ Yocto获取源码的规则是(参考 [文件下载](https://docs.yoctoproject.or
 
 ## 出现官方自带开源包编译错误如何处理
 
-答：开源包的编译是Yocto官方配方，个人猜测是缓存导致了此错误，运行清理一般可以解决此问题，例如出现如下错误：
+答：开源包的编译是Yocto官方配方，个人猜测是缓存导致了此错误(系统内存不足也会导致编译出错)，运行清理一般可以解决此问题，例如出现如下错误：
 
 ```sh
 ERROR: Task (.../poky/meta/recipes-connectivity/openssl/openssl_3.0.4.bb:do_package_write_rpm) failed with exit code '1'
