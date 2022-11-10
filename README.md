@@ -199,6 +199,10 @@ ENV_DEP_ROOT=${ENV_INS_ROOT}
                             └── testb
         ```
 
+`scripts/core/inc.ins.mk` 提供的函数
+
+* `$(call safe_cp,cp选项,源和目标)`: 非 yocto 编译时使用加文件锁的 cp，防止多个目标多进程编译时同时安装目录时报错
+
 ## 测试编译应用
 
 测试用例1位于 `test-app`
