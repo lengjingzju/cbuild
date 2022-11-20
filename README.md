@@ -569,7 +569,7 @@ rm -f auto.mk Kconfig Target
     * `gen_build_chain.py -m MAKEFILE_OUT -k KCONFIG_OUT [-t TARGET_OUT] -d DEP_NAME [-v VIR_NAME] [-c CONF_NAME] -s SEARCH_DIRS [-i IGNORE_DIRS] [-g GO_ON_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG]`
 * Yocto 编译需要两步分别自动生成 Kconfig 和 Image 配方，会自动分析 `conf/local.conf` `conf/bblayers.conf` 和层下的配方文件和配方附加文件
     * `gen_build_chain.py -k KCONFIG_OUT -t TARGET_OUT [-v VIR_NAME] [-c CONF_NAME] [-i IGNORE_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG] [-u USER_METAS]`
-    * `gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-i IGNORE_RECIPES]`
+    * `gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-p $PATCH_PKG_PATH] [-i IGNORE_RECIPES]`
 
 `scripts/bin/gen_build_chain.py` 选项
 
@@ -592,6 +592,7 @@ rm -f auto.mk Kconfig Target
 * `-l <Max Layer Depth>`: 设置 menuconfig 菜单的最大层数，0 表示菜单平铺，1表示2层菜单，...
 * `-w <Keyword Directories>`: 用于 menuconfig 菜单，如果路径中的目录匹配设置值，则这个路径的层数减1，设置的多个目录使用冒号隔开
 * `-p <Prepend Flag>`: 用于 menuconfig，如果用户运行 conf / mconf 时设置了无前缀 `CONFIG_=""`，则运行此脚本需要设置此 flag 为 1
+    * 在 Yocto 第2步时指定存储使能的 patch/unpatch 包的文件路径
 * `-u <User Metas>`: Yocto 编译中指定用户层，多个层使用冒号隔开，只有用户层的包才会: 分析依赖关系，默认选中，托管Kconfig，支持 `EXTRADEPS` 特殊依赖和虚拟依赖
 
 实依赖信息格式 `#DEPS(Makefile_Name) Target_Name(Other_Target_Names): Depend_Names`
@@ -855,6 +856,48 @@ EXTERNALSRC_BUILD = "${ENV_TOP_DIR}/<package_src>"
 ```
 
 注: [从3.4版本开始，对变量的覆盖样式语法由下滑线 `_` 变成了冒号 `:`](https://docs.yoctoproject.org/migration-guides/migration-3.4.html#override-syntax-changes)
+
+
+### Yocto 打补丁
+
+* Yocto 官方打补丁
+    * 方法
+        * 配方文件的当前目录新建名为 `配方名` 或 `files` 的文件夹，补丁放在此文件夹内
+            * 注：查找补丁文件的文件夹不止上面这些，但我们一般使用名为 `配方名` 的文件夹
+        * 配方中加上补丁文件名声明，无需文件夹路径 `SRC_URI += "file://0001-xxx.patch"` 
+        * 如果配方继承了 `externalsrc` 类，还要设置变量 `RCTREECOVEREDTASKS = "do_unpack do_fetch"`
+            * 注：`externalsrc` 类默认会把 `do_patch` 任务删除，所以要设置 `RCTREECOVEREDTASKS`
+    * 优点
+        * 实现简单
+    * 缺点
+        * 无法选择补丁是否打上
+        * 打补丁默认只会运行一次，如果其它方法去掉了补丁，重新编译，补丁不会被打上
+        * 会在源码目录生成临时文件夹，污染源码目录，例如生成了 `.pc/` `patches/`
+<br>
+
+* 自定义打补丁
+    * 方法
+        * 每个补丁建立两个包，打补丁包和去补丁包，配方名格式必须为 `xxx-patch-xxx` 和 `xxx-unpatch-xxx`
+        * 源码包弱依赖这两个包 `EXTRADEPS = "xxx-patch-xxx|xxx-unpatch-xxx"` `inherit weakdep`
+        * 建立虚依赖文件规则 `#VDEPS(choice) xxx-patch-xxx-choice(xxx-unpatch-xxx xxx-patch-xxx):`
+        * 补丁包按正常的规则编写配方，但要注意需要依赖 patch 主机工具包和继承补丁状态检查类 `inherit externalpatch`
+            * `externalpatch` 类的作用是检查补丁是否打上，从而决定是否打补丁或去补丁强制运行
+            ```sh
+            DEPENDS += "patch-native"
+            EXTERNALPATCH_SRC = "带路径的补丁文件名"
+            EXTERNALPATCH_DST = "要打补丁的源码目录"
+            EXTERNALPATCH_OPT = "patch 或 unpatch"
+            inherit externalpatch
+            ```
+    * 缺点
+        * 实现稍显复杂
+        * 因为动态修改了配方，补丁选项改变时需要重新编译打补丁包或去补丁包两次
+            * 所以增加了 `prepare-patch` 包，且 cbuild 自动生成了存储使能的 patch/unpatch 包的文件
+    * 优点
+        * 可以选择补丁是否打上
+        * 可以保证打补丁或去补丁正确运行，无论是否在其它地方做了打补丁或去补丁的操作
+        * 源码目录只有补丁的修改，无临时文件或文件夹
+        * 补丁可以放在任意目录，可以和其它编译方式共用 Makefile
 
 ### 测试 Yocto 编译
 

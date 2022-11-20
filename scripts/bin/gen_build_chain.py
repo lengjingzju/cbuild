@@ -436,7 +436,7 @@ class Deps:
         if os.path.exists(bbappend_path):
             with open(bbappend_path, 'r') as fp:
                 for per_line in fp:
-                    ret = re.match(r'EXTERNALSRC\s*=\s*"(.*)"', per_line)
+                    ret = re.match(r'EXTERNALSRC_BUILD\s*=\s*"(.*)"', per_line)
                     if ret:
                         src = ret.groups()[0]
                         for key in self.VarDict.keys():
@@ -845,7 +845,7 @@ def parse_options():
             Tool to generate build chain.
             do_normal_analysis must set options (-m -k -d -s) and can set options (-v -c -t -i -g -l -w -p).
             do_yocto_analysis must set options (-t -k) and can set options (-v -c -i -l -w -p).
-            do_image_analysis must set options (-o -t -c) and can set options (-i).
+            do_image_analysis must set options (-o -t -c) and can set options (-i -p).
             ''')
 
     parser.add_argument('-m', '--makefile',
@@ -902,7 +902,7 @@ def parse_options():
 
     parser.add_argument('-p', '--prepend',
             dest='prepend_flag',
-            help='Specify the prepend CONFIG_ in items of kconfig_out')
+            help='Specify the prepend CONFIG_ in items of kconfig_out or path to store patch/unpatch recipe list')
 
     args = parser.parse_args()
     analysis_choice = ''
@@ -1063,6 +1063,7 @@ def do_image_analysis(args):
     target_out = args.target_out
     conf_name = args.conf_name
     image_out = args.image_out
+    patch_out = args.prepend_flag
     ignore_recipes = []
     if args.ignore_dirs:
         ignore_recipes = [s.strip() for s in args.ignore_dirs.split(':')]
@@ -1070,7 +1071,8 @@ def do_image_analysis(args):
     recipe_list = []
     with open(target_out, 'r') as rfp:
         for per_line in rfp:
-            recipe_list.append(per_line[0:-1])
+            recipe = per_line.split(':')[1].strip()
+            recipe_list.append(recipe)
 
     with open(image_out, 'w') as wfp:
         wfp.write('IMAGE_INSTALL:append = " \\\n')
@@ -1084,6 +1086,19 @@ def do_image_analysis(args):
         wfp.write('\t\t\t"')
     print('\033[32mGenerate %s OK.\033[0m' % image_out)
 
+    if patch_out:
+        with open(patch_out, 'w') as wfp:
+            wfp.write('DEPENDS += " \\\n')
+            with open(conf_name, 'r') as rfp:
+                for per_line in rfp:
+                    ret = re.match(r'CONFIG_(.*)=y', per_line)
+                    if ret:
+                        item = escape_tolower(ret.groups()[0])
+                        strs = item.split('-')
+                        if ('patch' in strs or 'unpatch' in strs) and item in recipe_list:
+                            wfp.write('\t\t\t%s \\\n' % item)
+            wfp.write('\t\t\t"')
+        print('\033[32mGenerate %s OK.\033[0m' % patch_out)
 
 if __name__ == '__main__':
     args, analysis_choice = parse_options()
