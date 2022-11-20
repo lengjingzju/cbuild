@@ -241,6 +241,24 @@ python do_menuconfig() {
 * oe-workdir: 指向包输出的根目录 `${WORKDIR}`
 * oe-logs: 指向包输出的日志和脚本目录 `${WORKDIR}/temp`
 
+## `Please use a umask which allows a+rx and u+rwx` 怎么解决
+
+答：Yocto 编译要求创建的文件夹的权限至少是 755，创建的文件的权限至少是 644，如果出现的如下错误，请检查你是 shell 环境配置的 umask 值，可以运行 `umask 022` 解决此问题
+对目录来说，拥有的最大默认权限是 777，对文件来说，可拥有的最大默认权限是 666，文件和目录的初始权限，通过计算得到：`初始权限 = 最大默认权限 - umask权限`
+
+```
+$ make
+Clean done!
+/usr/lib/python3/dist-packages/html5lib/_trie/_base.py:3: DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+  from collections import Mapping
+WARNING: You are using a local hash equivalence server but have configured an sstate mirror. This will likely mean no sstate will match from the mirror. You may wish to disable the hash equivalence use (BB_HASHSERVE), or use a hash equivalence server alongside the sstate mirror.
+ERROR:  OE-core's config sanity checker detected a potential misconfiguration.
+    Either fix the cause of this error or at your own risk disable the checker (see sanity.conf).
+    Following is the list of potential problems / advisories:
+
+    Please use a umask which allows a+rx and u+rwx
+```
+
 ## `QA Issue [ldflags]` 怎么解决
 
 答：该错误的打印是 `File '<file>' in package '<package>' doesn't have GNU_HASH (didn't pass LDFLAGS?) [ldflags]`，

@@ -19,7 +19,7 @@
     * 支持收集包下的 Kconfig 配置放在包编译开关项目的 menuconfig 菜单下，编译开关和编译参数一起设置
     * 支持的依赖规则
         * 支持自动生成参与编译的实包和不参与编译的虚包的规则，虚包可用于控制管理一组实包
-        * 支持普通结构(config)、层次结构(menuconfi)、选择结构(choice) 等自动生成
+        * 支持普通结构(config)、层次结构(menuconfig)、选择结构(choice) 等自动生成
         * 支持强依赖(depends on)、弱依赖(if...endif)、强选择(select)、弱选择(imply) 等自动生成
         * 支持或规则(||)，例如同一个包有源码包和预编译包，选择依赖其中一个，可选择预编译包加快编译
 
@@ -847,7 +847,36 @@ FILES:${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
 ```
 
 * 编写配方附加文件 (xxx.bbappend)
-    * 配方附加文件指示了包的源码路径和运行 make 的路径，一般这两个路径相同
+    * 配方附加文件在 cbuild 的实现中，主要作用是指示包的源码路径和 Makefile 路径，一般这两个路径一样
+        * EXTERNALSRC: 源码目录，编译会对这个目录做校验决定是否重新编译
+            * 如果源码不全在 EXTERNALSRC 目录内，我们需要追加文件或目录做校验，追加任务的 `file-checksums` 标记，否则源码修改后没有重新编译
+            * 用户可以继承类 `extrasrc.bbclass` 来做追加，可设置的变量
+                * EXTRASRC_CONFIGURE: 追加做 do_configure 任务校验的文件或目录
+                * EXTRASRC_COMPILE: 追加做 do_compile 任务校验的文件或目录
+                * EXTRASRC_INSTALL: 追加做 do_install 任务校验的文件或目录
+                ```py
+                python () {
+                    tasks = ['configure', 'compile', 'install']
+
+                    for task in tasks:
+                        task_name = 'do_%s' % (task)
+                        src_name = 'EXTRASRC_%s' % (task.upper())
+                        src_str = d.getVar(src_name) 
+
+                        if src_str:
+                            srcs = src_str.split()
+                            for src in srcs:
+                                if os.path.exists(src):
+                                    if os.path.isdir(src):
+                                        d.appendVarFlag(task_name, 'file-checksums', ' %s/*:True' % (src))
+                                    else:
+                                        d.appendVarFlag(task_name, 'file-checksums', ' %s:True' % (src))
+                                    #bb.warn('%s is appended in %s of %s\n' % (d.getVarFlag(task_name, 'file-checksums'), task_name, d.getVar('PN')))
+                                else:
+                                    bb.warn('%s is not existed in %s of %s\n' % (src, task_name, d.getVar('PN')))
+                }
+                ```
+        * EXTERNALSRC_BUILD: 运行 make 命令的目录，可以和 EXTERNALSRC 不同
 
 ```
 inherit externalsrc
@@ -856,7 +885,6 @@ EXTERNALSRC_BUILD = "${ENV_TOP_DIR}/<package_src>"
 ```
 
 注: [从3.4版本开始，对变量的覆盖样式语法由下滑线 `_` 变成了冒号 `:`](https://docs.yoctoproject.org/migration-guides/migration-3.4.html#override-syntax-changes)
-
 
 ### Yocto 打补丁
 
