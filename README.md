@@ -22,6 +22,7 @@
         * 支持普通结构(config)、层次结构(menuconfig)、选择结构(choice) 等自动生成
         * 支持强依赖(depends on)、弱依赖(if...endif)、强选择(select)、弱选择(imply) 等自动生成
         * 支持或规则(||)，例如同一个包有源码包和预编译包，选择依赖其中一个，可选择预编译包加快编译
+* 通过类扩展了 yocto 的功能，例如动态决定是否打补丁
 
 ## 笔记
 
@@ -910,9 +911,11 @@ EXTERNALSRC_BUILD = "${ENV_TOP_DIR}/<package_src>"
         * 每个补丁建立两个包，打补丁包和去补丁包，配方名格式必须为 `xxx-patch-xxx` 和 `xxx-unpatch-xxx`
         * 源码包弱依赖这两个包 `EXTRADEPS = "xxx-patch-xxx|xxx-unpatch-xxx"` `inherit weakdep`
         * 建立虚依赖文件规则 `#VDEPS(choice) xxx-patch-xxx-choice(xxx-unpatch-xxx xxx-patch-xxx):`
-        * 补丁包按正常的规则编写配方，但要注意需要依赖 patch 主机工具包和继承补丁状态检查类 `inherit externalpatch`
-            * `externalpatch` 类的作用是检查补丁是否打上，从而决定是否打补丁或去补丁强制运行
+        * externalpatch 中已经定义好任务，补丁包只需要设置变量继承外部补丁类即可 `inherit externalpatch`
             ```sh
+            inherit externalsrc
+            EXTERNALSRC = "补丁的文件夹路径"
+
             DEPENDS += "patch-native"
             EXTERNALPATCH_SRC = "带路径的补丁文件名"
             EXTERNALPATCH_DST = "要打补丁的源码目录"
