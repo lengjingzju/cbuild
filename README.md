@@ -81,6 +81,7 @@ lengjing@lengjing:~/cbuild$ source scripts/build.env
 ENV_BUILD_MODE   : external
 ENV_BUILD_ARCH   :
 ENV_BUILD_TOOL   :
+ENV_BUILD_JOBS   : -j8
 ENV_TOP_DIR      : /home/lengjing/cbuild
 ENV_TOP_OUT      : /home/lengjing/cbuild/output
 ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
@@ -97,6 +98,7 @@ lengjing@lengjing:~/cbuild$ source scripts/build.env arm64 arm-linux-gnueabihf-
 ENV_BUILD_MODE   : external
 ENV_BUILD_ARCH   : arm64
 ENV_BUILD_TOOL   : arm-linux-gnueabihf-
+ENV_BUILD_JOBS   : -j8
 ENV_TOP_DIR      : /home/lengjing/cbuild
 ENV_TOP_OUT      : /home/lengjing/cbuild/output
 ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
@@ -111,6 +113,7 @@ ENV_DEP_ROOT     : /home/lengjing/cbuild/output/sysroot
 ENV_BUILD_MODE=external  # external internal yocto
 ENV_BUILD_ARCH=$1
 ENV_BUILD_TOOL=$2
+ENV_BUILD_JOBS=-jn
 
 ENV_TOP_DIR=$(pwd | sed 's:/cbuild.*::')/cbuild
 ENV_TOP_OUT=${ENV_TOP_DIR}/output
@@ -123,6 +126,7 @@ ENV_DEP_ROOT=${ENV_INS_ROOT}
     * external 时，编译输出目录是把包的源码目录的 ENV_TOP_DIR 部分换成了 ENV_OUT_ROOT
 * ENV_BUILD_ARCH: 指定交叉编译 linux 模块的 ARCH
 * ENV_BUILD_TOOL: 指定交叉编译器前缀
+* ENV_BUILD_JOBS: 指定编译线程数
 
 * ENV_TOP_DIR: 工程的根目录
 * ENV_TOP_OUT: 工程的输出根目录，编译输出、安装文件、生成镜像等都在此目录下定义
@@ -575,8 +579,17 @@ rm -f auto.mk Kconfig Target
 `scripts/bin/gen_build_chain.py` 选项
 
 * `-m <Makefile Path>`: 普通编译中自动生成的 Makefile 文件名
-    * 可以使用一个顶层 Makefile 包含自动生成的 Makefile，all 目标调用 `make $(BUILD_JOBS) -s MAKEFLAGS= all_targets` 多线程编译所有包
+    * 可以使用一个顶层 Makefile 包含自动生成的 Makefile，all 目标调用 `make $(ENV_BUILD_JOBS) -s MAKEFLAGS= all_targets` 多线程编译所有包
     * 如果某个包的内部需要启用多线程编译，需要在此包的其它目标中指定 `jobserver`，见下面说明
+    * 普通编译时可以统计各个包的编译时间，Makefile 示例如下:
+        ```makefile
+        TIME_PATH := $(OUT_PATH)/time_statistics
+        TIME_FORMAT := /usr/bin/time -a -o $(TIME_PATH) -f \"%e\\t\\t%U\\t\\t%S\\t\\t\$$@\"
+        time_statistics:
+        	@mkdir -p $(shell dirname $(TIME_PATH))
+        	@$(if $(findstring dash,$(shell readlink /bin/sh)),echo,echo -e) "real\t\tuser\t\tsys\t\tpackage" > $(TIME_PATH)
+        	@/usr/bin/time -a -o $(TIME_PATH) -f "%e\\t\\t%U\\t\\t%S\\t\\ttotal_time" make -s all_targets PRECMD="$(TIME_FORMAT) "
+        ```
 * `-k <Kconfig Path>`: 指定存储 Kconfig 的所有项目的文件路径
 * `-t <Target Path>`: 指定存储所有包的文件路径、包名列表的文件路径
 * `-o <Image Path>`: Yocto 编译中指定存储打包到 rootfs 的软件列表文件
@@ -613,7 +626,7 @@ rm -f auto.mk Kconfig Target
 * Other_Target_Names: 当前包的其它目标，多个目标使用空格隔开 (可以为空)
     * 忽略 Other_Target_Names 中的 all install clean 目标
     * `prepare` 关键字是特殊的实目标，表示 make 前运行 make prepare，一般用于当 .config 不存在时加载默认配置到 .config
-    * `jobserver` 关键字是特殊的虚拟目标，表示 make 后加上 `$(BUILD_JOBS)`，用户需要 `export BUILD_JOBS=-j8` 才会启动多线程编译
+    * `jobserver` 关键字是特殊的虚拟目标，表示 make 后加上 `$(ENV_BUILD_JOBS)`，用户需要 `export ENV_BUILD_JOBS=-j8` 才会启动多线程编译
         * 某些包的 Makefile 包含 make 指令时不要加上 jobserver 目标，例如编译外部内核模块
     * `subtarget1:subtarget2:...::dep1:dep2:...` 是特殊语法格式，用来显示指定子目标的依赖
         * 双冒号分开子目标列表和依赖列表，子目标之间和依赖之间使用单冒号分隔，依赖列表可以为空

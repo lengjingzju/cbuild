@@ -43,7 +43,7 @@ endif
 else
 
 KERNEL_SRC     ?= /lib/modules/$(shell uname -r)/build
-MOD_MAKES      += $(BUILD_JOBS) -s -C $(KERNEL_SRC) $(if $(KERNEL_OUT),O=$(KERNEL_OUT))
+MOD_MAKES      += $(ENV_BUILD_JOBS) -s -C $(KERNEL_SRC) $(if $(KERNEL_OUT),O=$(KERNEL_OUT))
 
 ifeq ($(findstring $(ENV_BUILD_MODE),external yocto), )
 

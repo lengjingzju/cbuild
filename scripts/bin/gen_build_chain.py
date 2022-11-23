@@ -781,7 +781,7 @@ class Deps:
 
                 make = '@$(PRECMD)make'
                 if item['targets'] and 'jobserver' in item['targets']:
-                    make += ' $(BUILD_JOBS)'
+                    make += ' $(ENV_BUILD_JOBS)'
                 make += ' -s -C %s' % (item['path'])
                 if item['make']:
                     make += ' -f %s' % (item['make'])
