@@ -328,7 +328,7 @@ class Deps:
 
             for per_line in fp:
                 # e.g. "#DEPS(mk.ext) a(clean install): b c"
-                ret = re.match(r'#DEPS\s*\(\s*([\w\-\./]*)\s*\)\s*([\w\-\.]+)\s*\(([\s\w\-\.%]*)\)\s*:([\s\w\|\-\.\?\*&!=,]*)', per_line)
+                ret = re.match(r'#DEPS\s*\(\s*([\w\-\./]*)\s*\)\s*([\w\-\.]+)\s*\(([\s\w\-\.%:]*)\)\s*:([\s\w\|\-\.\?\*&!=,]*)', per_line)
                 if ret:
                     dep_flag = True
                     item = {}
@@ -740,6 +740,38 @@ class Deps:
                 fp.write('%s:\t%s\n' % (item['src'] if item['src'] else 'localsrc', item['target']))
 
 
+    def __write_sub_target_make(self, fp, make, target, targets, depstr):
+        ret = []
+        targets1 = [t for t in targets if '%' not in t]
+        targets2 = [t for t in targets if '%' in t]
+
+        if targets1:
+            ret += targets1
+            if depstr:
+                targets1_single = ['%s_single' % (t) for t in targets1]
+                ret += targets1_single
+                fp.write('%s: %s\n' % (' '.join(targets1), depstr))
+                fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, target))
+                fp.write('%s:\n' % (' '.join(targets1_single)))
+                fp.write('\t%s $(patsubst %s_%%,%%,$(patsubst %%_single,%%,$@))\n\n' % (make, target))
+            else:
+                fp.write('%s:\n' % (' '.join(targets1)))
+                fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, target))
+
+        if targets2:
+            for t in targets2:
+                if depstr:
+                    fp.write('%s: %s\n' % (t, depstr))
+                    fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, target))
+                    fp.write('%s_single:\n' % (t))
+                    fp.write('\t%s $(patsubst %s_%%,%%,$(patsubst %%_single,%%,$@))\n\n' % (make, target))
+                else:
+                    fp.write('%s:\n' % (target))
+                    fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, target))
+
+        return ret
+
+
     def gen_make(self, filename, target_list):
         with open(filename, 'w') as fp:
             for item in self.ActualList:
@@ -747,7 +779,7 @@ class Deps:
                 dep_target_name = '%s_depends' % (item['target'])
                 dep_target_flag = False
 
-                make = '@make'
+                make = '@$(PRECMD)make'
                 if item['targets'] and 'jobserver' in item['targets']:
                     make += ' $(BUILD_JOBS)'
                 make += ' -s -C %s' % (item['path'])
@@ -788,8 +820,8 @@ class Deps:
                         phony.append(dep_target_name)
                         fp.write('%s:\n\t@\n\n' % (dep_target_name))
 
+                phony.append(item['target'])
                 if dep_target_flag:
-                    phony.append(item['target'])
                     phony.append('%s_single' % (item['target']))
                     fp.write('%s: %s\n' % (item['target'], dep_target_name))
                     fp.write('%s %s_single:\n' % (item['target'], item['target']))
@@ -805,32 +837,20 @@ class Deps:
                 phony.append(item['target'] + '_clean')
 
                 ignore_targets = ['all', 'clean', 'install', 'prepare', 'jobserver']
-                targets = ['%s_%s' % (item['target'], t) for t in item['targets'] if t not in ignore_targets]
-                if targets:
-                    targets1 = [t for t in targets if '%' not in t]
-                    targets2 = [t for t in targets if '%' in t]
-                    if targets1:
-                        phony += targets1
-                        if dep_target_flag:
-                            targets1_single = ['%s_single' % (t) for t in targets1]
-                            phony += targets1_single
-                            fp.write('%s: %s\n' % (' '.join(targets1), dep_target_name))
-                            fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, item['target']))
-                            fp.write('%s:\n' % (' '.join(targets1_single)))
-                            fp.write('\t%s $(patsubst %s_%%,%%,$(patsubst %%_single,%%,$@))\n\n' % (make, item['target']))
-                        else:
-                            fp.write('%s:\n' % (' '.join(targets1)))
-                            fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, item['target']))
-                    if targets2:
-                        for target in targets2:
-                            if dep_target_flag:
-                                fp.write('%s: %s\n' % (target, dep_target_name))
-                                fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, item['target']))
-                                fp.write('%s_single:\n' % (target))
-                                fp.write('\t%s $(patsubst %s_%%,%%,$(patsubst %%_single,%%,$@))\n\n' % (make, item['target']))
-                            else:
-                                fp.write('%s:\n' % (target))
-                                fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, item['target']))
+                targets = [t for t in item['targets'] if t not in ignore_targets]
+
+                targets_exact = [t for t in targets if ':' in t]
+                if targets_exact:
+                    for targets_tmp in targets_exact:
+                        targets_pair = targets_tmp.split('::')
+                        targets_vars = ['%s_%s' % (item['target'], t) for t in targets_pair[0].split(':')]
+                        depstr = ' '.join(targets_pair[1].split(':')) if targets_pair[1] else ''
+                        phony += self.__write_sub_target_make(fp, make, item['target'], targets_vars, depstr)
+
+                targets_auto = ['%s_%s' % (item['target'], t) for t in targets if ':' not in t]
+                if targets_auto:
+                    depstr = dep_target_name if dep_target_flag else ''
+                    phony += self.__write_sub_target_make(fp, make, item['target'], targets_auto, depstr)
 
                 fp.write('ALL_TARGETS += %s\n' % (item['target']))
                 fp.write('ALL_CLEAN_TARGETS += %s_clean\n' % (item['target']))

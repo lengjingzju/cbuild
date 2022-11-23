@@ -614,6 +614,8 @@ rm -f auto.mk Kconfig Target
     * `prepare` 关键字是特殊的实目标，表示 make 前运行 make prepare，一般用于当 .config 不存在时加载默认配置到 .config
     * `jobserver` 关键字是特殊的虚拟目标，表示 make 后加上 `$(BUILD_JOBS)`，用户需要 `export BUILD_JOBS=-j8` 才会启动多线程编译
         * 某些包的 Makefile 包含 make 指令时不要加上 jobserver 目标，例如编译外部内核模块
+    * `subtarget1:subtarget2:...::dep1:dep2:...` 是特殊语法格式，用来显示指定子目标的依赖
+        * 双冒号分开子目标列表和依赖列表，子目标之间和依赖之间使用单冒号分隔，依赖列表可以为空
 * Depend_Names: 当前包依赖的其它包的名称ID，多个依赖使用空格隔开 (可以为空)
     * 如果有循环依赖或未定义依赖，解析将会失败，会打印出未解析成功的条目
         * 出现循环依赖，打印 "ERROR: circular deps!"
