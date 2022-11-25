@@ -849,16 +849,25 @@ class Deps:
                     fp.write('%s %s_single:\n' % (item['target'], item['target']))
                 else:
                     fp.write('%s:\n' % (item['target']))
-                if item['targets'] and 'prepare' in item['targets']:
-                    fp.write('\t%s prepare\n' % (make))
-                fp.write('\t%s\n' % (make))
-                fp.write('\t%s install\n\n' % (make))
+                if item['targets'] and 'union' in item['targets']:
+                    if item['targets'] and 'prepare' in item['targets']:
+                        fp.write('\t%s %s-prepare\n' % (make, item['target']))
+                    fp.write('\t%s %s-all\n' % (make, item['target']))
+                    fp.write('\t%s %s-install\n\n' % (make, item['target']))
+                else:
+                    if item['targets'] and 'prepare' in item['targets']:
+                        fp.write('\t%s prepare\n' % (make))
+                    fp.write('\t%s\n' % (make))
+                    fp.write('\t%s install\n\n' % (make))
 
-                fp.write('%s_clean:\n' % (item['target']))
-                fp.write('\t%s clean\n\n' % (make))
                 phony.append(item['target'] + '_clean')
+                fp.write('%s_clean:\n' % (item['target']))
+                if item['targets'] and 'union' in item['targets']:
+                    fp.write('\t%s %s-clean\n\n' % (make, item['target']))
+                else:
+                    fp.write('\t%s clean\n\n' % (make))
 
-                ignore_targets = ['all', 'clean', 'install', 'prepare', 'jobserver']
+                ignore_targets = ['all', 'clean', 'install', 'prepare', 'jobserver', 'union']
                 targets = [t for t in item['targets'] if t not in ignore_targets]
 
                 targets_exact = [t for t in targets if ':' in t]
