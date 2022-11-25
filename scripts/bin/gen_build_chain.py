@@ -114,13 +114,25 @@ class Deps:
                             que_num += 1
                         else:
                             break
+
                     dep = dep[amp_num + que_num:]
-                    if amp_num == 2:
-                        item['select'].append(dep)
-                    elif amp_num == 1:
-                        item['imply'].append(dep)
-                    else:
-                        pass
+                    if amp_num == 2 or amp_num == 1:
+                        if '|' in dep:
+                            split_str = '||' if '||' in dep else '|'
+                            subdeps = dep.split(split_str)
+                            if not subdeps[0]:
+                                subdep = subdeps[1]
+                                subdeps[0] = '*build-%s' % (subdep)
+                                subdeps[1] = 'prebuild-%s' % (subdep)
+                                subdeps.append(subdep)
+                                dep = split_str.join(subdeps)
+
+                            for subdep in subdeps:
+                                if subdep[0] == '*':
+                                    item['vwdeps'].append(dep[1:])
+                                else:
+                                    item['awdeps'].append(dep)
+                            item['select' if amp_num == 2 else 'imply'].append(dep)
                     if que_num:
                         item[wdeps].append(dep)
                 elif '=' in dep:
@@ -494,6 +506,16 @@ class Deps:
                 if item[depid]:
                     deps = item[depid]
                     item[depid] = [dep for dep in deps if dep in target_list]
+                    if 'select' == depid or 'imply' == depid:
+                        for dep in deps:
+                            if '|' in dep:
+                                subdeps = dep.split('||' if '||' in dep else '|')
+                                for subdep in subdeps:
+                                    if subdep[0] == '*':
+                                        subdep = subdep[1:]
+                                    if subdep in target_list:
+                                        item[depid].append(subdep)
+                                        break
                     if not self.yocto_flag and not item['vtype'] and 'asdeps' == depid:
                         rmdeps = [dep for dep in deps if dep not in item[depid]]
                         if rmdeps:

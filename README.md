@@ -672,16 +672,27 @@ rm -f auto.mk Kconfig Target
     * `unselect`    : 表示此包默认不编译，即 `default n`，否则此包默认编译，即 `default y`
     * `nokconfig`   : 表示此包不含 Kconfig 配置。同一目录有多个包时，此包无需设置 `nokconfig`，而其它包也有配置可以将配置的文件名设为 **包名.配置的后缀** ，否则需要设置 nokconfig
 * 特殊依赖(特殊符)
-    * `!depname`    : 表示此包和 depname 包冲突，无法同时开启，即 `depends on !depname`
-    * `&depname`    : 表示此包弱选中 depname 包，即 `imply depname`，此包选中后，depname 也被自动选中，此时 depname 也可以手动取消选中
-    * `&&depname`   : 表示此包强选中 depname 包，即 `select depname`，此包选中后，depname 也被自动选中，此时 depname 不可以取消选中
-    * `?depname`    : 表示此包弱依赖(不安装动态库的) depname 包，弱依赖是指即使 depname 包未选中或不存在，依赖它的包也可以选中和编译成功
-    * `??depname`   : 类似 `?depname`，表示此包弱依赖(安装动态库的) depname 包
-    * `depa|depb`   : 表示此包弱依赖(不安装动态库的) depa depb ... ，此弱依赖列表中的包至少需要一个 depx 包选中，依赖它的包才可以选中和编译成功
-    * `depa||depb`  : 类似 `depa|depb`，表示此包弱依赖(安装动态库的) depa depb ...
-    * 其它说明:
-        * `&` 可以和 `?` 合并使用，不要求组合顺序，表示选中并弱依赖，例如 `&&??depname` 表示强选中弱依赖，`??&depname` 表示弱依赖弱选中
+    * `!depname`                    : 表示此包和 depname 包冲突，无法同时开启，即 `depends on !depname`
+    * `&depname` or `&&depname`     : 表示此包弱/强选中 depname 包，即 `imply depname` / `select depname`
+        * 单与号表示此包选中后，imply 的 depname 也被自动选中，此时 depname 也可以手动取消选中
+        * 双与号表示此包选中后，select 的 depname 也被自动选中，此时 depname 不可以取消选中
+    * `?depname` or `??depname`     : 表示此包弱依赖 depname 包
+        * 弱依赖是指即使 depname 包未选中或不存在，依赖它的包也可以选中和编译成功
+        * 单问号表示编译时依赖(依赖包没有安装动态库等)
+        * 双问号表示编译时和运行时依赖(依赖包安装了动态库等)
+    * `depa|depb` or `depa||depb`   : 表示此包弱依赖 depa depb ... 
+        * 弱依赖列表中的包至少需要一个 depx 包选中，依赖它的包才可以选中和编译成功
+        * 单竖线表示编译时依赖
+        * 双竖线表示编译时和运行时依赖
         * 省略 `|` `||` 前面的单词会被隐式推导使用预编译包或源码包中选一，例如 `||libtest` 被隐式推导为 `prebuild-libtest||libtest`
+    * `& ?`                         : `&` 可以和 `?` 组合使用，不要求组合顺序，表示选中并弱依赖
+        * 例如： `&&??depname` 或 `??&&depname` 等表示强选中弱依赖，`??&depname` 或 `&??depname` 等表示弱依赖弱选中
+    * `& |`                         : `&` 可以和 `|` 组合使用，表示选中其中一个包并弱依赖所有实包
+        * 适合强选中并弱依赖预编译包和源码包选择其一
+        * 省略最后一个 `|` `||` 前面的字符直到 `&`被隐式推导为 `*build-包名 prebuild-包名 包名` 三元组
+        * 例如： `&&||libtest` 被隐式推导为 `&&*build-libtest||prebuild-libtest||libtest`
+        * 例如： `&&*build-libtest||prebuild-libtest||libtest` 表示强选中这三个包中第一个存在的包，并弱依赖后面两个实包
+    * 其它说明:
         * 对普通编译来说，`?` `??` 没有区别，`|` `||` 没有区别
         * 对 Yocto 编译来说，`?` `|` 中的弱依赖只会设置 `DEPENDS`，`??` `||` 中的弱依赖会同时设置 `DEPENDS` 和 `RDEPENDS:${PN}`
 * 特殊依赖(环境变量)
