@@ -22,7 +22,7 @@
         * 支持普通结构(config)、层次结构(menuconfig)、选择结构(choice) 等自动生成
         * 支持强依赖(depends on)、弱依赖(if...endif)、强选择(select)、弱选择(imply) 等自动生成
         * 支持或规则(||)，例如同一个包有源码包和预编译包，选择依赖其中一个，可选择预编译包加快编译
-* 通过类扩展了 yocto 的功能，例如动态决定是否打补丁
+* 提供方便的补丁机制，例如动态决定是否打补丁
 
 ## 笔记
 
@@ -915,49 +915,6 @@ EXTERNALSRC_BUILD = "${ENV_TOP_DIR}/<package_src>"
 
 注: [从3.4版本开始，对变量的覆盖样式语法由下滑线 `_` 变成了冒号 `:`](https://docs.yoctoproject.org/migration-guides/migration-3.4.html#override-syntax-changes)
 
-### Yocto 打补丁
-
-* Yocto 官方打补丁
-    * 方法
-        * 配方文件的当前目录新建名为 `配方名` 或 `files` 的文件夹，补丁放在此文件夹内
-            * 注：查找补丁文件的文件夹不止上面这些，但我们一般使用名为 `配方名` 的文件夹
-        * 配方中加上补丁文件名声明，无需文件夹路径 `SRC_URI += "file://0001-xxx.patch"` 
-        * 如果配方继承了 `externalsrc` 类，还要设置变量 `RCTREECOVEREDTASKS = "do_unpack do_fetch"`
-            * 注：`externalsrc` 类默认会把 `do_patch` 任务删除，所以要设置 `RCTREECOVEREDTASKS`
-    * 优点
-        * 实现简单
-    * 缺点
-        * 无法选择补丁是否打上
-        * 打补丁默认只会运行一次，如果其它方法去掉了补丁，重新编译，补丁不会被打上
-        * 会在源码目录生成临时文件夹，污染源码目录，例如生成了 `.pc/` `patches/`
-<br>
-
-* 自定义打补丁
-    * 方法
-        * 每个补丁建立两个包，打补丁包和去补丁包，配方名格式必须为 `xxx-patch-xxx` 和 `xxx-unpatch-xxx`
-        * 源码包弱依赖这两个包 `EXTRADEPS = "xxx-patch-xxx|xxx-unpatch-xxx"` `inherit weakdep`
-        * 建立虚依赖文件规则 `#VDEPS(choice) xxx-patch-xxx-choice(xxx-unpatch-xxx xxx-patch-xxx):`
-        * externalpatch 中已经定义好任务，补丁包只需要设置变量继承外部补丁类即可 `inherit externalpatch`
-            ```sh
-            inherit externalsrc
-            EXTERNALSRC = "补丁的文件夹路径"
-
-            DEPENDS += "patch-native"
-            EXTERNALPATCH_SRC = "带路径的补丁文件名"
-            EXTERNALPATCH_DST = "要打补丁的源码目录"
-            EXTERNALPATCH_OPT = "patch 或 unpatch"
-            inherit externalpatch
-            ```
-    * 缺点
-        * 实现稍显复杂
-        * 因为动态修改了配方，补丁选项改变时需要重新编译打补丁包或去补丁包两次
-            * 所以增加了 `prepare-patch` 包，且 cbuild 自动生成了存储使能的 patch/unpatch 包的文件
-    * 优点
-        * 可以选择补丁是否打上
-        * 可以保证打补丁或去补丁正确运行，无论是否在其它地方做了打补丁或去补丁的操作
-        * 源码目录只有补丁的修改，无临时文件或文件夹
-        * 补丁可以放在任意目录，可以和其它编译方式共用 Makefile
-
 ### 测试 Yocto 编译
 
 * `build/conf/local.conf` 配置文件中增加如下变量定义
@@ -986,3 +943,83 @@ lengjing@lengjing:~/cbuild/build$ bitbake test-conf -c menuconfig # 修改配置
 
 常见 Yocto 问题可以查看 [Yocto 笔记](./notes/yoctoqa.md)
 
+## 打补丁
+
+### 普通编译打补丁
+
+* 每类补丁建立两个包，打补丁包和去补丁包，包名格式必须为 `源码包名-patch-补丁ID名` 和 `源码包名-unpatch-补丁ID名`
+* 源码包弱依赖这两个包，源码包的 `#DEPS` 语句的 Depend_Names 加上 `xxx-patch-xxx|xxx-unpatch-xxx`
+* 建立虚依赖规则文件 `#VDEPS(choice) xxx-patch-xxx-choice(xxx-unpatch-xxx xxx-patch-xxx):`
+* 源码包的所有补丁包共用一个 Makefile，示例如下:
+    * PATCH_PACKAGE : 源码包名
+    * PATCH_TOPATH  : 源码路径
+    * PATCH_FOLDER  : 补丁存放路径
+    * PATCH_NAME_补丁ID名 : 补丁名，可以是多个补丁
+
+
+```makefile
+PATCH_SCRIPT        := $(ENV_TOP_DIR)/scripts/bin/exec_patch.sh
+PATCH_PACKAGE       := xxx
+PATCH_TOPATH        := xxx
+
+PATCH_FOLDER        := xxx
+PATCH_NAME_xxx      := 0001-xxx.patch
+PATCH_NAME_yyy      := 0001-yyy.patch 0002-yyy.patch
+
+$(PATCH_PACKAGE)-unpatch-all:
+	@$(PATCH_SCRIPT) unpatch $(PATCH_FOLDER) $(PATCH_TOPATH)
+	@echo "Unpatch $(PATCH_TOPATH) Done."
+
+$(PATCH_PACKAGE)-patch-%-all:
+	@$(PATCH_SCRIPT) patch "$(patsubst %,$(PATCH_FOLDER)/%,$(PATCH_NAME_$(patsubst $(PATCH_PACKAGE)-patch-%-all,%,$@)))" $(PATCH_TOPATH)
+	@echo "Build $(patsubst %-all,%,$@) Done."
+
+$(PATCH_PACKAGE)-unpatch-%-all:
+	@$(PATCH_SCRIPT) unpatch "$(patsubst %,$(PATCH_FOLDER)/%,$(PATCH_NAME_$(patsubst $(PATCH_PACKAGE)-unpatch-%-all,%,$@)))" $(PATCH_TOPATH)
+	@echo "Build $(patsubst %-all,%,$@) Done."
+
+%-clean:
+	@
+
+%-install:
+	@
+```
+
+### Yocto 编译打补丁
+
+* Yocto 官方打补丁
+    * 方法
+        * 配方文件的当前目录新建名为 `配方名` 或 `files` 的文件夹，补丁放在此文件夹内
+            * 注：查找补丁文件的文件夹不止上面这些，但我们一般使用名为 `配方名` 的文件夹
+        * 配方中加上补丁文件名声明，无需文件夹路径 `SRC_URI += "file://0001-xxx.patch"` 
+        * 如果配方继承了 `externalsrc` 类，还要设置变量 `RCTREECOVEREDTASKS = "do_unpack do_fetch"`
+            * 注：`externalsrc` 类默认会把 `do_patch` 任务删除，所以要设置 `RCTREECOVEREDTASKS`
+    * 优点
+        * 实现简单
+    * 缺点
+        * 无法选择补丁是否打上
+        * 打补丁默认只会运行一次，如果其它方法去掉了补丁，重新编译，补丁不会被打上
+        * 会在源码目录生成临时文件夹，污染源码目录，例如生成了 `.pc/` `patches/`
+<br>
+
+* 自定义打补丁
+    * 方法
+        * 每类补丁建立两个包，打补丁包和去补丁包，配方名格式必须为 `xxx-patch-xxx` 和 `xxx-unpatch-xxx`
+        * 源码包弱依赖这两个包 `EXTRADEPS = "xxx-patch-xxx|xxx-unpatch-xxx"` `inherit weakdep`
+        * 建立虚依赖规则文件 `#VDEPS(choice) xxx-patch-xxx-choice(xxx-unpatch-xxx xxx-patch-xxx):`
+        * 补丁包设置变量并继承外部补丁类 `inherit externalpatch`
+            * `externalpatch` 类的作用是检查补丁是否打上，从而决定是否打补丁或去补丁强制运行
+            ```sh
+            EXTERNALPATCH_SRC = "带路径的补丁文件名，可以是多个文件或目录"
+            EXTERNALPATCH_DST = "要打补丁的源码目录"
+            EXTERNALPATCH_OPT = "patch 或 unpatch"
+            inherit externalpatch
+            ```
+    * 缺点
+        * 实现稍显复杂
+        * 因为动态修改了配方，补丁选项改变时需要重新编译打/去补丁包两次
+    * 优点
+        * 可以选择补丁是否打上
+        * 可以保证打补丁或去补丁正确运行，无论是否在其它地方做了打补丁或去补丁的操作
+        * 源码目录只有补丁的修改，无临时文件或文件夹
+        * 补丁可以放在任意目录
