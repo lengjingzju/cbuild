@@ -22,10 +22,18 @@ write_rule() {
             deps=$(echo "${depstr}" | sed -E "s/^${target}=\"(.*)\"/\1/g")
             if [ ! -z "${deps}" ]; then
                 for dep in ${deps}; do
-                    echo "\"${target}\" -> \"${dep}\"" >> ${outdir}/${package}.dot
+                    if [ ${dep:0:1} = "?" ]; then
+                        dep=${dep:1}
+                        echo "\"${target}\" -> \"${dep}\" [style = dashed]" >> ${outdir}/${package}.dot
+                    else
+                        echo "\"${target}\" -> \"${dep}\"" >> ${outdir}/${package}.dot
+                    fi
                 done
 
                 for dep in ${deps}; do
+                    if [ ${dep:0:1} = "?" ]; then
+                        dep=${dep:1}
+                    fi
                     if [ $(echo "${dones}" | grep -c " ${dep} ") -eq 0 ]; then
                         dones="${dones}${dep} "
                         write_rule ${dep}

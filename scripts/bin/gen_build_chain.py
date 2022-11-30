@@ -898,7 +898,7 @@ class Deps:
 
                 if item['awdeps']:
                     for dep in item['awdeps']:
-                        dvars.append(dep)
+                        dvars.append('?%s' % dep)
 
                 if item['asdeps']:
                     for dep in item['asdeps']:
