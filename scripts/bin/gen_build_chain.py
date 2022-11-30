@@ -891,11 +891,31 @@ class Deps:
             fp.write('%s: %s\n' % ('all_targets', '$(ALL_TARGETS)'))
 
 
+    def gen_deps(self, filename, target_list):
+        with open(filename, 'w') as fp:
+            for item in self.ActualList:
+                dvars = []
+
+                if item['awdeps']:
+                    for dep in item['awdeps']:
+                        dvars.append(dep)
+
+                if item['asdeps']:
+                    for dep in item['asdeps']:
+                        if 'finally' not in item['asdeps']:
+                            dvars.append(dep)
+
+                if dvars:
+                    fp.write('%s="%s"\n' % (item['target'], ' '.join(dvars)))
+                else:
+                    fp.write('%s=""\n' % (item['target']))
+
+
 def parse_options():
     parser = ArgumentParser( description='''
             Tool to generate build chain.
-            do_normal_analysis must set options (-m -k -d -s) and can set options (-v -c -t -i -g -l -w -p).
-            do_yocto_analysis must set options (-t -k) and can set options (-v -c -i -l -w -p).
+            do_normal_analysis must set options (-m -k -d -s) and can set options (-v -c -t -i -g -l -w -p -a).
+            do_yocto_analysis must set options (-t -k) and can set options (-v -c -i -l -w -p -u).
             do_image_analysis must set options (-o -t -c) and can set options (-i -p).
             ''')
 
@@ -914,6 +934,10 @@ def parse_options():
     parser.add_argument('-t', '--target',
             dest='target_out',
             help='Specify the out target file path to store package names.')
+
+    parser.add_argument('-a', '--analysis',
+            dest='analysis_out',
+            help='Specify the out analysis file path to store dependence variables')
 
     parser.add_argument('-d', '--dep',
             dest='dep_name',
@@ -986,6 +1010,7 @@ def do_normal_analysis(args):
     makefile_out = args.makefile_out
     kconfig_out = args.kconfig_out
     target_out = args.target_out
+    analysis_out = args.analysis_out
     dep_name = args.dep_name
     conf_name = args.conf_name
     vir_name = ''
@@ -1043,8 +1068,13 @@ def do_normal_analysis(args):
     if deps.sort_items(target_list) == -1:
         print('ERROR: sort_items() failed.')
         sys.exit(1)
+
     deps.gen_make(makefile_out, target_list)
     print('\033[32mGenerate %s OK.\033[0m' % makefile_out)
+
+    if analysis_out:
+        deps.gen_deps(analysis_out, target_list)
+        print('\033[32mGenerate %s OK.\033[0m' % analysis_out)
 
 
 def do_yocto_analysis(args):

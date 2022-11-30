@@ -23,6 +23,7 @@
         * 支持强依赖(depends on)、弱依赖(if...endif)、强选择(select)、弱选择(imply) 等自动生成
         * 支持或规则(||)，例如同一个包有源码包和预编译包，选择依赖其中一个，可选择预编译包加快编译
 * 提供方便的补丁机制，例如动态决定是否打补丁
+* 支持生成包的依赖关系的图片，方便查看依赖关系
 
 ## 笔记
 
@@ -556,6 +557,8 @@ target=all path=/home/lengjing/cbuild/examples/test-deps/pf/pf
 target=install path=/home/lengjing/cbuild/examples/test-deps/pf/pf
 target=all path=/home/lengjing/cbuild/examples/test-deps/pf/pf
 target=install path=/home/lengjing/cbuild/examples/test-deps/pf/pf
+lengjing@lengjing:~/cbuild/examples/test-deps$ make a-deps  # 生成包a的依赖关系图
+Note: a.dot a.svg and a.png are generated in the depends folder.
 lengjing@lengjing:~/cbuild/examples/test-deps$ make clean
 ext.mk
 target=clean path=/home/lengjing/cbuild/examples/test-deps/pc/pc
@@ -568,10 +571,17 @@ target=clean path=/home/lengjing/cbuild/examples/test-deps/pf/pf
 rm -f auto.mk Kconfig Target
 ```
 
+`scripts/bin/gen_depends_image.sh` 使用
+
+* `gen_depends_image.sh package_name image_outdir [depends_path]` 生成包的依赖关系图片
+    * package_name: 要生成依赖关系图片的包名
+    * image_outdir: 图片的保存路径
+    * depends_path: gen_build_chain.py 的 -a 参数生成的存储包的依赖关系的图片，Yocto 编译不需要这一项
+
 命令使用(带中括号表示是可选项，否则是必选项)
 
 * 普通编译只需要一步自动生成 Kconfig 和 Makefike
-    * `gen_build_chain.py -m MAKEFILE_OUT -k KCONFIG_OUT [-t TARGET_OUT] -d DEP_NAME [-v VIR_NAME] [-c CONF_NAME] -s SEARCH_DIRS [-i IGNORE_DIRS] [-g GO_ON_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG]`
+    * `gen_build_chain.py -m MAKEFILE_OUT -k KCONFIG_OUT [-t TARGET_OUT] [-a DEPENDS_OUT] -d DEP_NAME [-v VIR_NAME] [-c CONF_NAME] -s SEARCH_DIRS [-i IGNORE_DIRS] [-g GO_ON_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG]`
 * Yocto 编译需要两步分别自动生成 Kconfig 和 Image 配方，会自动分析 `conf/local.conf` `conf/bblayers.conf` 和层下的配方文件和配方附加文件
     * `gen_build_chain.py -k KCONFIG_OUT -t TARGET_OUT [-v VIR_NAME] [-c CONF_NAME] [-i IGNORE_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG] [-u USER_METAS]`
     * `gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-p $PATCH_PKG_PATH] [-i IGNORE_RECIPES]`
@@ -592,6 +602,7 @@ rm -f auto.mk Kconfig Target
         ```
 * `-k <Kconfig Path>`: 指定存储 Kconfig 的所有项目的文件路径
 * `-t <Target Path>`: 指定存储所有包的文件路径、包名列表的文件路径
+* `-a <Depends Path>`: 指定存储所有包的包名和依赖的文件路径
 * `-o <Image Path>`: Yocto 编译中指定存储打包到 rootfs 的软件列表文件
 * `-d <Search Depend Name>`: 普通编译中要搜索的依赖文件名(含有依赖规则语句)，依赖文件中可以包含多条依赖信息
 * `-c <Search Kconfig Name>`: 要搜索的 Kconfig 配置文件名(含有配置信息)
