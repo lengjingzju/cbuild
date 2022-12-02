@@ -31,8 +31,12 @@ define gen_config_header
 endef
 
 define sync_config_header
-	if [ -e $(CONFIG_PATH) ] && [ -e $(AUTOHEADER_PATH) ]; then \
-		if [ $$(stat -c %Y $(CONFIG_PATH)) -gt $$(stat -c %Y $(AUTOHEADER_PATH)) ]; then \
+	if [ -e $(CONFIG_PATH) ]; then \
+		if [ -e $(AUTOHEADER_PATH) ]; then \
+			if [ $$(stat -c %Y $(CONFIG_PATH)) -gt $$(stat -c %Y $(AUTOHEADER_PATH)) ]; then \
+				$(call gen_config_header); \
+			fi; \
+		else \
 			$(call gen_config_header); \
 		fi; \
 	fi
@@ -71,7 +75,9 @@ ifneq ($(DEF_CONFIG), )
 loadconfig: buildkconfig
 	@-mkdir -p $(OUT_PATH)
 	@if [ ! -e $(AUTOHEADER_PATH) ]; then \
-		cp -f $(CONF_SAVE_PATH)/$(DEF_CONFIG) $(CONFIG_PATH); \
+		if [ ! -e $(CONFIG_PATH) ]; then \
+			cp -f $(CONF_SAVE_PATH)/$(DEF_CONFIG) $(CONFIG_PATH); \
+		fi; \
 		$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --defconfig $(CONF_SAVE_PATH)/$(DEF_CONFIG); \
 		$(call gen_config_header); \
 	else \
