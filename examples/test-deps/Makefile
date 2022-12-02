@@ -15,4 +15,4 @@ deps:
 	@python3 $(ENV_TOP_DIR)/scripts/bin/gen_build_chain.py -m auto.mk -k Kconfig -t Target -a DEPS -d mk.deps -c mk.kconf -s pa:pb:pc:pd:pe:pf
 
 %-deps:
-	@$(ENV_TOP_DIR)/scripts/bin/gen_depends_image.sh $(patsubst %-deps,%,$@) depends DEPS
+	@$(ENV_TOP_DIR)/scripts/bin/gen_depends_image.sh $(patsubst %-deps,%,$@) depends DEPS $(OUT_PATH)/.config

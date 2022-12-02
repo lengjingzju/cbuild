@@ -2,28 +2,23 @@
 
 ## 特点
 
-* Linux 下纯粹的 Makefile 编译，支持 Makefile 封装包已有的 `makefile` `cmake` `autotools` 以实现对它们的支持
+* Linux 下纯粹的 Makefile 编译，支持 Makefile 封装包已有的 `Makefile` `CMake` `Autotools` 以实现对它们的支持
 * 支持交叉编译，支持自动分析头文件和编译脚本文件作为编译依赖，支持分别指定源文件的 CFLAGS
-* 一个 Makefile 同时支持 Yocto 编译方式、源码和编译输出分离模式和不分离模式
-* 一个 Makefile 支持生成多个库、可执行文件或模块
-* 提供编译静态库、共享库和可执行文件的模板 `inc.app.mk`
-    * 支持 C(`*.c`) C++(`*.cc *.cp *.cxx *.cpp *.CPP *.c++ *.C`) 和 汇编(`*.S *.s *.asm`) 混合编译
-    * 实现非常灵活，可以方便地增加其它后缀的源码文件的支持
-* 提供编译外部内核模块的模板 `inc.mod.mk`
-    * 支持 C(`*.c`) 和 汇编(`*.S`) 混合编译
+* 一个 Makefile 同时支持 Yocto 编译方式、源码和编译输出分离模式和不分离模式，一个 Makefile 支持生成多个库、可执行文件或外部内核模块
+* 提供编译静态库、共享库和可执行文件的模板 `inc.app.mk`，支持 C(`*.c`) C++(`*.cc *.cp *.cxx *.cpp *.CPP *.c++ *.C`) 和 汇编(`*.S *.s *.asm`) 混合编译
+* 提供编译外部内核模块的模板 `inc.mod.mk`，支持 C(`*.c`) 和 汇编(`*.S`) 混合编译
 * 提供安装编译输出的模板 `inc.ins.mk`
 * 提供 Kconfig 配置参数的模板 `inc.conf.mk`
 * 提供根据依赖关系自动生成总系统编译链和配置链的脚本 `gen_build_chain.py`
-    * 同时支持 Yocto 编译和普通编译，极大扩展了 Yocto 中生成 image 的功能，特别是 Yocto 支持弱依赖
     * 支持通过 make menuconfig 选择是否编译包
     * 支持收集包下的 Kconfig 配置放在包编译开关项目的 menuconfig 菜单下，编译开关和编译参数一起设置
-    * 支持的依赖规则
+    * 支持非常多的依赖规则
         * 支持自动生成参与编译的实包和不参与编译的虚包的规则，虚包可用于控制管理一组实包
         * 支持普通结构(config)、层次结构(menuconfig)、选择结构(choice) 等自动生成
-        * 支持强依赖(depends on)、弱依赖(if...endif)、强选择(select)、弱选择(imply) 等自动生成
-        * 支持或规则(||)，例如同一个包有源码包和预编译包，选择依赖其中一个，可选择预编译包加快编译
-* 提供方便的补丁机制，例如动态决定是否打补丁
-* 支持生成包的依赖关系的图片，方便查看依赖关系
+        * 支持强依赖(depends on)、弱依赖(if...endif)、强选择(select)、弱选择(imply)、或规则(||) 等自动生成
+* 提供源码包和预编译包切换机制，可选择预编译包加快编译
+* 提供方便的打补丁和去补丁切换的机制，例如动态决定是否打补丁 `exec_patch.sh` `externalpatch.bbclass`
+* 支持生成包的依赖关系的图片，并有颜色等属性查看包是否被选中等 `gen_depends_image.sh`
 
 ## 笔记
 
@@ -37,78 +32,93 @@
 
 * [kconfig: fix failing to generate auto.conf](https://git.kernel.org/pub/scm/linux/kernel/git/masahiroy/linux-kbuild.git/commit/?h=fixes&id=1b9e740a81f91ae338b29ed70455719804957b80)
 
-```sh
-commit 1b9e740a81f91ae338b29ed70455719804957b80
-Author: Jing Leng <jleng@ambarella.com>
-Date:   Fri Feb 11 17:27:36 2022 +0800
+    ```sh
+    commit 1b9e740a81f91ae338b29ed70455719804957b80
+    Author: Jing Leng <jleng@ambarella.com>
+    Date:   Fri Feb 11 17:27:36 2022 +0800
 
-    kconfig: fix failing to generate auto.conf
+        kconfig: fix failing to generate auto.conf
 
-    When the KCONFIG_AUTOCONFIG is specified (e.g. export \
-    KCONFIG_AUTOCONFIG=output/config/auto.conf), the directory of
-    include/config/ will not be created, so kconfig can't create deps
-    files in it and auto.conf can't be generated.
-```
+        When the KCONFIG_AUTOCONFIG is specified (e.g. export \
+        KCONFIG_AUTOCONFIG=output/config/auto.conf), the directory of
+        include/config/ will not be created, so kconfig can't create deps
+        files in it and auto.conf can't be generated.
+    ```
 
 * [kbuild: Fix include path in scripts/Makefile.modpost](https://git.kernel.org/pub/scm/linux/kernel/git/masahiroy/linux-kbuild.git/commit/?h=fixes&id=23a0cb8e3225122496bfa79172005c587c2d64bf)
 
-```sh
-commit 23a0cb8e3225122496bfa79172005c587c2d64bf
-Author: Jing Leng <jleng@ambarella.com>
-Date:   Tue May 17 18:51:28 2022 +0800
+    ```sh
+    commit 23a0cb8e3225122496bfa79172005c587c2d64bf
+    Author: Jing Leng <jleng@ambarella.com>
+    Date:   Tue May 17 18:51:28 2022 +0800
 
-    kbuild: Fix include path in scripts/Makefile.modpost
+        kbuild: Fix include path in scripts/Makefile.modpost
 
-    When building an external module, if users don't need to separate the
-    compilation output and source code, they run the following command:
-    "make -C $(LINUX_SRC_DIR) M=$(PWD)". At this point, "$(KBUILD_EXTMOD)"
-    and "$(src)" are the same.
+        When building an external module, if users don't need to separate the
+        compilation output and source code, they run the following command:
+        "make -C $(LINUX_SRC_DIR) M=$(PWD)". At this point, "$(KBUILD_EXTMOD)"
+        and "$(src)" are the same.
 
-    If they need to separate them, they run "make -C $(KERNEL_SRC_DIR)
-    O=$(KERNEL_OUT_DIR) M=$(OUT_DIR) src=$(PWD)". Before running the
-    command, they need to copy "Kbuild" or "Makefile" to "$(OUT_DIR)" to
-    prevent compilation failure.
+        If they need to separate them, they run "make -C $(KERNEL_SRC_DIR)
+        O=$(KERNEL_OUT_DIR) M=$(OUT_DIR) src=$(PWD)". Before running the
+        command, they need to copy "Kbuild" or "Makefile" to "$(OUT_DIR)" to
+        prevent compilation failure.
 
-    So the kernel should change the included path to avoid the copy operation.
-```
+        So the kernel should change the included path to avoid the copy operation.
+    ```
 
-## 设置编译环境
+## 设置编译环境 build.env
 
-初始化编译环境运行如下命令
+### 设置编译环境命令
 
-```sh
-lengjing@lengjing:~/cbuild$ source scripts/build.env
-============================================================
-ENV_BUILD_MODE   : external
-ENV_BUILD_ARCH   :
-ENV_BUILD_TOOL   :
-ENV_BUILD_JOBS   : -j8
-ENV_TOP_DIR      : /home/lengjing/cbuild
-ENV_TOP_OUT      : /home/lengjing/cbuild/output
-ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
-ENV_INS_ROOT     : /home/lengjing/cbuild/output/sysroot
-ENV_DEP_ROOT     : /home/lengjing/cbuild/output/sysroot
-============================================================
-```
+* 初始化编译环境运行如下命令
 
-还可以指定 ARCH 和交叉编译器
+    ```sh
+    lengjing@lengjing:~/cbuild$ source scripts/build.env
+    ============================================================
+    ENV_BUILD_MODE   : external
+    ENV_BUILD_ARCH   :
+    ENV_BUILD_TOOL   :
+    ENV_BUILD_JOBS   : -j8
+    ENV_TOP_DIR      : /home/lengjing/cbuild
+    ENV_TOP_OUT      : /home/lengjing/cbuild/output
+    ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
+    ENV_INS_ROOT     : /home/lengjing/cbuild/output/sysroot
+    ENV_DEP_ROOT     : /home/lengjing/cbuild/output/sysroot
+    ============================================================
+    ```
 
-```sh
-lengjing@lengjing:~/cbuild$ source scripts/build.env arm64 arm-linux-gnueabihf-
-============================================================
-ENV_BUILD_MODE   : external
-ENV_BUILD_ARCH   : arm64
-ENV_BUILD_TOOL   : arm-linux-gnueabihf-
-ENV_BUILD_JOBS   : -j8
-ENV_TOP_DIR      : /home/lengjing/cbuild
-ENV_TOP_OUT      : /home/lengjing/cbuild/output
-ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
-ENV_INS_ROOT     : /home/lengjing/cbuild/output/sysroot
-ENV_DEP_ROOT     : /home/lengjing/cbuild/output/sysroot
-============================================================
-```
+* 还可以指定 ARCH 和交叉编译器
 
-`scripts/build.env` 中，导出的自定义环境变量
+    ```sh
+    lengjing@lengjing:~/cbuild$ source scripts/build.env arm64 arm-linux-gnueabihf-
+    ============================================================
+    ENV_BUILD_MODE   : external
+    ENV_BUILD_ARCH   : arm64
+    ENV_BUILD_TOOL   : arm-linux-gnueabihf-
+    ENV_BUILD_JOBS   : -j8
+    ENV_TOP_DIR      : /home/lengjing/cbuild
+    ENV_TOP_OUT      : /home/lengjing/cbuild/output
+    ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
+    ENV_INS_ROOT     : /home/lengjing/cbuild/output/sysroot
+    ENV_DEP_ROOT     : /home/lengjing/cbuild/output/sysroot
+    ============================================================
+    ```
+
+### 环境变量说明
+
+* ENV_BUILD_MODE: 设置编译模式: external, 源码和编译输出分离; internal, 编译输出到源码; yocto, Yocto 编译方式
+    * external 时，编译输出目录是把包的源码目录的 ENV_TOP_DIR 部分换成了 ENV_OUT_ROOT
+* ENV_BUILD_ARCH: 指定交叉编译 linux 模块的 ARCH
+* ENV_BUILD_TOOL: 指定交叉编译器前缀
+* ENV_BUILD_JOBS: 指定编译线程数
+<br>
+
+* ENV_TOP_DIR: 工程的根目录
+* ENV_TOP_OUT: 工程的输出根目录，编译输出、安装文件、生成镜像等都在此目录下定义
+* ENV_OUT_ROOT: 源码和编译输出分离时的编译输出根目录
+* ENV_INS_ROOT: 工程安装文件的根目录
+* ENV_DEP_ROOT: 工程搜索库和头文件的根目录
 
 ```sh
 ENV_BUILD_MODE=external  # external internal yocto
@@ -123,30 +133,19 @@ ENV_INS_ROOT=${ENV_TOP_OUT}/sysroot
 ENV_DEP_ROOT=${ENV_INS_ROOT}
 ```
 
-* ENV_BUILD_MODE: 设置编译模式: external, 源码和编译输出分离; internal, 编译输出到源码; yocto, Yocto 编译方式
-    * external 时，编译输出目录是把包的源码目录的 ENV_TOP_DIR 部分换成了 ENV_OUT_ROOT
-* ENV_BUILD_ARCH: 指定交叉编译 linux 模块的 ARCH
-* ENV_BUILD_TOOL: 指定交叉编译器前缀
-* ENV_BUILD_JOBS: 指定编译线程数
-
-* ENV_TOP_DIR: 工程的根目录
-* ENV_TOP_OUT: 工程的输出根目录，编译输出、安装文件、生成镜像等都在此目录下定义
-* ENV_OUT_ROOT: 源码和编译输出分离时的编译输出根目录
-* ENV_INS_ROOT: 工程安装文件的根目录
-* ENV_DEP_ROOT: 工程搜索库和头文件的根目录
-
 注: Yocto 编译时，由于 BitBake 任务无法直接使用当前 shell 的环境变量，所以自定义环境变量应由配方文件导出，不需要 source 这个环境脚本
 
-`scripts/core/inc.env.mk` 环境设置模板
+### 编译环境模板 inc.env.mk
 
-* Yocto 编译时编译输出目录交叉编译环境由 `bitbake` 设置并导出，此模板没有做任何操作
-* 其它编译时此模板作用是设置编译输出目录 `OUT_PATH`，设置并导出交叉编译环境
+* 编译环境被应用编译和内核模块编译共用
+* 普通编译时此模板作用是设置编译输出目录 `OUT_PATH`，设置并导出交叉编译环境
+* Yocto 编译时编译输出目录和交叉编译环境由 `bitbake` 设置并导出，此模板没有做任何操作
 
-## 安装模板
+## 安装模板 inc.ins.mk
 
-* 安装模板被应用编译和内核模块编译共用
+安装模板被应用编译和内核模块编译共用
 
-`scripts/core/inc.ins.mk` 支持的目标和对应需要设置的变量
+### 安装模板的目标和变量说明
 
 * install_libs: 安装库文件集
     * 用户需要设置被安装的库文件集变量 INSTALL_LIBRARIES
@@ -168,7 +167,6 @@ ENV_DEP_ROOT=${ENV_INS_ROOT}
 * install_datas: 安装数据文件集
     * 用户需要设置被安装的数据文件集变量 INSTALL_DATAS
     * 安装目录是 `$(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)`
-
 * install_datas_xxx / install_todir_xxx / install_tofile_xxx: 安装文件集到特定文件夹
     * 要安装的文件集分别由 INSTALL_DATAS_xxx / INSTALL_TODIR_xxx / INSTALL_TOFILE_xxx 定义
     * 定义的值前面部分是要安装的文件集，最后一项是以斜杆 `/` 开头的安装目标路径
@@ -177,43 +175,48 @@ ENV_DEP_ROOT=${ENV_INS_ROOT}
     * install_tofile_xxx 安装到文件`$(ENV_INS_ROOT)$(INSTALL_TOFILE_xxx最后一项)` ，INSTALL_TOFILE_xxx 的值有且只有两项
     * 例子:
         * 创建2个空白文件 testa 和 testb，Makefile 内容如下:
-        ```makefile
-        INSTALL_DATAS_test = testa testb /testa/testb
-        INSTALL_TODIR_test = testa testb /usr/local/bin
-        INSTALL_TOFILE_testa = testa /etc/a.conf
-        INSTALL_TOFILE_testb = testa /etc/b.conf
 
-        all: install_datas_test install_todir_test install_tofile_testa install_tofile_testb
-        include $(ENV_TOP_DIR)/scripts/core/inc.ins.mk
-        ```
+            ```makefile
+            INSTALL_DATAS_test = testa testb /testa/testb
+            INSTALL_TODIR_test = testa testb /usr/local/bin
+            INSTALL_TOFILE_testa = testa /etc/a.conf
+            INSTALL_TOFILE_testb = testa /etc/b.conf
+
+            all: install_datas_test install_todir_test install_tofile_testa install_tofile_testb
+            include $(ENV_TOP_DIR)/scripts/core/inc.ins.mk
+            ```
+
         * 运行 make 安装后的文件树
-        ```
-        output/
-        └── sysroot
-            ├── etc
-            │   ├── a.conf
-            │   └── b.conf
-            └── usr
-                ├── local
-                │   └── bin
-                │       ├── testa
-                │       └── testb
-                └── share
-                    └── testa
-                        └── testb
-                            ├── testa
+
+            ```
+            output/
+            └── sysroot
+                ├── etc
+                │   ├── a.conf
+                │   └── b.conf
+                └── usr
+                    ├── local
+                    │   └── bin
+                    │       ├── testa
+                    │       └── testb
+                    └── share
+                        └── testa
                             └── testb
-        ```
+                                ├── testa
+                                └── testb
+            ```
 
-`scripts/core/inc.ins.mk` 提供的函数
+### 安装模板的函数说明
 
-* `$(call safe_cp,cp选项,源和目标)`: 非 yocto 编译时使用加文件锁的 cp，防止多个目标多进程编译时同时安装目录时报错
+* `$(call safe_cp,cp选项,源和目标)`: 非 yocto 编译时使用加文件锁的 cp，防止多个目标多进程同时安装目录时报错
 
-## 测试编译应用
+## 应用模板 inc.app.mk
 
-测试用例1位于 `test-app`
-测试用例2位于 `test-app2` (`test-app2` 依赖 `test-app`)，
-测试用例3位于 `test-app3` (`test-app3` 一个 Makefile 生成多个库)，如下测试
+### 测试编译应用
+
+* 测试用例1位于 `test-app`
+* 测试用例2位于 `test-app2` (`test-app2` 依赖 `test-app`)，
+* 测试用例3位于 `test-app3` (`test-app3` 一个 Makefile 生成多个库)，如下测试
 
 ```sh
 lengjing@lengjing:~/cbuild$ cd examples/test-app
@@ -259,7 +262,7 @@ Build test-app3 Done.
 lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 ```
 
-`scripts/core/inc.app.mk` 支持的目标
+### 应用模板的目标说明
 
 * LIBA_NAME: 编译静态库时需要设置静态库名
     * 编译生成的静态库文件路径会加入到 `LIB_TARGETS` 变量
@@ -275,7 +278,7 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 * BIN_NAME: 编译可执行文件时需要设置可执行文件名
     * 编译生成的可执行文件会加入到 `BIN_TARGETS` 变量
 
-`scripts/core/inc.app.mk` 提供的函数
+### 应用模板的函数说明
 
 * `$(eval $(call add-liba-build,静态库名,源文件列表))`: 创建编译静态库规则
 * `$(eval $(call add-libso-build,动态库名,源文件列表))`: 创建编译动态库规则
@@ -289,7 +292,7 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 
 注: 提供上述函数的原因是可以在一个 Makefile 中编译出多个库或可执行文件
 
-`scripts/core/inc.app.mk` 可设置的变量
+### 应用模板的可设置变量说明
 
 * PACKAGE_NAME: 包的名称，决定头文件等的安装路径(inc.ins.mk 的此变量意义相同)
 * PACKAGE_DEPS: 包的依赖(多个依赖空格隔开)，决定头文件的搜索路径等
@@ -325,9 +328,11 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 * AFLAGS_xxx.o: 用户可以单独为指定源码 `xxx.s / xxx.asm` 设置编译标记
 * DEBUG: 设置为y时使用 `-O0 -g -ggdb` 编译
 
-## 测试kconfig
+## Kconfig 模板 inc.conf.mk
 
-测试用例位于 `test-conf`，如下测试
+### 测试 Kconfig 使用
+
+* 测试用例位于 `test-conf`，如下测试
 
 ```sh
 lengjing@lengjing:~/cbuild/examples/test-app3$ cd ../test-conf/
@@ -371,7 +376,7 @@ lengjing@lengjing:~/cbuild/examples/test-conf$ ls config/
 def2_config  def_config
 ```
 
-`scripts/core/inc.conf.mk` 支持的目标
+### Kconfig 模板的目标说明
 
 * loadconfig: 加载默认配置
     * 如果 .config 不存在，加载 DEF_CONFIG 指定的配置
@@ -383,7 +388,7 @@ def2_config  def_config
 * xxx_defonfig: 将 CONF_SAVE_PATH 下的 xxx_defconfig 作为当前配置
 * xxx_savedefconfig: 将当前配置保存到 CONF_SAVE_PATH 下的 xxx_defconfig
 
-`scripts/core/inc.conf.mk` 可设置的变量
+### Kconfig 模板的可设置变量说明
 
 * OUT_PATH: 编译输出目录，保持默认即可
 * CONF_SRC: kconfig 工具的源码目录，目前是在 `scripts/kconfig`，和实际一致即可
@@ -399,16 +404,18 @@ def2_config  def_config
 
 注: 目录下的 [Kconfig](./examples/test-conf/Kconfig) 文件也说明了如何写配置参数
 
-`scripts/kconfig` 工程说明
+### scripts/kconfig 工程说明
 
 * 源码完全来自 linux-5.18 内核的 `scripts/kconfig`
 * 在原始代码的基础上增加了命令传入参数 `CONFIG_PATH` `AUTOCONFIG_PATH` `AUTOHEADER_PATH`，原先这些参数要作为环境变量传入
 * Makefile 是完全重新编写的
 
+## 内核模块模板 inc.mod.mk
+
 ## 测试编译内核模块
 
-测试用例1位于 `test-mod` (其中 test_hello 依赖于 test_hello_add 和 test_hello_sub)，其中 test_hello_sub 采用 Makefile 和 Kbuild 分离的模式
-测试用例2位于 `test-mod2` (一个 Makefile 同时编译出两个模块 hello_op 和 hello)，如下测试
+* 测试用例1位于 `test-mod` (其中 test_hello 依赖于 test_hello_add 和 test_hello_sub)，其中 test_hello_sub 采用 Makefile 和 Kbuild 分离的模式
+* 测试用例2位于 `test-mod2` (一个 Makefile 同时编译出两个模块 hello_op 和 hello)，如下测试
 
 ```sh
 lengjing@lengjing:~/cbuild/examples/test-conf$ cd ../test-mod
@@ -470,56 +477,59 @@ Skipping BTF generation for /home/lengjing/cbuild/output/objects/examples/test-m
 Build test-mod2 Done.
 ```
 
-`scripts/core/inc.mod.mk` 支持的目标(KERNELRELEASE 为空时)
+### 内核模块模板的 Makefile 部分说明 (KERNELRELEASE 为空时)
 
-* modules: 编译外部内核模块
-* modules_clean: 清理内核模块的编译输出
-* modules_install: 安装内核模块
-    * 外部内核模块默认的安装路径为 `$(ENV_INS_ROOT)/lib/modules/<kernel_release>/extra/`
-* symvers_install: 安装 Module.symvers 符号文件到指定位置(已设置此目标为 `install_hdrs` 目标的依赖)
+* 支持的目标
+    * modules: 编译外部内核模块
+    * modules_clean: 清理内核模块的编译输出
+    * modules_install: 安装内核模块
+        * 外部内核模块默认的安装路径为 `$(ENV_INS_ROOT)/lib/modules/<kernel_release>/extra/`
+    * symvers_install: 安装 Module.symvers 符号文件到指定位置(已设置此目标为 `install_hdrs` 目标的依赖)
 
-`scripts/core/inc.mod.mk` 可设置的变量(KERNELRELEASE 为空时)
+* 可设置的变量
+    * PACKAGE_NAME: 包的名称
+    * PACKAGE_DEPS: 包的依赖(多个依赖空格隔开)
+        * 默认将包依赖对应的路径加到当前包的头文件的搜索路径
+    * MOD_MAKES: 用户指定一些模块自己的信息，例如 XXXX=xxxx
+    * KERNEL_SRC: Linux 内核源码目录 (必须）
+    * KERNEL_OUT: Linux 内核编译输出目录 （`make -O $(KERNEL_OUT)` 编译内核的情况下必须）
 
-* PACKAGE_NAME: 包的名称
-* PACKAGE_DEPS: 包的依赖(多个依赖空格隔开)
-    * 默认将包依赖对应的路径加到当前包的头文件的搜索路径
-* MOD_MAKES: 用户指定一些模块自己的信息，例如 XXXX=xxxx
-* KERNEL_SRC: Linux 内核源码目录 (必须）
-* KERNEL_OUT: Linux 内核编译输出目录 （`make -O $(KERNEL_OUT)` 编译内核的情况下必须）
+### 内核模块模板的 Kbuild 部分说明 (KERNELRELEASE 有值时)
 
-`scripts/core/inc.mod.mk` 支持的目标(KERNELRELEASE 有值时)
+* 支持的目标
+    * MOD_NAME: 模块名称，可以是多个模块名称使用空格隔开
 
-* MOD_NAME: 模块名称，可以是多个模块名称使用空格隔开
+* 可设置的变量
+    * IGNORE_PATH: 查找源码文件时，忽略搜索的目录名集合，默认已忽略 `.git scripts output` 文件夹
+    * SRCS: 所有的 C 和汇编源码文件，默认是当前目录下的所有的 `*.c *.S` 文件
+    * `ccflags-y` `asflags-y` `ldflags-y`: 分别对应内核模块编译、汇编、链接时的参数
 
-`scripts/core/inc.mod.mk` 可设置的变量(KERNELRELEASE 有值时)
+* 提供的函数
+    * `$(call translate_obj,源码文件集)`: 将源码文件集名字转换为KBUILD需要的 `*.o` 格式，不管源码是不是以 `$(src)/` 开头
+    * `$(call set_flags,标记名称,源文件列表,标记值)`: 单独为指定源码集设置编译标记，参考 inc.app.mk 的说明
 
-* IGNORE_PATH: 查找源码文件时，忽略搜索的目录名集合，默认已忽略 `.git scripts output` 文件夹
-* SRCS: 所有的 C 和汇编源码文件，默认是当前目录下的所有的 `*.c *.S` 文件
-* `ccflags-y` `asflags-y` `ldflags-y`: 分别对应内核模块编译、汇编、链接时的参数
+* 其它说明
+    * 如果 MOD_NAME 含有多个模块名称，需要用户自己填写各个模块下的对象，例如
 
-`scripts/core/inc.mod.mk` 提供的函数(KERNELRELEASE 有值时)
-* `$(call translate_obj,源码文件集)`: 将源码文件集名字转换为KBUILD需要的 `*.o` 格式，不管源码是不是以 `$(src)/` 开头
-* `$(call set_flags,标记名称,源文件列表,标记值)`: 单独为指定源码集设置编译标记，参考 inc.app.mk 的说明
+        ```makefile
+        MOD_NAME = mod1 mod2
+        mod1-y = a1.o b1.o c1.o
+        mod2-y = a2.o b2.o c2.o
+        ```
 
-注：如果 MOD_NAME 含有多个模块名称，需要用户自己填写各个模块下的对象，例如
+    * 使用源码和编译输出分离时， 需要先将 Kbuild 或 Makefile 复制到 OUT_PATH 目录下，如果不想复制，需要修改内核源码的 `scripts/Makefile.modpost`，linux-5.19 内核和最新版本的 LTS 内核已合并此补丁
 
-```makefile
-MOD_NAME = mod1 mod2
-mod1-y = a1.o b1.o c1.o
-mod2-y = a2.o b2.o c2.o
-```
+    ```makefile
+    -include $(if $(wildcard $(KBUILD_EXTMOD)/Kbuild), \
+    -             $(KBUILD_EXTMOD)/Kbuild, $(KBUILD_EXTMOD)/Makefile)
+    +include $(if $(wildcard $(src)/Kbuild), $(src)/Kbuild, $(src)/Makefile)
+    ```
 
-注: 使用源码和编译输出分离时， 需要先将 Kbuild 或 Makefile 复制到 OUT_PATH 目录下，如果不想复制，需要修改内核源码的 `scripts/Makefile.modpost`，linux-5.19 内核和最新版本的 LTS 内核已合并此补丁
+## 系统编译链和配置链工具 gen_build_chain.py
 
-```makefile
--include $(if $(wildcard $(KBUILD_EXTMOD)/Kbuild), \
--             $(KBUILD_EXTMOD)/Kbuild, $(KBUILD_EXTMOD)/Makefile)
-+include $(if $(wildcard $(src)/Kbuild), $(src)/Kbuild, $(src)/Makefile)
-```
+### 测试生成总系统编译链和配置链
 
-## 测试生成总系统编译链和配置链
-
-测试用例位于 `test-deps`，如下测试
+* 测试用例位于 `test-deps`，如下测试
 
 ```sh
 lengjing@lengjing:~/cbuild/examples/test-mod2$ cd ../test-deps
@@ -571,22 +581,20 @@ target=clean path=/home/lengjing/cbuild/examples/test-deps/pf/pf
 rm -f auto.mk Kconfig Target
 ```
 
-`scripts/bin/gen_depends_image.sh` 使用
+### gen_build_chain.py 工具参数说明
 
-* `gen_depends_image.sh package_name image_outdir [depends_path]` 生成包的依赖关系图片
-    * package_name: 要生成依赖关系图片的包名
-    * image_outdir: 图片的保存路径
-    * depends_path: gen_build_chain.py 的 -a 参数生成的存储包的依赖关系的图片，Yocto 编译不需要这一项
+```sh
+# 带中括号表示是可选项，否则是必选项
+# 普通编译只需要一步自动生成 Kconfig 和 Makefike
 
-命令使用(带中括号表示是可选项，否则是必选项)
+gen_build_chain.py -m MAKEFILE_OUT -k KCONFIG_OUT [-t TARGET_OUT] [-a DEPENDS_OUT] -d DEP_NAME [-v VIR_NAME] [-c CONF_NAME] -s SEARCH_DIRS [-i IGNORE_DIRS] [-g GO_ON_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG]
 
-* 普通编译只需要一步自动生成 Kconfig 和 Makefike
-    * `gen_build_chain.py -m MAKEFILE_OUT -k KCONFIG_OUT [-t TARGET_OUT] [-a DEPENDS_OUT] -d DEP_NAME [-v VIR_NAME] [-c CONF_NAME] -s SEARCH_DIRS [-i IGNORE_DIRS] [-g GO_ON_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG]`
-* Yocto 编译需要两步分别自动生成 Kconfig 和 Image 配方，会自动分析 `conf/local.conf` `conf/bblayers.conf` 和层下的配方文件和配方附加文件
-    * `gen_build_chain.py -k KCONFIG_OUT -t TARGET_OUT [-v VIR_NAME] [-c CONF_NAME] [-i IGNORE_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG] [-u USER_METAS]`
-    * `gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-p $PATCH_PKG_PATH] [-i IGNORE_RECIPES]`
+# Yocto 编译需要两步分别自动生成 Kconfig 和 Image 配方，会自动分析 `conf/local.conf` `conf/bblayers.conf` 和层下的配方文件和配方附加文件
 
-`scripts/bin/gen_build_chain.py` 选项
+gen_build_chain.py -k KCONFIG_OUT -t TARGET_OUT [-v VIR_NAME] [-c CONF_NAME] [-i IGNORE_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG] [-u USER_METAS]
+
+gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-p $PATCH_PKG_PATH] [-i IGNORE_RECIPES]
+```
 
 * `-m <Makefile Path>`: 普通编译中自动生成的 Makefile 文件名
     * 可以使用一个顶层 Makefile 包含自动生成的 Makefile，all 目标调用 `make $(ENV_BUILD_JOBS) -s MAKEFLAGS= all_targets` 多线程编译所有包
@@ -620,46 +628,54 @@ rm -f auto.mk Kconfig Target
     * 在 Yocto 第2步时指定存储使能的 patch/unpatch 包的文件路径
 * `-u <User Metas>`: Yocto 编译中指定用户层，多个层使用冒号隔开，只有用户层的包才会: 分析依赖关系，默认选中，托管Kconfig，支持 `EXTRADEPS` 特殊依赖和虚拟依赖
 
-实依赖信息格式 `#DEPS(Makefile_Name) Target_Name(Other_Target_Names): Depend_Names`
+### 实依赖格式
 
-![实依赖正则表达式](./scripts/bin/regex_deps.png)
+* 普通编译实依赖格式 `#DEPS(Makefile_Name) Target_Name(Other_Target_Names): Depend_Names`
 
-包含子路径依赖信息格式 `#INCDEPS: Subdir_Names`
+    ![实依赖正则表达式](./scripts/bin/regex_deps.png)
 
-![包含子路径正则表达式](./scripts/bin/regex_incdeps.png)
+* 普通编译包含子路径格式 `#INCDEPS: Subdir_Names`
 
-* Makefile_Name: make 运行的 Makefile 的名称 (可以为空)，不为空时 make 会运行指定的 Makefile (`-f Makefile_Name`)
-    * Makefile 中必须包含 all clean install 三个目标，默认会加入 all install 和 clean 目标的规则
-    * Makefile 名称可以包含路径(即斜杠 `/`)，支持直接查找子文件夹下的子包，例如 `test1/` or `test2/wrapper.mk`
-    * 也可以用一行语句 `#INCDEPS` 继续查找子文件夹下的依赖文件，支持递归，例如 `#INCDEPS: test1 test2`，通过子文件夹下的依赖文件找到子包
-* Target_Name: 当前包的名称ID
-    * `ignore` 关键字是特殊的ID，表示此包不是一个包，用来屏蔽当前目录的搜索，一般写为 `#DEPS() ignore():`
-* Other_Target_Names: 当前包的其它目标，多个目标使用空格隔开 (可以为空)
-    * 忽略 Other_Target_Names 中的 all install clean 目标
-    * `prepare` 关键字是特殊的实目标，表示 make 前运行 make prepare，一般用于当 .config 不存在时加载默认配置到 .config
-    * `union` 关键字是特殊的虚拟目标，用于多个包共享一个 Makefile
-        * 此时 `prepare all install clean` 目标的名字变为 `Target_Name-prepare Target_Name-all Target_Name-install Target_Name-clean`
-    * `jobserver` 关键字是特殊的虚拟目标，表示 make 后加上 `$(ENV_BUILD_JOBS)`，用户需要 `export ENV_BUILD_JOBS=-j8` 才会启动多线程编译
-        * 某些包的 Makefile 包含 make 指令时不要加上 jobserver 目标，例如编译外部内核模块
-    * `subtarget1:subtarget2:...::dep1:dep2:...` 是特殊语法格式，用来显示指定子目标的依赖
-        * 双冒号分开子目标列表和依赖列表，子目标之间和依赖之间使用单冒号分隔，依赖列表可以为空
-* Depend_Names: 当前包依赖的其它包的名称ID，多个依赖使用空格隔开 (可以为空)
-    * 如果有循环依赖或未定义依赖，解析将会失败，会打印出未解析成功的条目
-        * 出现循环依赖，打印 "ERROR: circular deps!"
-        * 出现未定义依赖，打印 "ERROR: deps (%s) are not found!"
+    ![包含子路径正则表达式](./scripts/bin/regex_incdeps.png)
+
+* 普通编译实依赖格式说明
+    * Makefile_Name: make 运行的 Makefile 的名称 (可以为空)，不为空时 make 会运行指定的 Makefile (`-f Makefile_Name`)
+        * Makefile 中必须包含 all clean install 三个目标，默认会加入 all install 和 clean 目标的规则
+        * Makefile 名称可以包含路径(即斜杠 `/`)，支持直接查找子文件夹下的子包，例如 `test1/` or `test2/wrapper.mk`
+        * 也可以用一行语句 `#INCDEPS` 继续查找子文件夹下的依赖文件，支持递归，例如 `#INCDEPS: test1 test2`，通过子文件夹下的依赖文件找到子包
+    * Target_Name: 当前包的名称ID
+        * `ignore` 关键字是特殊的ID，表示此包不是一个包，用来屏蔽当前目录的搜索，一般写为 `#DEPS() ignore():`
+    * Other_Target_Names: 当前包的其它目标，多个目标使用空格隔开 (可以为空)
+        * 忽略 Other_Target_Names 中的 all install clean 目标
+        * `prepare` 关键字是特殊的实目标，表示 make 前运行 make prepare，一般用于当 .config 不存在时加载默认配置到 .config
+        * `union` 关键字是特殊的虚拟目标，用于多个包共享一个 Makefile
+            * 此时 `prepare all install clean` 目标的名字变为 `Target_Name-prepare Target_Name-all Target_Name-install Target_Name-clean`
+        * `jobserver` 关键字是特殊的虚拟目标，表示 make 后加上 `$(ENV_BUILD_JOBS)`，用户需要 `export ENV_BUILD_JOBS=-j8` 才会启动多线程编译
+            * 某些包的 Makefile 包含 make 指令时不要加上 jobserver 目标，例如编译外部内核模块
+        * `subtarget1:subtarget2:...::dep1:dep2:...` 是特殊语法格式，用来显示指定子目标的依赖
+            * 双冒号分开子目标列表和依赖列表，子目标之间和依赖之间使用单冒号分隔，依赖列表可以为空
+    * Depend_Names: 当前包依赖的其它包的名称ID，多个依赖使用空格隔开 (可以为空)
+        * 如果有循环依赖或未定义依赖，解析将会失败，会打印出未解析成功的条目
+            * 出现循环依赖，打印 "ERROR: circular deps!"
+            * 出现未定义依赖，打印 "ERROR: deps (%s) are not found!"
 
 注:  包的名称ID (Target_Name Depend_Names) 是由 **小写字母、数字、短划线** 组成；Other_Target_Names 无此要求，还可以使用 `%` 作为通配符
+<br>
 
-编译命令说明
+* 普通编译命令说明
+    * 可以 `make 包名` 先编译某个包的依赖包(有依赖时)再编译这个包
+    * 可以 `make 包名_single` 有依赖时才有这类目标，仅仅编译这个包
+    * 可以 `make 包名_目标名` 先编译某个包的依赖包(有依赖时)再编译这个包的特定目标(特定目标需要在 Other_Target_Names 中定义)
+    * 可以 `make 包名_目标名_single` 有依赖时才有这类目标，仅仅编译这个包的特定目标(特定目标需要在 Other_Target_Names 中定义)
 
-* 可以 `make 包名` 先编译某个包的依赖包(有依赖时)再编译这个包
-* 可以 `make 包名_single` 有依赖时才有这类目标，仅仅编译这个包
-* 可以 `make 包名_目标名` 先编译某个包的依赖包(有依赖时)再编译这个包的特定目标(特定目标需要在 Other_Target_Names 中定义)
-* 可以 `make 包名_目标名_single` 有依赖时才有这类目标，仅仅编译这个包的特定目标(特定目标需要在 Other_Target_Names 中定义)
+* Yocto 编译实依赖格式
+    * Yocto 编译实依赖格式按照 Yocto 要求填写 `DEPENDS` 和 `RDEPENDS:${PN}` 变量
 
-虚依赖信息格式 `#VDEPS(Virtual_Type) Target_Name(Other_Infos): Depend_Names`
+### 虚依赖格式
 
-![虚依赖正则表达式](./scripts/bin/regex_vdeps.png)
+* 虚依赖格式 `#VDEPS(Virtual_Type) Target_Name(Other_Infos): Depend_Names`
+
+    ![虚依赖正则表达式](./scripts/bin/regex_vdeps.png)
 
 * Virtual_Type      : 必选，表示虚拟包的类型，目前有 4 种类型
     * `menuconfig`  : 表示生成 `menuconfig` 虚拟包，当前目录(含子目录)下的所有的包强依赖此包，且处于该包的菜单目录下
@@ -676,7 +692,7 @@ rm -f auto.mk Kconfig Target
 
 注: 虚依赖是指该包不是实际的包，不会参与编译，只是用来组织管理实际包，普通编译和 Yocto 编译虚拟包的写法和使用规则相同
 
-特殊依赖
+### 特殊依赖说明
 
 * 特殊依赖(虚拟包)
     * `*depname`    : 表示此依赖包是虚拟包 depname，去掉 `*` 后 depname 还可以有特殊符，会继续解析，例如 `*&&depname`
@@ -712,12 +728,114 @@ rm -f auto.mk Kconfig Target
     * ENVNAME=val1,val2 : 表示此包依赖环境变量 ENVNAME 的值等于 val1 或等于 val2
     * ENVNAME!=val1,val2: 表示此包依赖环境变量 ENVNAME 的值不等于 val1 且不等于 val2
 
-Yocto 中的特殊依赖
-
-* Yocto 中的特殊依赖是个人扩展的，特殊依赖在一般编译时设置 '#DEPS' 语句的 `Depend_Names` 元素，Yocto 中是赋值给配方文件的 `EXTRADEPS` 变量
-* 如果 EXTRADEPS 中含有弱依赖，需要继承类 `inherit weakdep`
+* 注: 特殊依赖普通编译时设置的是 `#DEPS` 语句的 `Depend_Names` 元素，Yocto 中是赋值给配方文件的 `EXTRADEPS` 变量，且如果 EXTRADEPS 中含有弱依赖，需要继承类 `inherit weakdep`
     * `weakdep` 类会解析输出根目录的 `config/.config` 文件，根据是否选中此项来设置 `DEPENDS` 和 `RDEPENDS:${PN}`
     * 可以设置 `conf/bblayers.conf` 中的 `BBFILES` 变量，指定查找自动生成的 image 配方的路径，例如 `BBFILES ?= "${TOPDIR}/config/*.bb"`
+
+### 生成依赖关系图 gen_depends_image.sh
+
+* `scripts/bin/gen_depends_image.sh` 命令参数
+    * 参数1: 包名
+    * 参数2: 存储图片的文件夹路径
+    * 参数3: 包名列表等
+        * 普通编译是存储包名和依赖列表的文件路径(gen_build_chain.py 的 `-a` 指定的路径)
+        * Yocto 编译是存储包名和源码路径的文件路径(gen_build_chain.py 的 `-t` 指定的路径)
+    * 参数4: 配置文件 .config 的路径
+<br>
+
+* 生成图片说明
+    * 使用方法 `make 包名-deps`
+    * 普通编译
+        * 实线：强依赖
+        * 虚线：弱依赖
+        * 双线：prebuild 和 srcbuild 选其一，或 patch 和 unpatch 选其一
+        * 绿线：配置文件 .config 中该包已经被选中
+        * 红线：配置文件 .config 中该包没有被选中
+        * 顶层包框颜色
+            * 绿框：配置文件 .config 中该包已经被选中
+            * 红框：配置文件 .config 中该包没有被选中
+    * Yocto 编译
+        * 绿框：用户包，配置文件 .config 中该包已经被选中
+        * 红框：用户包，配置文件 .config 中该包没有被选中
+        * 篮框：Yocto 等社区的包 (没有在 gen_build_chain.py 的 `-u` 指定的层中)
+
+### 普通编译打补丁 exec_patch.sh
+
+* 每类补丁建立两个包，打补丁包和去补丁包，包名格式必须为 `源码包名-patch-补丁ID名` 和 `源码包名-unpatch-补丁ID名`
+* 源码包弱依赖这两个包，源码包的 `#DEPS` 语句的 Depend_Names 加上 `xxx-patch-xxx|xxx-unpatch-xxx`
+* 建立虚依赖规则文件 `#VDEPS(choice) xxx-patch-xxx-choice(xxx-unpatch-xxx xxx-patch-xxx):`
+* 源码包的所有补丁包共用一个 Makefile，示例如下:
+    * PATCH_PACKAGE : 源码包名
+    * PATCH_TOPATH  : 源码路径
+    * PATCH_FOLDER  : 补丁存放路径
+    * PATCH_NAME_补丁ID名 : 补丁名，可以是多个补丁
+
+```makefile
+PATCH_SCRIPT        := $(ENV_TOP_DIR)/scripts/bin/exec_patch.sh
+PATCH_PACKAGE       := xxx
+PATCH_TOPATH        := xxx
+
+PATCH_FOLDER        := xxx
+PATCH_NAME_xxx      := 0001-xxx.patch
+PATCH_NAME_yyy      := 0001-yyy.patch 0002-yyy.patch
+
+$(PATCH_PACKAGE)-unpatch-all:
+	@$(PATCH_SCRIPT) unpatch $(PATCH_FOLDER) $(PATCH_TOPATH)
+	@echo "Unpatch $(PATCH_TOPATH) Done."
+
+$(PATCH_PACKAGE)-patch-%-all:
+	@$(PATCH_SCRIPT) patch "$(patsubst %,$(PATCH_FOLDER)/%,$(PATCH_NAME_$(patsubst $(PATCH_PACKAGE)-patch-%-all,%,$@)))" $(PATCH_TOPATH)
+	@echo "Build $(patsubst %-all,%,$@) Done."
+
+$(PATCH_PACKAGE)-unpatch-%-all:
+	@$(PATCH_SCRIPT) unpatch "$(patsubst %,$(PATCH_FOLDER)/%,$(PATCH_NAME_$(patsubst $(PATCH_PACKAGE)-unpatch-%-all,%,$@)))" $(PATCH_TOPATH)
+	@echo "Build $(patsubst %-all,%,$@) Done."
+
+%-clean:
+	@
+
+%-install:
+	@
+```
+
+### Yocto 编译打补丁 externalpatch.bbclass
+
+* Yocto 官方打补丁
+    * 方法
+        * 配方文件的当前目录新建名为 `配方名` 或 `files` 的文件夹，补丁放在此文件夹内
+            * 注：查找补丁文件的文件夹不止上面这些，但我们一般使用名为 `配方名` 的文件夹
+        * 配方中加上补丁文件名声明，无需文件夹路径 `SRC_URI += "file://0001-xxx.patch"` 
+        * 如果配方继承了 `externalsrc` 类，还要设置变量 `RCTREECOVEREDTASKS = "do_unpack do_fetch"`
+            * 注：`externalsrc` 类默认会把 `do_patch` 任务删除，所以要设置 `RCTREECOVEREDTASKS`
+    * 优点
+        * 实现简单
+    * 缺点
+        * 无法选择补丁是否打上
+        * 打补丁默认只会运行一次，如果其它方法去掉了补丁，重新编译，补丁不会被打上
+        * 会在源码目录生成临时文件夹，污染源码目录，例如生成了 `.pc/` `patches/`
+<br>
+
+* 自定义打补丁
+    * 方法
+        * 每类补丁建立两个包，打补丁包和去补丁包，配方名格式必须为 `xxx-patch-xxx` 和 `xxx-unpatch-xxx`
+        * 源码包弱依赖这两个包 `EXTRADEPS = "xxx-patch-xxx|xxx-unpatch-xxx"` `inherit weakdep`
+        * 建立虚依赖规则文件 `#VDEPS(choice) xxx-patch-xxx-choice(xxx-unpatch-xxx xxx-patch-xxx):`
+        * 补丁包设置变量并继承外部补丁类 `inherit externalpatch`
+            * `externalpatch` 类的作用是检查补丁是否打上，从而决定是否打补丁或去补丁强制运行
+            ```sh
+            EXTERNALPATCH_SRC = "带路径的补丁文件名，可以是多个文件或目录"
+            EXTERNALPATCH_DST = "要打补丁的源码目录"
+            EXTERNALPATCH_OPT = "patch 或 unpatch"
+            inherit externalpatch
+            ```
+    * 缺点
+        * 实现稍显复杂
+        * 因为动态修改了配方，补丁选项改变时需要重新编译打/去补丁包两次
+    * 优点
+        * 可以选择补丁是否打上
+        * 可以保证打补丁或去补丁正确运行，无论是否在其它地方做了打补丁或去补丁的操作
+        * 源码目录只有补丁的修改，无临时文件或文件夹
+        * 补丁可以放在任意目录
 
 ## 测试 Yocto 编译
 
@@ -725,35 +843,35 @@ Yocto 中的特殊依赖
 
 * 安装编译环境
 
-```sh
-lengjing@lengjing:~/cbuild$ sudo apt install gawk wget git diffstat unzip \
-    texinfo gcc build-essential chrpath socat cpio \
-    python3 python3-pip python3-pexpect xz-utils \
-    debianutils iputils-ping python3-git python3-jinja2 \
-    libegl1-mesa libsdl1.2-dev pylint3 xterm \
-    python3-subunit mesa-common-dev zstd liblz4-tool qemu
-```
+    ```sh
+    lengjing@lengjing:~/cbuild$ sudo apt install gawk wget git diffstat unzip \
+        texinfo gcc build-essential chrpath socat cpio \
+        python3 python3-pip python3-pexpect xz-utils \
+        debianutils iputils-ping python3-git python3-jinja2 \
+        libegl1-mesa libsdl1.2-dev pylint3 xterm \
+        python3-subunit mesa-common-dev zstd liblz4-tool qemu
+    ```
 
 * 拉取 Poky 工程
 
-```sh
-lengjing@lengjing:~/cbuild$ git clone git://git.yoctoproject.org/poky
-lengjing@lengjing:~/cbuild$ cd poky
-lengjing@lengjing:~/cbuild/poky$ git branch -a
-lengjing@lengjing:~/cbuild/poky$ git checkout -t origin/kirkstone -b my-kirkstone
-lengjing@lengjing:~/cbuild/poky$ cd ..
-```
+    ```sh
+    lengjing@lengjing:~/cbuild$ git clone git://git.yoctoproject.org/poky
+    lengjing@lengjing:~/cbuild$ cd poky
+    lengjing@lengjing:~/cbuild/poky$ git branch -a
+    lengjing@lengjing:~/cbuild/poky$ git checkout -t origin/kirkstone -b my-kirkstone
+    lengjing@lengjing:~/cbuild/poky$ cd ..
+    ```
 
 注：通过 [Yocto Releases Wiki](https://wiki.yoctoproject.org/wiki/Releases) 界面获取版本代号，上述命令拉取了4.0版本。
 
 * 构建镜像
 
-```shell
-lengjing@lengjing:~/cbuild$ source poky/oe-init-build-env               # 初始化环境
-lengjing@lengjing:~/cbuild/build$ bitbake core-image-minimal            # 构建最小镜像
-lengjing@lengjing:~/cbuild/build$ ls -al tmp/deploy/images/qemux86-64/  # 输出目录
-lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行仿真器
-```
+    ```shell
+    lengjing@lengjing:~/cbuild$ source poky/oe-init-build-env               # 初始化环境
+    lengjing@lengjing:~/cbuild/build$ bitbake core-image-minimal            # 构建最小镜像
+    lengjing@lengjing:~/cbuild/build$ ls -al tmp/deploy/images/qemux86-64/  # 输出目录
+    lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行仿真器
+    ```
 
 注: `source oe-init-build-env <dirname>`功能: 初始化环境，并将工具目录(`bitbake/bin/` 和 `scripts/`)加入到环境变量; 在当前目录自动创建并切换到工作目录(不指定时默认为 build)。
 
@@ -762,6 +880,7 @@ lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行
 * 编写类文件 (xxx.bbclass)
     * 可以在类文件中 `meta-xxx/classes/xxx.bbclass` 定义环境变量，在配方文件中继承 `inherit xxx`
     * 例如 testenv.bbclass
+
         ```sh
         export CONF_PATH = "${STAGING_BINDIR_NATIVE}"
         export OUT_PATH = "${WORKDIR}/build"
@@ -769,7 +888,9 @@ lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行
         export ENV_DEP_ROOT = "${WORKDIR}/recipe-sysroot"
         export ENV_BUILD_MODE
         ```
+
     * 例如 kconfig.bbclass
+
         ```py
         inherit terminal
         KCONFIG_CONFIG_COMMAND ??= "menuconfig"
@@ -839,90 +960,91 @@ lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行
             * `INSANE_SKIP:${PN} += "dev-so"` 忽略安装的文件是符号链接的错误
                 * 更多信息参考 [insane.bbclass](https://docs.yoctoproject.org/ref-manual/classes.html?highlight=sanity#insane-bbclass)
 
-```
-LICENSE = "CLOSED"
-LIC_FILES_CHKSUM = ""
+    ```
+    LICENSE = "CLOSED"
+    LIC_FILES_CHKSUM = ""
 
-# No information for SRC_URI yet (only an external source tree was specified)
-SRC_URI = ""
+    # No information for SRC_URI yet (only an external source tree was specified)
+    SRC_URI = ""
 
-#DEPENDS += "package1 package2"
-#RDEPENDS:${PN} += "package1 package2"
+    #DEPENDS += "package1 package2"
+    #RDEPENDS:${PN} += "package1 package2"
 
-inherit testenv
-#KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"
-#KCONFIG_CONFIG_PATH = "${OUT_PATH}/.config"
-#inherit kconfig
-inherit sanity
-#inherit cmake
-#inherit module
-#inherit native
+    inherit testenv
+    #KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"
+    #KCONFIG_CONFIG_PATH = "${OUT_PATH}/.config"
+    #inherit kconfig
+    inherit sanity
+    #inherit cmake
+    #inherit module
+    #inherit native
 
 
-# NOTE: this is a Makefile-only piece of software, so we cannot generate much of the
-# recipe automatically - you will need to examine the Makefile yourself and ensure
-# that the appropriate arguments are passed in.
+    # NOTE: this is a Makefile-only piece of software, so we cannot generate much of the
+    # recipe automatically - you will need to examine the Makefile yourself and ensure
+    # that the appropriate arguments are passed in.
 
-do_configure () {
- # Specify any needed configure commands here
- :
-}
+    do_configure () {
+     # Specify any needed configure commands here
+     :
+    }
 
-do_compile () {
- # You will almost certainly need to add additional arguments here
- oe_runmake
-}
+    do_compile () {
+     # You will almost certainly need to add additional arguments here
+     oe_runmake
+    }
 
-do_install () {
- # NOTE: unable to determine what to put here - there is a Makefile but no
- # target named "install", so you will need to define this yourself
- oe_runmake install
-}
+    do_install () {
+     # NOTE: unable to determine what to put here - there is a Makefile but no
+     # target named "install", so you will need to define this yourself
+     oe_runmake install
+    }
 
-ALLOW_EMPTY:${PN} = "1"
-INSANE_SKIP:${PN} += "dev-so"
-FILES:${PN}-dev = "${includedir}"
-FILES:${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
-
-```
+    ALLOW_EMPTY:${PN} = "1"
+    INSANE_SKIP:${PN} += "dev-so"
+    FILES:${PN}-dev = "${includedir}"
+    FILES:${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
+    ```
 
 * 编写配方附加文件 (xxx.bbappend)
     * 配方附加文件在 cbuild 的实现中，主要作用是指示包的源码路径和 Makefile 路径，一般这两个路径一样
-        * EXTERNALSRC: 源码目录，编译会对这个目录做校验决定是否重新编译
-            * 如果源码不全在 EXTERNALSRC 目录内，我们需要追加文件或目录做校验，追加任务的 `file-checksums` 标记，否则源码修改后没有重新编译
-            * 用户可以继承类 `extrasrc.bbclass` 来做追加，可设置的变量
-                * EXTRASRC_CONFIGURE: 追加做 do_configure 任务校验的文件或目录
-                * EXTRASRC_COMPILE: 追加做 do_compile 任务校验的文件或目录
-                * EXTRASRC_INSTALL: 追加做 do_install 任务校验的文件或目录
-                ```py
-                python () {
-                    tasks = ['configure', 'compile', 'install']
+    * EXTERNALSRC: 源码目录，编译会对这个目录做校验决定是否重新编译
+        * 如果源码不全在 EXTERNALSRC 目录内，我们需要追加文件或目录做校验，追加任务的 `file-checksums` 标记，否则源码修改后没有重新编译
+        * 用户可以继承类 `extrasrc.bbclass` 来做追加，可设置的变量
+            * EXTRASRC_CONFIGURE: 追加做 do_configure 任务校验的文件或目录
+            * EXTRASRC_COMPILE: 追加做 do_compile 任务校验的文件或目录
+            * EXTRASRC_INSTALL: 追加做 do_install 任务校验的文件或目录
 
-                    for task in tasks:
-                        task_name = 'do_%s' % (task)
-                        src_name = 'EXTRASRC_%s' % (task.upper())
-                        src_str = d.getVar(src_name) 
+            ```py
+            python () {
+                tasks = ['configure', 'compile', 'install']
 
-                        if src_str:
-                            srcs = src_str.split()
-                            for src in srcs:
-                                if os.path.exists(src):
-                                    if os.path.isdir(src):
-                                        d.appendVarFlag(task_name, 'file-checksums', ' %s/*:True' % (src))
-                                    else:
-                                        d.appendVarFlag(task_name, 'file-checksums', ' %s:True' % (src))
-                                    #bb.warn('%s is appended in %s of %s\n' % (d.getVarFlag(task_name, 'file-checksums'), task_name, d.getVar('PN')))
+                for task in tasks:
+                    task_name = 'do_%s' % (task)
+                    src_name = 'EXTRASRC_%s' % (task.upper())
+                    src_str = d.getVar(src_name) 
+
+                    if src_str:
+                        srcs = src_str.split()
+                        for src in srcs:
+                            if os.path.exists(src):
+                                if os.path.isdir(src):
+                                    d.appendVarFlag(task_name, 'file-checksums', ' %s/*:True' % (src))
                                 else:
-                                    bb.warn('%s is not existed in %s of %s\n' % (src, task_name, d.getVar('PN')))
-                }
-                ```
-        * EXTERNALSRC_BUILD: 运行 make 命令的目录，可以和 EXTERNALSRC 不同
+                                    d.appendVarFlag(task_name, 'file-checksums', ' %s:True' % (src))
+                                #bb.warn('%s is appended in %s of %s\n' % (d.getVarFlag(task_name, 'file-checksums'), task_name, d.getVar('PN')))
+                            else:
+                                bb.warn('%s is not existed in %s of %s\n' % (src, task_name, d.getVar('PN')))
+            }
+            ```
 
-```
-inherit externalsrc
-EXTERNALSRC = "${ENV_TOP_DIR}/<package_src>"
-EXTERNALSRC_BUILD = "${ENV_TOP_DIR}/<package_src>"
-```
+    * EXTERNALSRC_BUILD: 运行 make 命令的目录，可以和 EXTERNALSRC 不同
+
+    ```
+    inherit externalsrc
+    EXTERNALSRC = "${ENV_TOP_DIR}/<package_src>"
+    EXTERNALSRC_BUILD = "${ENV_TOP_DIR}/<package_src>"
+    ```
 
 注: [从3.4版本开始，对变量的覆盖样式语法由下滑线 `_` 变成了冒号 `:`](https://docs.yoctoproject.org/migration-guides/migration-3.4.html#override-syntax-changes)
 
@@ -930,107 +1052,26 @@ EXTERNALSRC_BUILD = "${ENV_TOP_DIR}/<package_src>"
 
 * `build/conf/local.conf` 配置文件中增加如下变量定义
 
-```
-ENV_TOP_DIR = "/home/lengjing/cbuild"
-ENV_BUILD_MODE = "yocto"
-```
+    ```
+    ENV_TOP_DIR = "/home/lengjing/cbuild"
+    ENV_BUILD_MODE = "yocto"
+    ```
 
 * 增加测试的层
 
-```sh
-lengjing@lengjing:~/cbuild/build$ bitbake-layers add-layer ../examples/meta-cbuild
-```
+    ```sh
+    lengjing@lengjing:~/cbuild/build$ bitbake-layers add-layer ../examples/meta-cbuild
+    ```
 
 * bitbake 编译
 
-```sh
-lengjing@lengjing:~/cbuild/build$ bitbake test-app2  # 编译应用
-lengjing@lengjing:~/cbuild/build$ bitbake test-app3  # 编译应用
-lengjing@lengjing:~/cbuild/build$ bitbake test-hello # 编译内核模块
-lengjing@lengjing:~/cbuild/build$ bitbake test-mod2  # 编译内核模块
-lengjing@lengjing:~/cbuild/build$ bitbake test-conf  # 编译 kconfig 测试程序
-lengjing@lengjing:~/cbuild/build$ bitbake test-conf -c menuconfig # 修改配置
-```
+    ```sh
+    lengjing@lengjing:~/cbuild/build$ bitbake test-app2  # 编译应用
+    lengjing@lengjing:~/cbuild/build$ bitbake test-app3  # 编译应用
+    lengjing@lengjing:~/cbuild/build$ bitbake test-hello # 编译内核模块
+    lengjing@lengjing:~/cbuild/build$ bitbake test-mod2  # 编译内核模块
+    lengjing@lengjing:~/cbuild/build$ bitbake test-conf  # 编译 kconfig 测试程序
+    lengjing@lengjing:~/cbuild/build$ bitbake test-conf -c menuconfig # 修改配置
+    ```
 
 常见 Yocto 问题可以查看 [Yocto 笔记](./notes/yoctoqa.md)
-
-## 打补丁
-
-### 普通编译打补丁
-
-* 每类补丁建立两个包，打补丁包和去补丁包，包名格式必须为 `源码包名-patch-补丁ID名` 和 `源码包名-unpatch-补丁ID名`
-* 源码包弱依赖这两个包，源码包的 `#DEPS` 语句的 Depend_Names 加上 `xxx-patch-xxx|xxx-unpatch-xxx`
-* 建立虚依赖规则文件 `#VDEPS(choice) xxx-patch-xxx-choice(xxx-unpatch-xxx xxx-patch-xxx):`
-* 源码包的所有补丁包共用一个 Makefile，示例如下:
-    * PATCH_PACKAGE : 源码包名
-    * PATCH_TOPATH  : 源码路径
-    * PATCH_FOLDER  : 补丁存放路径
-    * PATCH_NAME_补丁ID名 : 补丁名，可以是多个补丁
-
-
-```makefile
-PATCH_SCRIPT        := $(ENV_TOP_DIR)/scripts/bin/exec_patch.sh
-PATCH_PACKAGE       := xxx
-PATCH_TOPATH        := xxx
-
-PATCH_FOLDER        := xxx
-PATCH_NAME_xxx      := 0001-xxx.patch
-PATCH_NAME_yyy      := 0001-yyy.patch 0002-yyy.patch
-
-$(PATCH_PACKAGE)-unpatch-all:
-	@$(PATCH_SCRIPT) unpatch $(PATCH_FOLDER) $(PATCH_TOPATH)
-	@echo "Unpatch $(PATCH_TOPATH) Done."
-
-$(PATCH_PACKAGE)-patch-%-all:
-	@$(PATCH_SCRIPT) patch "$(patsubst %,$(PATCH_FOLDER)/%,$(PATCH_NAME_$(patsubst $(PATCH_PACKAGE)-patch-%-all,%,$@)))" $(PATCH_TOPATH)
-	@echo "Build $(patsubst %-all,%,$@) Done."
-
-$(PATCH_PACKAGE)-unpatch-%-all:
-	@$(PATCH_SCRIPT) unpatch "$(patsubst %,$(PATCH_FOLDER)/%,$(PATCH_NAME_$(patsubst $(PATCH_PACKAGE)-unpatch-%-all,%,$@)))" $(PATCH_TOPATH)
-	@echo "Build $(patsubst %-all,%,$@) Done."
-
-%-clean:
-	@
-
-%-install:
-	@
-```
-
-### Yocto 编译打补丁
-
-* Yocto 官方打补丁
-    * 方法
-        * 配方文件的当前目录新建名为 `配方名` 或 `files` 的文件夹，补丁放在此文件夹内
-            * 注：查找补丁文件的文件夹不止上面这些，但我们一般使用名为 `配方名` 的文件夹
-        * 配方中加上补丁文件名声明，无需文件夹路径 `SRC_URI += "file://0001-xxx.patch"` 
-        * 如果配方继承了 `externalsrc` 类，还要设置变量 `RCTREECOVEREDTASKS = "do_unpack do_fetch"`
-            * 注：`externalsrc` 类默认会把 `do_patch` 任务删除，所以要设置 `RCTREECOVEREDTASKS`
-    * 优点
-        * 实现简单
-    * 缺点
-        * 无法选择补丁是否打上
-        * 打补丁默认只会运行一次，如果其它方法去掉了补丁，重新编译，补丁不会被打上
-        * 会在源码目录生成临时文件夹，污染源码目录，例如生成了 `.pc/` `patches/`
-<br>
-
-* 自定义打补丁
-    * 方法
-        * 每类补丁建立两个包，打补丁包和去补丁包，配方名格式必须为 `xxx-patch-xxx` 和 `xxx-unpatch-xxx`
-        * 源码包弱依赖这两个包 `EXTRADEPS = "xxx-patch-xxx|xxx-unpatch-xxx"` `inherit weakdep`
-        * 建立虚依赖规则文件 `#VDEPS(choice) xxx-patch-xxx-choice(xxx-unpatch-xxx xxx-patch-xxx):`
-        * 补丁包设置变量并继承外部补丁类 `inherit externalpatch`
-            * `externalpatch` 类的作用是检查补丁是否打上，从而决定是否打补丁或去补丁强制运行
-            ```sh
-            EXTERNALPATCH_SRC = "带路径的补丁文件名，可以是多个文件或目录"
-            EXTERNALPATCH_DST = "要打补丁的源码目录"
-            EXTERNALPATCH_OPT = "patch 或 unpatch"
-            inherit externalpatch
-            ```
-    * 缺点
-        * 实现稍显复杂
-        * 因为动态修改了配方，补丁选项改变时需要重新编译打/去补丁包两次
-    * 优点
-        * 可以选择补丁是否打上
-        * 可以保证打补丁或去补丁正确运行，无论是否在其它地方做了打补丁或去补丁的操作
-        * 源码目录只有补丁的修改，无临时文件或文件夹
-        * 补丁可以放在任意目录

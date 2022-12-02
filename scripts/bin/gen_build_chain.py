@@ -132,7 +132,7 @@ class Deps:
                                     item['vwdeps'].append(dep[1:])
                                 else:
                                     item['awdeps'].append(dep)
-                            item['select' if amp_num == 2 else 'imply'].append(dep)
+                        item['select' if amp_num == 2 else 'imply'].append(dep)
                     if que_num:
                         item[wdeps].append(dep)
                 elif '=' in dep:
@@ -891,18 +891,65 @@ class Deps:
             fp.write('%s: %s\n' % ('all_targets', '$(ALL_TARGETS)'))
 
 
+    def __replace_list(self, rlist, ori, rep):
+        for i in range(len(rlist)):
+            if rlist[i] == ori:
+                rlist[i] = rep
+                break
+
+
     def gen_deps(self, filename, target_list):
         with open(filename, 'w') as fp:
             for item in self.ActualList:
                 dvars = []
+                rules = []
+
+                if item['wrule']:
+                    for rule in item['wrule']:
+                        rules += rule
+                rules += item['select']
 
                 if item['awdeps']:
+                    awdeps = item['awdeps'][:]
                     for dep in item['awdeps']:
-                        dvars.append('?%s' % dep)
+                        if 'prebuild-' in dep:
+                            if dep.replace('prebuild-', '', 1) in item['awdeps']:
+                                awdeps.remove(dep)
+                            elif dep in rules:
+                                self.__replace_list(awdeps, dep, '+' + dep)
+                            else:
+                                self.__replace_list(awdeps, dep, '?' + dep)
+                        elif 'prebuild-' + dep in item['awdeps']:
+                            self.__replace_list(awdeps, dep, '|' + dep)
+                        elif '-unpatch-' in dep:
+                            if dep.replace('-unpatch-', '-patch-', 1) in item['awdeps']:
+                                awdeps.remove(dep)
+                            elif dep in rules:
+                                self.__replace_list(awdeps, dep, '+' + dep)
+                            else:
+                                self.__replace_list(awdeps, dep, '?' + dep)
+                        elif '-patch-' in dep:
+                            if dep.replace('-unpatch-', '-patch-', 1) in item['awdeps']:
+                                self.__replace_list(awdeps, dep, '|' + dep)
+                            elif dep in item['select']:
+                                self.__replace_list(awdeps, dep, '+' + dep)
+                            else:
+                                self.__replace_list(awdeps, dep, '?' + dep)
+                        else:
+                            if dep in rules:
+                                self.__replace_list(awdeps, dep, '+' + dep)
+                            else:
+                                self.__replace_list(awdeps, dep, '?' + dep)
+
+                    for dep in awdeps:
+                        if dep[0] == '+':
+                            dvars.append(dep[1:])
+                        else:
+                            dvars.append(dep)
 
                 if item['asdeps']:
                     for dep in item['asdeps']:
-                        if 'finally' not in item['asdeps']:
+                        if dep != 'finally':
                             dvars.append(dep)
 
                 if dvars:
