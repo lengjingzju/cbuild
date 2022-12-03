@@ -1,3 +1,3 @@
 MOD_NAME = hello_sub
 
-include $(ENV_TOP_DIR)/scripts/core/inc.mod.mk
+include $(ENV_MAKE_DIR)/inc.mod.mk

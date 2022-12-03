@@ -1,6 +1,6 @@
 PACKAGE_NAME = lua
 
-include $(ENV_TOP_DIR)/scripts/core/inc.env.mk
+include $(ENV_MAKE_DIR)/inc.env.mk
 
 VERSION             := 5.4.4
 SRC_DNAME           := lua-$(VERSION)
@@ -26,7 +26,7 @@ all:
 	@$(MAKES) && $(MAKES) install
 	@echo "Build $(PACKAGE_NAME) Done."
 
-include $(ENV_TOP_DIR)/scripts/core/inc.ins.mk
+include $(ENV_MAKE_DIR)/inc.ins.mk
 
 clean:
 	@rm -rf $(OUT_PATH)

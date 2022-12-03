@@ -18,6 +18,6 @@ install: modules_install install_hdrs
 
 endif
 
-include $(ENV_TOP_DIR)/scripts/core/inc.env.mk
-include $(ENV_TOP_DIR)/scripts/core/inc.mod.mk
-include $(ENV_TOP_DIR)/scripts/core/inc.ins.mk
+include $(ENV_MAKE_DIR)/inc.env.mk
+include $(ENV_MAKE_DIR)/inc.mod.mk
+include $(ENV_MAKE_DIR)/inc.ins.mk

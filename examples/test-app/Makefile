@@ -10,9 +10,9 @@ INSTALL_HEADERS = include/add.h include/sub.h
 all:
 	@echo "Build $(PACKAGE_NAME) Done."
 
-include $(ENV_TOP_DIR)/scripts/core/inc.env.mk
-include $(ENV_TOP_DIR)/scripts/core/inc.app.mk
-include $(ENV_TOP_DIR)/scripts/core/inc.ins.mk
+include $(ENV_MAKE_DIR)/inc.env.mk
+include $(ENV_MAKE_DIR)/inc.app.mk
+include $(ENV_MAKE_DIR)/inc.ins.mk
 
 all: $(LIB_TARGETS) $(BIN_TARGETS)
 

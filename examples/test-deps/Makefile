@@ -3,7 +3,7 @@
 all:
 	@make -j`nproc` -s MAKEFLAGS= all_targets
 
-include $(ENV_TOP_DIR)/scripts/core/inc.conf.mk
+include $(ENV_MAKE_DIR)/inc.conf.mk
 -include $(OUT_PATH)/.config
 -include auto.mk
 

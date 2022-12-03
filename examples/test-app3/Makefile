@@ -14,9 +14,9 @@ SRCS += $(div-srcs)
 all:
 	@echo "Build $(PACKAGE_NAME) Done."
 
-include $(ENV_TOP_DIR)/scripts/core/inc.env.mk
-include $(ENV_TOP_DIR)/scripts/core/inc.app.mk
-include $(ENV_TOP_DIR)/scripts/core/inc.ins.mk
+include $(ENV_MAKE_DIR)/inc.env.mk
+include $(ENV_MAKE_DIR)/inc.app.mk
+include $(ENV_MAKE_DIR)/inc.ins.mk
 
 $(eval $(call add-liba-build,libadd.a,$(add-srcs)))
 $(eval $(call add-libso-build,libadd.so 1 2 3,$(add-srcs)))

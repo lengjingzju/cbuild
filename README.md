@@ -82,6 +82,7 @@
     ENV_BUILD_TOOL   :
     ENV_BUILD_JOBS   : -j8
     ENV_TOP_DIR      : /home/lengjing/cbuild
+    ENV_MAKE_DIR     : /home/lengjing/cbuild/scripts/core
     ENV_DOWNLOADS    : /home/lengjing/cbuild/downloads
     ENV_MIRROR_URL   : http://127.0.0.1:8888
     ENV_TOP_OUT      : /home/lengjing/cbuild/output
@@ -101,6 +102,7 @@
     ENV_BUILD_TOOL   : arm-linux-gnueabihf-
     ENV_BUILD_JOBS   : -j8
     ENV_TOP_DIR      : /home/lengjing/cbuild
+    ENV_MAKE_DIR     : /home/lengjing/cbuild/scripts/core
     ENV_DOWNLOADS    : /home/lengjing/cbuild/downloads
     ENV_MIRROR_URL   : http://127.0.0.1:8888
     ENV_TOP_OUT      : /home/lengjing/cbuild/output
@@ -120,6 +122,7 @@
 <br>
 
 * ENV_TOP_DIR: 工程的根目录
+* ENV_MAKE_DIR: 工程的编译模板目录
 * ENV_DOWNLOADS: 下载包的保存路径
 * ENV_MIRROR_URL: 下载包的 http 镜像，可用命令 `python -m http.server 端口号` 快速创建 http 服务器
 <br>
@@ -136,6 +139,7 @@ ENV_BUILD_TOOL=$2
 ENV_BUILD_JOBS=-jn
 
 ENV_TOP_DIR=$(pwd | sed 's:/cbuild.*::')/cbuild
+ENV_MAKE_DIR=${ENV_TOP_DIR}/scripts/core
 ENV_DOWNLOADS=${ENV_TOP_DIR}/downloads
 ENV_MIRROR_URL=http://127.0.0.1:8888
 
@@ -195,7 +199,7 @@ ENV_DEP_ROOT=${ENV_INS_ROOT}
             INSTALL_TOFILE_testb = testa /etc/b.conf
 
             all: install_datas_test install_todir_test install_tofile_testa install_tofile_testb
-            include $(ENV_TOP_DIR)/scripts/core/inc.ins.mk
+            include $(ENV_MAKE_DIR)/inc.ins.mk
             ```
 
         * 运行 make 安装后的文件树
@@ -320,13 +324,13 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
     * 例如增加 cxx 类型的支持(CPP_SUFFIX 已有定义 cxx)：
         ```makefile
         REG_SUFFIX = c cpp S cxx
-        include $(ENV_TOP_DIR)/scripts/core/inc.app.mk
+        include $(ENV_MAKE_DIR)/inc.app.mk
         ```
     * 例如增加 CXX 类型的支持(CPP_SUFFIX 还未定义 CXX)：
         ```makefile
         REG_SUFFIX = c cpp S CXX
         CPP_SUFFIX = cc cp cxx cpp CPP c++ C CXX
-        include $(ENV_TOP_DIR)/scripts/core/inc.app.mk
+        include $(ENV_MAKE_DIR)/inc.app.mk
         $(eval $(call compile_obj,CXX,$$(CXX)))
         ```
 * USING_CXX_BUILD_C: 设置为 y 时 `*.c` 文件也用 CXX 编译
