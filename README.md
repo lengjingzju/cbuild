@@ -19,6 +19,7 @@
 * 提供源码包和预编译包切换机制，可选择预编译包加快编译
 * 提供方便的打补丁和去补丁切换的机制，例如动态决定是否打补丁 `exec_patch.sh` `externalpatch.bbclass`
 * 支持生成包的依赖关系的图片，并有颜色等属性查看包是否被选中等 `gen_depends_image.sh`
+* 支持自动拉取开源包编译，支持从 http git 或 svn 下载包，http 支持优先从镜像下载 `fetch_package.sh`
 
 ## 笔记
 
@@ -81,6 +82,8 @@
     ENV_BUILD_TOOL   :
     ENV_BUILD_JOBS   : -j8
     ENV_TOP_DIR      : /home/lengjing/cbuild
+    ENV_DOWNLOADS    : /home/lengjing/cbuild/downloads
+    ENV_MIRROR_URL   : http://127.0.0.1:8888
     ENV_TOP_OUT      : /home/lengjing/cbuild/output
     ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
     ENV_INS_ROOT     : /home/lengjing/cbuild/output/sysroot
@@ -98,6 +101,8 @@
     ENV_BUILD_TOOL   : arm-linux-gnueabihf-
     ENV_BUILD_JOBS   : -j8
     ENV_TOP_DIR      : /home/lengjing/cbuild
+    ENV_DOWNLOADS    : /home/lengjing/cbuild/downloads
+    ENV_MIRROR_URL   : http://127.0.0.1:8888
     ENV_TOP_OUT      : /home/lengjing/cbuild/output
     ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
     ENV_INS_ROOT     : /home/lengjing/cbuild/output/sysroot
@@ -115,6 +120,10 @@
 <br>
 
 * ENV_TOP_DIR: 工程的根目录
+* ENV_DOWNLOADS: 下载包的保存路径
+* ENV_MIRROR_URL: 下载包的 http 镜像，可用命令 `python -m http.server 端口号` 快速创建 http 服务器
+<br>
+
 * ENV_TOP_OUT: 工程的输出根目录，编译输出、安装文件、生成镜像等都在此目录下定义
 * ENV_OUT_ROOT: 源码和编译输出分离时的编译输出根目录
 * ENV_INS_ROOT: 工程安装文件的根目录
@@ -127,6 +136,9 @@ ENV_BUILD_TOOL=$2
 ENV_BUILD_JOBS=-jn
 
 ENV_TOP_DIR=$(pwd | sed 's:/cbuild.*::')/cbuild
+ENV_DOWNLOADS=${ENV_TOP_DIR}/downloads
+ENV_MIRROR_URL=http://127.0.0.1:8888
+
 ENV_TOP_OUT=${ENV_TOP_DIR}/output
 ENV_OUT_ROOT=${ENV_TOP_OUT}/objects
 ENV_INS_ROOT=${ENV_TOP_OUT}/sysroot
@@ -758,6 +770,95 @@ gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-p $P
         * 绿框：用户包，配置文件 .config 中该包已经被选中
         * 红框：用户包，配置文件 .config 中该包没有被选中
         * 篮框：Yocto 等社区的包 (没有在 gen_build_chain.py 的 `-u` 指定的层中)
+
+
+## 网络下载包并打补丁编译
+
+### 测试网络下载包并打补丁编译
+
+* 测试用例位于 `test-lua`，如下测试
+
+```sh
+# 测试下载 lua 并打补丁编译
+lengjing@lengjing:~/cbuild/examples/test-lua$ make 
+curl http://www.lua.org/ftp/lua-5.4.4.tar.gz to /home/lengjing/cbuild/downloads/lua-5.4.4.tar.gz
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  352k  100  352k    0     0   139k      0  0:00:02  0:00:02 --:--:--  139k
+untar /home/lengjing/cbuild/downloads/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/objects/examples/test-lua
+patching file Makefile
+patching file src/Makefile
+Patch /home/lengjing/cbuild/examples/test-lua/patches/0001-lua-Support-dynamic-library-compilation.patch to /home/lengjing/cbuild/output/objects/examples/test-lua/lua-5.4.4 Done.
+patching file src/lparser.c
+Patch /home/lengjing/cbuild/examples/test-lua/patches/CVE-2022-28805.patch to /home/lengjing/cbuild/output/objects/examples/test-lua/lua-5.4.4 Done.
+Guessing Linux
+Build lua Done.
+
+# 另起一个终端，将 ~/cbuild/downloads 重命名为 ~/cbuild/mirror 并启用 http 服务器
+lengjing@lengjing:~/cbuild/mirror$ python3 -m http.server 8888
+
+# 原先的终端继续运行命令
+lengjing@lengjing:~/cbuild/examples/test-lua$ export FETCH_SCRIPT=/home/lengjing/cbuild/scripts/bin/fetch_package.sh
+lengjing@lengjing:~/cbuild/examples/test-lua$ export COPY_TO_PATH=/home/lengjing/cbuild/output/oss
+
+# 测试 tar 类型的包
+lengjing@lengjing:~/cbuild/examples/test-lua$ ${FETCH_SCRIPT} tar http://www.lua.org/ftp/lua-5.4.3.tar.gz lua-5.4.3.tar.gz ${COPY_TO_PATH} lua-5.4.3
+curl http://www.lua.org/ftp/lua-5.4.3.tar.gz to /home/lengjing/cbuild/downloads/lua-5.4.3.tar.gz
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  349k  100  349k    0     0  54656      0  0:00:06  0:00:06 --:--:-- 61593
+untar /home/lengjing/cbuild/downloads/lua-5.4.3.tar.gz to /home/lengjing/cbuild/output/oss
+
+# 测试 tar 类型的包，可以发现从镜像 http://127.0.0.1:8888 下载了
+lengjing@lengjing:~/cbuild/examples/test-lua$ ${FETCH_SCRIPT} tar http://www.lua.org/ftp/lua-5.4.4.tar.gz lua-5.4.4.tar.gz ${COPY_TO_PATH} lua-5.4.4
+curl http://127.0.0.1:8888/lua-5.4.4.tar.gz to /home/lengjing/cbuild/downloads/lua-5.4.4.tar.gz
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  352k  100  352k    0     0  34.4M      0 --:--:-- --:--:-- --:--:-- 38.2M
+untar /home/lengjing/cbuild/downloads/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/oss
+
+# 测试 zip 类型的包 
+lengjing@lengjing:~/cbuild/examples/test-lua$ ${FETCH_SCRIPT} zip https://github.com/curl/curl/releases/download/curl-7_86_0/curl-7.86.0.zip
+Usage: /home/lengjing/cbuild/scripts/bin/fetch_package.sh method url package outdir outname
+    method can be 'zip / tar / git / svn'
+lengjing@lengjing:~/cbuild/examples/test-lua$ ${FETCH_SCRIPT} zip https://github.com/curl/curl/releases/download/curl-7_86_0/curl-7.86.0.zip curl-7.86.0.zip ${COPY_TO_PATH} curl-7.86.0
+curl https://github.com/curl/curl/releases/download/curl-7_86_0/curl-7.86.0.zip to /home/lengjing/cbuild/downloads/curl-7.86.0.zip
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100 6305k  100 6305k    0     0  98506      0  0:01:05  0:01:05 --:--:-- 52843
+unzip /home/lengjing/cbuild/downloads/curl-7.86.0.zip to /home/lengjing/cbuild/output/oss
+
+# 测试 git 类型的包
+lengjing@lengjing:~/cbuild/examples/test-lua$ ${FETCH_SCRIPT} git https://github.com/lengjingzju/json.git json ${COPY_TO_PATH} json
+git clone https://github.com/lengjingzju/json.git to /home/lengjing/cbuild/downloads/json
+Cloning into '/home/lengjing/cbuild/downloads/json'...
+remote: Enumerating objects: 39, done.
+remote: Counting objects: 100% (2/2), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 39 (delta 1), reused 0 (delta 0), pack-reused 37
+Unpacking objects: 100% (39/39), 450.82 KiB | 891.00 KiB/s, done.
+copy /home/lengjing/cbuild/downloads/json to /home/lengjing/cbuild/output/oss
+
+# 测试 svn 类型的包
+lengjing@lengjing:~/cbuild/examples/test-lua$ ${FETCH_SCRIPT} svn https://github.com/lengjingzju/mem mem ${COPY_TO_PATH} mem
+svn checkout https://github.com/lengjingzju/mem to /home/lengjing/cbuild/downloads/mem
+copy /home/lengjing/cbuild/downloads/mem to /home/lengjing/cbuild/output/oss
+```
+
+### 网络下载包
+
+* 用法 `fetch_package.sh method url package outdir outname`
+    * method:  包下载方式，目前支持 4 种方式
+        * tar: 可用 tar 命令解压的包，使用 curl 下载包，后缀名为 `tar.gz` `tar.bz2` `tar.xz` 等
+        * zip: 使用 unzip 命令解压的包，使用 curl 下载包，后缀名为 `gz` `zip` 等
+        * git: 使用 git clone 下载包
+        * svn: 使用 svn checkout 下载包
+        * 注: 使用 curl 下载包优先尝试 ENV_MIRROR_URL 指定的镜像 URL
+    * url: 下载链接
+    * package: tar zip 是保存的文件名，git svn 是保存的文件夹名，保存的目录是 ENV_DOWNLOADS
+    * outdir: 解压或复制到的目录，用于编译
+    * outname: outdir 中包的文件夹名称
 
 ### 普通编译打补丁 exec_patch.sh
 
