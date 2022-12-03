@@ -428,7 +428,7 @@ def2_config  def_config
 
 ## 内核模块模板 inc.mod.mk
 
-## 测试编译内核模块
+### 测试编译内核模块
 
 * 测试用例1位于 `test-mod` (其中 test_hello 依赖于 test_hello_add 和 test_hello_sub)，其中 test_hello_sub 采用 Makefile 和 Kbuild 分离的模式
 * 测试用例2位于 `test-mod2` (一个 Makefile 同时编译出两个模块 hello_op 和 hello)，如下测试
