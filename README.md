@@ -19,7 +19,7 @@
 * 提供源码包和预编译包切换机制，可选择预编译包加快编译
 * 提供方便的打补丁和去补丁切换的机制，例如动态决定是否打补丁 `exec_patch.sh` `externalpatch.bbclass`
 * 支持生成包的依赖关系的图片，并有颜色等属性查看包是否被选中等 `gen_depends_image.sh`
-* 支持自动拉取开源包编译，支持从 http git 或 svn 下载包，http 支持优先从镜像下载 `fetch_package.sh`
+* 支持自动拉取开源包编译，支持从 http git 或 svn 下载包，http 支持优先从镜像下载，git 和 svn 支持持续更新 `fetch_package.sh`
 
 ## 笔记
 
@@ -821,10 +821,7 @@ curl http://127.0.0.1:8888/lua-5.4.4.tar.gz to /home/lengjing/cbuild/downloads/l
 100  352k  100  352k    0     0  34.4M      0 --:--:-- --:--:-- --:--:-- 38.2M
 untar /home/lengjing/cbuild/downloads/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/oss
 
-# 测试 zip 类型的包 
-lengjing@lengjing:~/cbuild/examples/test-lua$ ${FETCH_SCRIPT} zip https://github.com/curl/curl/releases/download/curl-7_86_0/curl-7.86.0.zip
-Usage: /home/lengjing/cbuild/scripts/bin/fetch_package.sh method url package outdir outname
-    method can be 'zip / tar / git / svn'
+# 测试 zip 类型的包
 lengjing@lengjing:~/cbuild/examples/test-lua$ ${FETCH_SCRIPT} zip https://github.com/curl/curl/releases/download/curl-7_86_0/curl-7.86.0.zip curl-7.86.0.zip ${COPY_TO_PATH} curl-7.86.0
 curl https://github.com/curl/curl/releases/download/curl-7_86_0/curl-7.86.0.zip to /home/lengjing/cbuild/downloads/curl-7.86.0.zip
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
@@ -863,6 +860,7 @@ copy /home/lengjing/cbuild/downloads/mem to /home/lengjing/cbuild/output/oss
     * package: tar zip 是保存的文件名，git svn 是保存的文件夹名，保存的目录是 ENV_DOWNLOADS
     * outdir: 解压或复制到的目录，用于编译
     * outname: outdir 中包的文件夹名称
+* 用法 `fetch_package.sh sync` 更新 ENV_DOWNLOADS 下的所有 git 和 svn 包
 
 ### 普通编译打补丁 exec_patch.sh
 
