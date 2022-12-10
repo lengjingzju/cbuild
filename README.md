@@ -1160,7 +1160,7 @@ $(PATCH_PACKAGE)-unpatch-%-all:
 
 OSS 层正在开发中，目前仅有几个包，需要大家的贡献完善<br>
 
-编译缓存演示demo [cache_demo](./notes/cbuild-cache.mp4)
+编译缓冲演示demo [cache_demo](https://www.bilibili.com/video/BV15R4y1C7e6)
 
 * 第一次编译，并统计各个包的编译时间
     * `make time_statistics` 是一个一个包编译过去(包内可能是多线程编译)，获取每个包的编译时间
