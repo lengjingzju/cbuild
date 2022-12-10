@@ -1,3 +1,5 @@
+#DEPS(mk.deps) lua(cache): unselect
+
 PACKAGE_NAME = lua
 
 include $(ENV_MAKE_DIR)/inc.env.mk
@@ -12,22 +14,33 @@ PATCH_FOLDER        := $(shell pwd)/patch
 PATCH_SCRIPT        := $(ENV_TOOL_DIR)/exec_patch.sh
 FETCH_SCRIPT        := $(ENV_TOOL_DIR)/fetch_package.sh
 
-MAKES               := make -s CC=$(CC) AR="$(AR) rcs" RANLIB="$(RANLIB) -D" \
+CACHE_CHECKSUM       = $(shell pwd)/mk.deps $(PATCH_FOLDER)
+CACHE_DEPENDS        = none
+CACHE_URL            = [tar]$(SRC_URL)
+
+MAKES               := make -s $(ENV_BUILD_JOBS) CC=$(CC) AR="$(AR) rcs" RANLIB="$(RANLIB) -D" \
                        INSTALL_TOP=$(INSTALL_PATH) INSTALL_DATA="cp -rfp" -C $(OUT_PATH)/$(SRC_DIRNAME)
 
 INSTALL_HEADERS     := $(INSTALL_PATH)/include/*
 INSTALL_LIBRARIES   := $(INSTALL_PATH)/lib/liblua.*
 INSTALL_BINARIES    := $(INSTALL_PATH)/bin/*
 
-.PHONY: all clean install
+define do_compile
+	$(FETCH_SCRIPT) tar $(SRC_URL) $(DOWNLOAD_NAME) $(OUT_PATH) $(SRC_DIRNAME) && \
+	$(PATCH_SCRIPT) patch $(PATCH_FOLDER) $(OUT_PATH)/$(SRC_DIRNAME) && \
+	rm -rf $(INSTALL_PATH) && $(MAKES) && $(MAKES) install
+endef
 
-all:
-	@$(FETCH_SCRIPT) tar $(SRC_URL) $(DOWNLOAD_NAME) $(OUT_PATH) $(SRC_DIRNAME)
-	@$(PATCH_SCRIPT) patch $(PATCH_FOLDER) $(OUT_PATH)/$(SRC_DIRNAME)
-	@rm -rf $(INSTALL_PATH) && $(MAKES) && $(MAKES) install
-	@echo "Build $(PACKAGE_NAME) Done."
+.PHONY: all srcbuild clean install
 
+all: cachebuild
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
 include $(ENV_MAKE_DIR)/inc.ins.mk
+
+srcbuild:
+	@$(call do_compile)
+	@echo "Build $(PACKAGE_NAME) Done."
 
 clean:
 	@rm -rf $(OUT_PATH)

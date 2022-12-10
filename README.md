@@ -1,5 +1,7 @@
 # CBuild 编译系统
 
+[toc]
+
 ## 特点
 
 * Linux 下纯粹的 Makefile 编译，支持 Makefile 封装包已有的 `Makefile` `CMake` `Autotools` 以实现对它们的支持
@@ -19,7 +21,9 @@
 * 提供源码包和预编译包切换机制，可选择预编译包加快编译
 * 提供方便的打补丁和去补丁切换的机制，例如动态决定是否打补丁 `exec_patch.sh` `externalpatch.bbclass`
 * 支持生成包的依赖关系的图片，并有颜色等属性查看包是否被选中等 `gen_depends_image.sh`
-* 支持自动拉取开源包编译，支持从 http git 或 svn 下载包，http 支持优先从镜像下载，git 和 svn 支持持续更新 `fetch_package.sh`
+* 支持自动拉取开源包编译，支持从 http git 或 svn 下载包，支持镜像下载 `fetch_package.sh`
+* 支持编译缓存镜像，再次编译不需要从代码编译，直接从本地缓存或网络镜像缓存拉取 `process_cache.sh` `inc.cache.mk`
+* 开源代码 OSS 层开发中，需要大家的贡献
 
 ## 笔记
 
@@ -78,17 +82,21 @@
     lengjing@lengjing:~/cbuild$ source scripts/build.env
     ============================================================
     ENV_BUILD_MODE   : external
-    ENV_BUILD_ARCH   :
-    ENV_BUILD_TOOL   :
+    ENV_BUILD_ARCH   : 
+    ENV_BUILD_TOOL   : 
+    ENV_BUILD_GRADE  : v1 v2 v3
     ENV_BUILD_JOBS   : -j8
     ENV_TOP_DIR      : /home/lengjing/cbuild
     ENV_MAKE_DIR     : /home/lengjing/cbuild/scripts/core
-    ENV_DOWNLOADS    : /home/lengjing/cbuild/downloads
+    ENV_TOOL_DIR     : /home/lengjing/cbuild/scripts/bin
+    ENV_DOWN_DIR     : /home/lengjing/cbuild/output/mirror-cache/downloads
+    ENV_CACHE_DIR    : /home/lengjing/cbuild/output/mirror-cache/build-cache
     ENV_MIRROR_URL   : http://127.0.0.1:8888
     ENV_TOP_OUT      : /home/lengjing/cbuild/output
     ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
     ENV_INS_ROOT     : /home/lengjing/cbuild/output/sysroot
     ENV_DEP_ROOT     : /home/lengjing/cbuild/output/sysroot
+    ENV_CFG_ROOT     : /home/lengjing/cbuild/output/config
     ============================================================
     ```
 
@@ -100,15 +108,7 @@
     ENV_BUILD_MODE   : external
     ENV_BUILD_ARCH   : arm64
     ENV_BUILD_TOOL   : arm-linux-gnueabihf-
-    ENV_BUILD_JOBS   : -j8
-    ENV_TOP_DIR      : /home/lengjing/cbuild
-    ENV_MAKE_DIR     : /home/lengjing/cbuild/scripts/core
-    ENV_DOWNLOADS    : /home/lengjing/cbuild/downloads
-    ENV_MIRROR_URL   : http://127.0.0.1:8888
-    ENV_TOP_OUT      : /home/lengjing/cbuild/output
-    ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
-    ENV_INS_ROOT     : /home/lengjing/cbuild/output/sysroot
-    ENV_DEP_ROOT     : /home/lengjing/cbuild/output/sysroot
+    ...
     ============================================================
     ```
 
@@ -118,12 +118,15 @@
     * external 时，编译输出目录是把包的源码目录的 ENV_TOP_DIR 部分换成了 ENV_OUT_ROOT
 * ENV_BUILD_ARCH: 指定交叉编译 linux 模块的 ARCH
 * ENV_BUILD_TOOL: 指定交叉编译器前缀
+* ENV_BUILD_GRADE: 指定编译缓存级别数组，比如我有一颗 acortex-a55 的 soc，那这个值可设置为 `socname cortex-a55 armv8-a`
 * ENV_BUILD_JOBS: 指定编译线程数
 <br>
 
 * ENV_TOP_DIR: 工程的根目录
 * ENV_MAKE_DIR: 工程的编译模板目录
-* ENV_DOWNLOADS: 下载包的保存路径
+* ENV_TOOL_DIR: 工程的脚本工具目录
+* ENV_DOWN_DIR: 下载包的保存路径
+* ENV_CACHE_DIR: 包的编译缓存保存路径
 * ENV_MIRROR_URL: 下载包的 http 镜像，可用命令 `python -m http.server 端口号` 快速创建 http 服务器
 <br>
 
@@ -131,23 +134,7 @@
 * ENV_OUT_ROOT: 源码和编译输出分离时的编译输出根目录
 * ENV_INS_ROOT: 工程安装文件的根目录
 * ENV_DEP_ROOT: 工程搜索库和头文件的根目录
-
-```sh
-ENV_BUILD_MODE=external  # external internal yocto
-ENV_BUILD_ARCH=$1
-ENV_BUILD_TOOL=$2
-ENV_BUILD_JOBS=-jn
-
-ENV_TOP_DIR=$(pwd | sed 's:/cbuild.*::')/cbuild
-ENV_MAKE_DIR=${ENV_TOP_DIR}/scripts/core
-ENV_DOWNLOADS=${ENV_TOP_DIR}/downloads
-ENV_MIRROR_URL=http://127.0.0.1:8888
-
-ENV_TOP_OUT=${ENV_TOP_DIR}/output
-ENV_OUT_ROOT=${ENV_TOP_OUT}/objects
-ENV_INS_ROOT=${ENV_TOP_OUT}/sysroot
-ENV_DEP_ROOT=${ENV_INS_ROOT}
-```
+* ENV_CFG_ROOT: 工程自动生成文件的保存路径，例如全局 Kconfig 和 Makefile，各种统计文件等
 
 注: Yocto 编译时，由于 BitBake 任务无法直接使用当前 shell 的环境变量，所以自定义环境变量应由配方文件导出，不需要 source 这个环境脚本
 
@@ -658,7 +645,9 @@ gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-p $P
     * Makefile_Name: make 运行的 Makefile 的名称 (可以为空)，不为空时 make 会运行指定的 Makefile (`-f Makefile_Name`)
         * Makefile 中必须包含 all clean install 三个目标，默认会加入 all install 和 clean 目标的规则
         * Makefile 名称可以包含路径(即斜杠 `/`)，支持直接查找子文件夹下的子包，例如 `test1/` or `test2/wrapper.mk`
-        * 也可以用一行语句 `#INCDEPS` 继续查找子文件夹下的依赖文件，支持递归，例如 `#INCDEPS: test1 test2`，通过子文件夹下的依赖文件找到子包
+        * 也可以用一行语句 `#INCDEPS` 继续查找子文件夹下的依赖文件，支持递归
+            * 例如 `#INCDEPS: test1 test2`，通过子文件夹下的依赖文件找到子包
+            * Subdir_Names 支持环境变量替换，例如 `${ARCH}` 会替换为环境变量 ARCH 的值
     * Target_Name: 当前包的名称ID
         * `ignore` 关键字是特殊的ID，表示此包不是一个包，用来屏蔽当前目录的搜索，一般写为 `#DEPS() ignore():`
     * Other_Target_Names: 当前包的其它目标，多个目标使用空格隔开 (可以为空)
@@ -785,16 +774,13 @@ gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-p $P
 ```sh
 # 测试下载 lua 并打补丁编译
 lengjing@lengjing:~/cbuild/examples/test-lua$ make 
-curl http://www.lua.org/ftp/lua-5.4.4.tar.gz to /home/lengjing/cbuild/downloads/lua-5.4.4.tar.gz
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100  352k  100  352k    0     0   139k      0  0:00:02  0:00:02 --:--:--  139k
-untar /home/lengjing/cbuild/downloads/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/objects/examples/test-lua
+curl http://www.lua.org/ftp/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/mirror-cache/downloads/lua-5.4.4.tar.gz
+untar /home/lengjing/cbuild/output/mirror-cache/downloads/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/objects/examples/test-lua
 patching file Makefile
 patching file src/Makefile
-Patch /home/lengjing/cbuild/examples/test-lua/patches/0001-lua-Support-dynamic-library-compilation.patch to /home/lengjing/cbuild/output/objects/examples/test-lua/lua-5.4.4 Done.
+Patch /home/lengjing/cbuild/examples/test-lua/patch/0001-lua-Support-dynamic-library-compilation.patch to /home/lengjing/cbuild/output/objects/examples/test-lua/lua-5.4.4 Done.
 patching file src/lparser.c
-Patch /home/lengjing/cbuild/examples/test-lua/patches/CVE-2022-28805.patch to /home/lengjing/cbuild/output/objects/examples/test-lua/lua-5.4.4 Done.
+Patch /home/lengjing/cbuild/examples/test-lua/patch/CVE-2022-28805.patch to /home/lengjing/cbuild/output/objects/examples/test-lua/lua-5.4.4 Done.
 Guessing Linux
 Build lua Done.
 
@@ -802,32 +788,22 @@ Build lua Done.
 lengjing@lengjing:~/cbuild/mirror$ python3 -m http.server 8888
 
 # 原先的终端继续运行命令
-lengjing@lengjing:~/cbuild/examples/test-lua$ export FETCH_SCRIPT=/home/lengjing/cbuild/scripts/bin/fetch_package.sh
-lengjing@lengjing:~/cbuild/examples/test-lua$ export COPY_TO_PATH=/home/lengjing/cbuild/output/oss
+lengjing@lengjing:~/cbuild/examples/test-lua$ export FETCH_SCRIPT=${ENV_TOOL_DIR}/fetch_package.sh
+lengjing@lengjing:~/cbuild/examples/test-lua$ export COPY_TO_PATH=${ENV_TOP_DIR}/output/oss
 
 # 测试 tar 类型的包
 lengjing@lengjing:~/cbuild/examples/test-lua$ ${FETCH_SCRIPT} tar http://www.lua.org/ftp/lua-5.4.3.tar.gz lua-5.4.3.tar.gz ${COPY_TO_PATH} lua-5.4.3
 curl http://www.lua.org/ftp/lua-5.4.3.tar.gz to /home/lengjing/cbuild/downloads/lua-5.4.3.tar.gz
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100  349k  100  349k    0     0  54656      0  0:00:06  0:00:06 --:--:-- 61593
 untar /home/lengjing/cbuild/downloads/lua-5.4.3.tar.gz to /home/lengjing/cbuild/output/oss
 
 # 测试 tar 类型的包，可以发现从镜像 http://127.0.0.1:8888 下载了
 lengjing@lengjing:~/cbuild/examples/test-lua$ ${FETCH_SCRIPT} tar http://www.lua.org/ftp/lua-5.4.4.tar.gz lua-5.4.4.tar.gz ${COPY_TO_PATH} lua-5.4.4
 curl http://127.0.0.1:8888/lua-5.4.4.tar.gz to /home/lengjing/cbuild/downloads/lua-5.4.4.tar.gz
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100  352k  100  352k    0     0  34.4M      0 --:--:-- --:--:-- --:--:-- 38.2M
 untar /home/lengjing/cbuild/downloads/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/oss
 
 # 测试 zip 类型的包
 lengjing@lengjing:~/cbuild/examples/test-lua$ ${FETCH_SCRIPT} zip https://github.com/curl/curl/releases/download/curl-7_86_0/curl-7.86.0.zip curl-7.86.0.zip ${COPY_TO_PATH} curl-7.86.0
 curl https://github.com/curl/curl/releases/download/curl-7_86_0/curl-7.86.0.zip to /home/lengjing/cbuild/downloads/curl-7.86.0.zip
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-100 6305k  100 6305k    0     0  98506      0  0:01:05  0:01:05 --:--:-- 52843
 unzip /home/lengjing/cbuild/downloads/curl-7.86.0.zip to /home/lengjing/cbuild/output/oss
 
 # 测试 git 类型的包
@@ -847,20 +823,21 @@ svn checkout https://github.com/lengjingzju/mem to /home/lengjing/cbuild/downloa
 copy /home/lengjing/cbuild/downloads/mem to /home/lengjing/cbuild/output/oss
 ```
 
-### 网络下载包
+### 网络下载包 fetch_package.sh
 
 * 用法 `fetch_package.sh method url package outdir outname`
     * method:  包下载方式，目前支持 4 种方式
-        * tar: 可用 tar 命令解压的包，使用 curl 下载包，后缀名为 `tar.gz` `tar.bz2` `tar.xz` 等
+        * tar: 可用 tar 命令解压的包，使用 curl 下载包，后缀名为 `tar.gz` `tar.bz2` `tar.xz` `tar` 等
         * zip: 使用 unzip 命令解压的包，使用 curl 下载包，后缀名为 `gz` `zip` 等
-        * git: 使用 git clone 下载包
-        * svn: 使用 svn checkout 下载包
-        * 注: 使用 curl 下载包优先尝试 ENV_MIRROR_URL 指定的镜像 URL
+        * git: 优先从镜像使用 curl 下载包 `$package-git.tar.gz` 再运行 `git pull`，否则 `git clone`下载包
+        * svn: 优先从镜像使用 curl 下载包 `$package-svn.tar.gz` 再运行 `svn up`，否则使用 `svn checkout` 下载包
+        * 注: 使用 curl 下载包优先尝试 `ENV_MIRROR_URL` 指定的镜像 URL
+        * 注: outdir outname 不指定时只下载包，不复制或解压到输出
     * url: 下载链接
-    * package: tar zip 是保存的文件名，git svn 是保存的文件夹名，保存的目录是 ENV_DOWNLOADS
+    * package: tar zip 是保存的文件名，git svn 是保存的文件夹名，保存的目录是 `ENV_DOWN_DIR`
     * outdir: 解压或复制到的目录，用于编译
     * outname: outdir 中包的文件夹名称
-* 用法 `fetch_package.sh sync` 更新 ENV_DOWNLOADS 下的所有 git 和 svn 包
+* 用法 `fetch_package.sh sync` 更新 ENV_DOWN_DIR 下的所有 git 和 svn 包
 
 ### 普通编译打补丁 exec_patch.sh
 
@@ -874,7 +851,7 @@ copy /home/lengjing/cbuild/downloads/mem to /home/lengjing/cbuild/output/oss
     * PATCH_NAME_补丁ID名 : 补丁名，可以是多个补丁
 
 ```makefile
-PATCH_SCRIPT        := $(ENV_TOP_DIR)/scripts/bin/exec_patch.sh
+PATCH_SCRIPT        := $(ENV_TOOL_DIR)/exec_patch.sh
 PATCH_PACKAGE       := xxx
 PATCH_TOPATH        := xxx
 
@@ -1178,3 +1155,311 @@ $(PATCH_PACKAGE)-unpatch-%-all:
     ```
 
 常见 Yocto 问题可以查看 [Yocto 笔记](./notes/yoctoqa.md)
+
+## OSS 层和编译缓存 process_cache.sh
+
+### 测试 OSS 层和编译缓存
+
+OSS 层正在开发中，目前仅有几个包，需要大家的贡献完善
+
+* 第一次编译，并统计各个包的编译时间
+    * `make time_statistics` 是一个一个包编译过去(包内可能是多线程编译)，获取每个包的编译时间
+    * `make` 是不仅是包内可能是多线程编译，多个包也是同时编译，不统计编译时间
+
+```sh
+lengjing@lengjing:~/cbuild$ make time_statistics 
+Install Clean Done.
+Generate /home/lengjing/cbuild/output/config/Kconfig OK.
+Generate /home/lengjing/cbuild/output/config/auto.mk OK.
+Generate /home/lengjing/cbuild/output/config/DEPS OK.
+.....
+#
+# No change to /home/lengjing/cbuild/output/config/.config
+#
+curl https://www.busybox.net/downloads/busybox-1.35.0.tar.bz2 to /home/lengjing/cbuild/output/mirror-cache/downloads/busybox-1.35.0.tar.bz2
+untar /home/lengjing/cbuild/output/mirror-cache/downloads/busybox-1.35.0.tar.bz2 to /home/lengjing/cbuild/output/objects/oss/busybox
+......
+*
+* Busybox Configuration
+*
+*
+* Settings
+*
+......
+  GEN     /home/lengjing/cbuild/output/objects/oss/busybox/objects/Makefile
+  Using /home/lengjing/cbuild/output/objects/oss/busybox/busybox-1.35.0 as source for busybox
+......
+Final link with: m resolv
+Push busybox Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build busybox Done.
+curl https://github.com/DaveGamble/cJSON/archive/refs/tags/v1.7.15.tar.gz to /home/lengjing/cbuild/output/mirror-cache/downloads/cJSON-1.7.15.tar.gz
+untar /home/lengjing/cbuild/output/mirror-cache/downloads/cJSON-1.7.15.tar.gz to /home/lengjing/cbuild/output/objects/oss/cjson
+......
+-- Build files have been written to: /home/lengjing/cbuild/output/objects/oss/cjson/objects
+Scanning dependencies of target cjson
+[ 25%] Building C object CMakeFiles/cjson.dir/cJSON.c.o
+[ 50%] Linking C shared library libcjson.so
+[ 50%] Built target cjson
+Scanning dependencies of target cjson_utils
+[ 75%] Building C object CMakeFiles/cjson_utils.dir/cJSON_Utils.c.o
+[100%] Linking C shared library libcjson_utils.so
+[100%] Built target cjson_utils
+[ 50%] Built target cjson
+[100%] Built target cjson_utils
+Install the project...
+......
+Push cjson Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build cjson Done.
+正克隆到 '/home/lengjing/cbuild/output/mirror-cache/downloads/ljson'...
+remote: Enumerating objects: 39, done.
+remote: Counting objects: 100% (2/2), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 39 (delta 1), reused 0 (delta 0), pack-reused 37
+展开对象中: 100% (39/39), 450.82 KiB | 926.00 KiB/s, 完成.
+git clone https://github.com/lengjingzju/json.git to /home/lengjing/cbuild/output/mirror-cache/downloads/ljson
+copy /home/lengjing/cbuild/output/mirror-cache/downloads/ljson to /home/lengjing/cbuild/output/objects/oss/ljson
+gcc	json.c
+gcc	json_test.c
+lib:	/home/lengjing/cbuild/output/objects/oss/ljson/objects/libljson.so
+lib:	/home/lengjing/cbuild/output/objects/oss/ljson/objects/libljson.a
+bin:	/home/lengjing/cbuild/output/objects/oss/ljson/objects/ljson_test
+Build ljson Done.
+Push ljson Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build ljson Done.
+curl http://www.lua.org/ftp/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/mirror-cache/downloads/lua-5.4.4.tar.gz
+untar /home/lengjing/cbuild/output/mirror-cache/downloads/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/objects/oss/lua
+patching file Makefile
+patching file src/Makefile
+Patch /home/lengjing/cbuild/oss/lua/patch/0001-lua-Support-dynamic-library-compilation.patch to /home/lengjing/cbuild/output/objects/oss/lua/lua-5.4.4 Done.
+patching file src/lparser.c
+Patch /home/lengjing/cbuild/oss/lua/patch/CVE-2022-28805.patch to /home/lengjing/cbuild/output/objects/oss/lua/lua-5.4.4 Done.
+Guessing Linux
+Push lua Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build lua Done.
+Build done!
+
+lengjing@lengjing:~/cbuild$ cat output/config/time_statistics 
+real		user		sys		package
+0.00		0.00		0.00		insclean
+0.11		0.09		0.02		deps
+29.80		101.74		24.61		busybox
+0.06		0.02		0.03		busybox
+5.56		2.69		1.22		cjson
+0.02		0.01		0.00		cjson
+3.38		1.84		0.33		ljson
+0.02		0.02		0.00		ljson
+5.76		8.39		0.93		lua
+0.04		0.03		0.01		lua
+44.71		114.80		27.17		total_time
+```
+
+* 再次编译，直接从本地缓存取了，没有重新从代码编译
+
+```sh
+lengjing@lengjing:~/cbuild$ make 
+Install Clean Done.
+Generate /home/lengjing/cbuild/output/config/Kconfig OK.
+Generate /home/lengjing/cbuild/output/config/auto.mk OK.
+Generate /home/lengjing/cbuild/output/config/DEPS OK.
+Use cjson Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build cjson Done.
+Use ljson Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build ljson Done.
+Use busybox Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build busybox Done.
+Use lua Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build lua Done.
+Build done!
+```
+* 另启一个终端，启动镜像服务器
+
+```sh
+lengjing@lengjing:~/cbuild$ mv output/mirror-cache/ .
+lengjing@lengjing:~/cbuild$ cd mirror-cache/
+lengjing@lengjing:~/cbuild/mirror-cache$ 
+lengjing@lengjing:~/cbuild/mirror-cache$ 
+lengjing@lengjing:~/cbuild/mirror-cache$ tree
+.
+├── build-cache
+│   ├── v2--busybox--c0a8ff5196b1964b6105fb68035d5917.tar.gz
+│   ├── v2--cjson--eae1fa8046747993820ca17f11c11f06.tar.gz
+│   ├── v2--ljson--79f7d36ce038303d08c07abfa77f0611.tar.gz
+│   └── v2--lua--049af0a78d0305b6fb31b211723ab005.tar.gz
+└── downloads
+    ├── busybox-1.35.0.tar.bz2
+    ├── busybox-1.35.0.tar.bz2.src.hash
+    ├── cJSON-1.7.15.tar.gz
+    ├── cJSON-1.7.15.tar.gz.src.hash
+    ├── ljson
+    │   ├── json.c
+    │   ├── json.h
+    │   ├── json_test.c
+    │   ├── json_test.png
+    │   ├── LICENSE
+    │   └── README.md
+    ├── ljson-git.tar.gz
+    ├── ljson.src.hash
+    ├── lua-5.4.4.tar.gz
+    └── lua-5.4.4.tar.gz.src.hash
+
+3 directories, 18 files
+lengjing@lengjing:~/cbuild/mirror-cache$ python3 -m http.server 8888
+Serving HTTP on 0.0.0.0 port 8888 (http://0.0.0.0:8888/) ...
+```
+
+* 原先终端删除所有编译输出和缓存，开始全新编译，直接从网络缓存取了，没有重新从代码编译
+
+```sh
+lengjing@lengjing:~/cbuild$ rm -rf output
+lengjing@lengjing:~/cbuild$ make 
+Install Clean Done.
+Generate /home/lengjing/cbuild/output/config/Kconfig OK.
+Generate /home/lengjing/cbuild/output/config/auto.mk OK.
+Generate /home/lengjing/cbuild/output/config/DEPS OK.
+......
+#
+# No change to /home/lengjing/cbuild/output/config/.config
+#
+curl http://127.0.0.1:8888/downloads/cJSON-1.7.15.tar.gz to /home/lengjing/cbuild/output/mirror-cache/downloads/cJSON-1.7.15.tar.gz
+curl http://127.0.0.1:8888/downloads/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/mirror-cache/downloads/lua-5.4.4.tar.gz
+curl http://127.0.0.1:8888/downloads/busybox-1.35.0.tar.bz2 to /home/lengjing/cbuild/output/mirror-cache/downloads/busybox-1.35.0.tar.bz2
+Use cjson Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build cjson Done.
+Use lua Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build lua Done.
+Use busybox Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build busybox Done.
+curl http://127.0.0.1:8888/downloads/ljson-git.tar.gz to /home/lengjing/cbuild/output/mirror-cache/downloads/ljson-git.tar.gz
+git pull in /home/lengjing/cbuild/output/mirror-cache/downloads/ljson
+Use ljson Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build ljson Done.
+Build done!
+lengjing@lengjing:~/cbuild$ 
+```
+
+* 设置强制编译，总是从代码编译；取消强制编译，(没有网络缓存时需要重新从代码编译一次)，再次编译直接从缓存取了，没有重新从代码编译
+    * 可用于代码开发
+
+```sh
+engjing@lengjing:~/cbuild$ make lua_setforce 
+Set lua Force Build.
+lengjing@lengjing:~/cbuild$ make lua
+WARNING: Force Build lua.
+untar /home/lengjing/cbuild/output/mirror-cache/downloads/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/objects/oss/lua
+patching file Makefile
+patching file src/Makefile
+Patch /home/lengjing/cbuild/oss/lua/patch/0001-lua-Support-dynamic-library-compilation.patch to /home/lengjing/cbuild/output/objects/oss/lua/lua-5.4.4 Done.
+patching file src/lparser.c
+Patch /home/lengjing/cbuild/oss/lua/patch/CVE-2022-28805.patch to /home/lengjing/cbuild/output/objects/oss/lua/lua-5.4.4 Done.
+Guessing Linux
+Push lua Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build lua Done.
+lengjing@lengjing:~/cbuild$ make lua
+WARNING: Force Build lua.
+Guessing Linux
+Push lua Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build lua Done.
+lengjing@lengjing:~/cbuild$ make lua
+WARNING: Force Build lua.
+Guessing Linux
+Push lua Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build lua Done.
+lengjing@lengjing:~/cbuild$ make lua_unsetforce 
+Unset lua Force Build.
+lengjing@lengjing:~/cbuild$ make lua
+Use lua Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build lua Done.
+lengjing@lengjing:~/cbuild$ make lua
+Use lua Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build lua Done.
+lengjing@lengjing:~/cbuild$ 
+```
+
+* 修改加入到校验的文件，从代码编译了一次
+
+```
+lengjing@lengjing:~/cbuild$ echo >> oss/ljson/patch/Makefile 
+lengjing@lengjing:~/cbuild$ make ljson
+gcc	json_test.c
+gcc	json.c
+lib:	/home/lengjing/cbuild/output/objects/oss/ljson/objects/libljson.a
+lib:	/home/lengjing/cbuild/output/objects/oss/ljson/objects/libljson.so
+bin:	/home/lengjing/cbuild/output/objects/oss/ljson/objects/ljson_test
+Build ljson Done.
+Push ljson Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build ljson Done.
+lengjing@lengjing:~/cbuild$ make ljson
+Use ljson Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build ljson Done.
+lengjing@lengjing:~/cbuild$ make ljson
+Use ljson Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build ljson Done.
+```
+
+* 修改代码的 config，设置了强制编译，总是从代码编译
+
+```sh
+lengjing@lengjing:~/cbuild$ make busybox_menuconfig 
+untar /home/lengjing/cbuild/output/mirror-cache/downloads/busybox-1.35.0.tar.bz2 to /home/lengjing/cbuild/output/objects/oss/busybox
+......
+#
+# using defaults found in .config
+#
+......
+Final link with: m resolv
+Push busybox Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build busybox Done.
+lengjing@lengjing:~/cbuild$ make busybox
+WARNING: Force Build busybox.
+  GEN     /home/lengjing/cbuild/output/objects/oss/busybox/objects/Makefile
+  Using /home/lengjing/cbuild/output/objects/oss/busybox/busybox-1.35.0 as source for busybox
+Push busybox Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build busybox Done.
+```
+
+* 还原代码的默认 config，取消设置了强制编译，直接从缓存取了，没有重新从代码编译
+
+```sh
+lengjing@lengjing:~/cbuild$ make busybox_defconfig
+......
+Unset busybox Force Build.
+lengjing@lengjing:~/cbuild$ make busybox
+Use busybox Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build busybox Done.
+lengjing@lengjing:~/cbuild$ make busybox
+Use busybox Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
+Build busybox Done.
+```
+
+### 编译缓存模板说明 inc.cache.mk
+
+* 作用原理
+    * 对包编译结果有影响的元素做校验当做缓存文件的名字的一部分
+    * 影响包编译的元素有: 编译脚本、补丁、依赖包的输出、包的压缩包文件或本地源码文件
+    * 注意绝不要把编译后输出的文件加入到校验
+<br>
+
+* 用户要设置的变量
+    * CACHE_PACKAGE   : 包的名字，即 DEPS 语句中的包名，默认取值 `PACKAGE_NAME` (PACKAGE_NAME 可能和 DEPS 语句中的包名不对应，此时需要手动设置此变量)
+    * CACHE_SRCFILE   : http 下载保存的文件名，默认取变量 `DOWNLOAD_NAME` 设置的值
+        * 指定了此变量会自动对下载的文件校验，本地代码不需要指定此变量
+    * CACHE_OUTPATH   : 包的输出目录，会在此目录生成校验文件和 log 文件等，默认取变量 `OUT_PATH` 设置的值
+    * CACHE_INSPATH   : 包的安装目录，默认取变量 `$(OUT_PATH)/image` 设置的值
+    * CACHE_GRADE     : 缓存级别，默认取 2，即缓存压缩包的名字以 `ENV_BUILD_GRADE` 设置的第 2 个字符串开头
+    * CACHE_CHECKSUM  : 额外需要校验的文件或目录，多个项目使用空格分开
+        * 目录支持如下语法: `搜索的目录路径:搜索的字符串:忽略的文件夹名:忽略的字符串`，其中子项目可以使用竖线 `|` 隔开
+            * 例如: `"srca|srcb:*.c|*.h|Makefile:test:*.o|*.d"`, `"src:*.c|*.h|*.cpp|*.hpp"`
+    * CACHE_DEPENDS   : 手动指定包的依赖。如果包没有依赖可以设置为 `none`; 如果不指定会自动分析 `${ENV_CFG_ROOT}` 中的 DEPS 和 .config 文件获取依赖
+    * CACHE_URL       : 指定网络下载的 URL，格式需要是 `[download_method]url`，例如 `[tar]url` `[zip]url` `[git]url` `[svn]url`
+    * CACHE_VERBOSE   : 是否生成 log 文件，默认取 1， 生成 log 文件是 `$(CACHE_OUTPATH)/$(CACHE_PACKAGE)-cache.log`
+<br>
+
+* 用户要设置的函数
+    * 用户必须设置 do_compile 函数用于编译安装
+<br>
+
+* 提供的函数
+    * do_setforce: 设置强制编译，用户某些操作后需要重新编译的操作需要调用此函数，例如用户修改 config
+    * do_unsetforce: 取消强制编译，例如用户还原默认 config
+    * 其它函数用户一般不会在外部调用
+

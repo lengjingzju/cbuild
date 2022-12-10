@@ -1,0 +1,70 @@
+#DEPS(mk.deps) busybox(cache defconfig menuconfig): unselect
+
+PACKAGE_NAME = busybox
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION         := 1.35.0
+SRC_DIRNAME     := busybox-$(VERSION)
+DOWNLOAD_NAME   := $(SRC_DIRNAME).tar.bz2
+SRC_URL         := https://www.busybox.net/downloads/$(DOWNLOAD_NAME)
+FETCH_SCRIPT    := $(ENV_TOOL_DIR)/fetch_package.sh
+INSTALL_PATH    := $(OUT_PATH)/image
+
+BUSYBOX_SRC     := $(OUT_PATH)/$(SRC_DIRNAME)
+BUSYBOX_OUT     := $(OUT_PATH)/objects
+BUSYBOX_CFG     ?= default_defconfig
+
+CACHE_CHECKSUM   = $(shell pwd)/mk.deps $(shell pwd)/config/$(BUSYBOX_CFG)
+CACHE_DEPENDS    = none
+CACHE_URL        = [tar]$(SRC_URL)
+
+MAKES            := make -s $(ENV_BUILD_JOBS) -C $(BUSYBOX_SRC) O=$(BUSYBOX_OUT) CONFIG_PREFIX=$(INSTALL_PATH)
+
+define do_compile
+	$(FETCH_SCRIPT) tar $(SRC_URL) $(DOWNLOAD_NAME) $(OUT_PATH) $(SRC_DIRNAME); \
+	mkdir -p $(BUSYBOX_OUT); \
+	if [ ! -f $(BUSYBOX_OUT)/.config ]; then \
+		cp -f config/$(BUSYBOX_CFG) $(BUSYBOX_SRC)/configs/$(BUSYBOX_CFG); \
+		$(MAKES) $(BUSYBOX_CFG); \
+	fi; \
+	rm -rf $(INSTALL_PATH) && $(MAKES) && $(MAKES) install 1>/dev/null
+endef
+
+.PHONY: all srcbuild clean install defconfig menuconfig
+
+all: cachebuild
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+srcbuild:
+	@$(call do_compile)
+	@echo "Build $(PACKAGE_NAME) Done."
+
+clean:
+	@if [ -f $(BUSYBOX_OUT)/.config ]; then \
+		$(MAKES) clean; \
+	fi
+	@echo "Clean $(PACKAGE_NAME) Done."
+
+install:
+	@install -d $(ENV_INS_ROOT)
+	@$(call safecp,-rfp,$(INSTALL_PATH)/* $(ENV_INS_ROOT))
+
+defconfig:
+	@$(FETCH_SCRIPT) tar $(SRC_URL) $(DOWNLOAD_NAME) $(OUT_PATH) $(SRC_DIRNAME)
+	@cp -f config/$(BUSYBOX_CFG) $(BUSYBOX_SRC)/configs/$(BUSYBOX_CFG)
+	@$(MAKES) $(BUSYBOX_CFG)
+	@$(CACHE_SCRIPT) -m unsetforce -p $(CACHE_PACKAGE) -o $(CACHE_OUTPATH) -i $(CACHE_INSPATH) -v $(CACHE_VERBOSE)
+	@echo "Unset $(PACKAGE_NAME) Force Build."
+
+menuconfig:
+	@$(FETCH_SCRIPT) tar $(SRC_URL) $(DOWNLOAD_NAME) $(OUT_PATH) $(SRC_DIRNAME)
+	@mkdir -p $(BUSYBOX_OUT)
+	@if [ ! -f $(BUSYBOX_OUT)/.config ]; then \
+		cp -f config/$(BUSYBOX_CFG) $(BUSYBOX_SRC)/configs/$(BUSYBOX_CFG); \
+		$(MAKES) $(BUSYBOX_CFG); \
+	fi
+	@$(MAKES) menuconfig
+	@$(CACHE_SCRIPT) -m setforce -p $(CACHE_PACKAGE) -o $(CACHE_OUTPATH) -v $(CACHE_VERBOSE)
+	@echo "Set $(PACKAGE_NAME) Force Build."

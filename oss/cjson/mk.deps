@@ -1,0 +1,45 @@
+#DEPS(mk.deps) cjson(cache): unselect
+
+PACKAGE_NAME = cjson
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION         := 1.7.15
+SRC_DIRNAME     := cJSON-$(VERSION)
+DOWNLOAD_NAME   := $(SRC_DIRNAME).tar.gz
+SRC_URL         := https://github.com/DaveGamble/cJSON/archive/refs/tags/v$(VERSION).tar.gz
+FETCH_SCRIPT    := $(ENV_TOOL_DIR)/fetch_package.sh
+INSTALL_PATH    := $(OUT_PATH)/image
+
+CJSON_SRC       := $(OUT_PATH)/$(SRC_DIRNAME)
+CJSON_OUT       := $(OUT_PATH)/objects
+
+CACHE_CHECKSUM  = $(shell pwd)/mk.deps
+CACHE_DEPENDS   = none
+CACHE_URL       = [tar]$(SRC_URL)
+
+
+define do_compile
+	$(FETCH_SCRIPT) tar $(SRC_URL) $(DOWNLOAD_NAME) $(OUT_PATH) $(SRC_DIRNAME) && \
+	mkdir -p $(CJSON_OUT) && cd $(CJSON_OUT) && \
+	cmake $(CJSON_SRC) -DENABLE_CJSON_UTILS=On -DENABLE_CJSON_TEST=Off -DCMAKE_INSTALL_PREFIX=$(INSTALL_PATH) && \
+	rm -rf $(INSTALL_PATH) && make -s && make -s install
+endef
+
+.PHONY: all srcbuild clean install
+
+all: cachebuild
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+srcbuild:
+	@$(call do_compile)
+	@echo "Build $(PACKAGE_NAME) Done."
+
+clean:
+	@rm -rf $(OUT_PATH)
+	@echo "Clean $(PACKAGE_NAME) Done."
+
+install:
+	@install -d $(ENV_INS_ROOT)
+	@$(call safecp,-rfp,$(INSTALL_PATH)/* $(ENV_INS_ROOT))

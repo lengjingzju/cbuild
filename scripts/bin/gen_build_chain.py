@@ -9,6 +9,10 @@ def escape_tolower(var):
     return var.lower().replace('_', '-').replace('__dot__', '.').replace('__plus__', '+')
 
 
+def re_replace_env(matchobj):
+    return os.getenv(matchobj.group(0)[2:-1])
+
+
 class Deps:
     def __init__(self):
         self.VarDict = {}
@@ -392,19 +396,24 @@ class Deps:
                     self.ActualList.append(item)
                     continue
 
-                ret = re.match(r'#INCDEPS\s*:\s*([\s\w\-\./]+)', per_line)
+                ret = re.match(r'#INCDEPS\s*:\s*([\s\w\-\./${}]+)', per_line)
                 if ret:
                     dep_flag = True
                     sub_paths = ret.groups()[0].split()
                     sub_paths.sort()
 
                     for sub_path in sub_paths:
-                        sub_pathpair = (os.path.join(pathpair[0], sub_path), os.path.join(pathpair[1], sub_path), '')
+                        real_sub_path = sub_path
+                        if '${' in sub_path:
+                            real_sub_path = re.sub(r'(\$\{[\w\-]+\})', re_replace_env, sub_path)
+                        sub_pathpair = (os.path.join(pathpair[0], real_sub_path), os.path.join(pathpair[1], real_sub_path), '')
                         sub_dep_path = os.path.join(sub_pathpair[0], dep_name)
+
                         if os.path.exists(sub_dep_path):
                             self.add_normal_item(sub_pathpair, dep_name, refs)
                         else:
-                            print('WARNING: ignore: %s' % sub_pathpair[0])
+                            if '${' not in sub_path:
+                                print('WARNING: ignore: %s' % sub_pathpair[0])
 
             if ItemDict:
                 keys = [t for t in ItemDict.keys()]
@@ -867,7 +876,13 @@ class Deps:
                 else:
                     fp.write('\t%s clean\n\n' % (make))
 
-                ignore_targets = ['all', 'clean', 'install', 'prepare', 'jobserver', 'union']
+                if item['targets'] and 'cache' in item['targets']:
+                    phony.append(item['target'] + '_setforce')
+                    phony.append(item['target'] + '_unsetforce')
+                    fp.write('%s_setforce %s_unsetforce:\n' % (item['target'], item['target']))
+                    fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, item['target']))
+
+                ignore_targets = ['all', 'clean', 'install', 'prepare', 'jobserver', 'union', 'cache']
                 targets = [t for t in item['targets'] if t not in ignore_targets]
 
                 targets_exact = [t for t in targets if ':' in t]

@@ -33,5 +33,9 @@ STRIP          := $(CROSS_COMPILE)strip
 export CC CXX CPP AS LD AR RANLIB OBJCOPY STRIP
 
 endif
-endif
 
+define safecp
+$(if $(filter yocto,$(ENV_BUILD_MODE)),cp $1 $2,flock $(ENV_INS_ROOT) -c "cp $1 $2")
+endef
+
+endif

@@ -1,0 +1,13 @@
+#
+# Automatically generated file; DO NOT EDIT.
+# Build Configuration
+#
+
+#
+# oss
+#
+CONFIG_BUSYBOX=y
+CONFIG_CJSON=y
+CONFIG_LJSON=y
+CONFIG_LUA=y
+# end of oss
