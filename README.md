@@ -1,7 +1,5 @@
 # CBuild 编译系统
 
-[toc]
-
 ## 特点
 
 * Linux 下纯粹的 Makefile 编译，支持 Makefile 封装包已有的 `Makefile` `CMake` `Autotools` 以实现对它们的支持
@@ -82,8 +80,8 @@
     lengjing@lengjing:~/cbuild$ source scripts/build.env
     ============================================================
     ENV_BUILD_MODE   : external
-    ENV_BUILD_ARCH   : 
-    ENV_BUILD_TOOL   : 
+    ENV_BUILD_ARCH   :
+    ENV_BUILD_TOOL   :
     ENV_BUILD_GRADE  : v1 v2 v3
     ENV_BUILD_JOBS   : -j8
     ENV_TOP_DIR      : /home/lengjing/cbuild
@@ -714,7 +712,7 @@ gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-p $P
         * 弱依赖是指即使 depname 包未选中或不存在，依赖它的包也可以选中和编译成功
         * 单问号表示编译时依赖(依赖包没有安装动态库等)
         * 双问号表示编译时和运行时依赖(依赖包安装了动态库等)
-    * `depa|depb` or `depa||depb`   : 表示此包弱依赖 depa depb ... 
+    * `depa|depb` or `depa||depb`   : 表示此包弱依赖 depa depb ...
         * 弱依赖列表中的包至少需要一个 depx 包选中，依赖它的包才可以选中和编译成功
         * 单竖线表示编译时依赖
         * 双竖线表示编译时和运行时依赖
@@ -773,7 +771,7 @@ gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-p $P
 
 ```sh
 # 测试下载 lua 并打补丁编译
-lengjing@lengjing:~/cbuild/examples/test-lua$ make 
+lengjing@lengjing:~/cbuild/examples/test-lua$ make
 curl http://www.lua.org/ftp/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/mirror-cache/downloads/lua-5.4.4.tar.gz
 untar /home/lengjing/cbuild/output/mirror-cache/downloads/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/objects/examples/test-lua
 patching file Makefile
@@ -884,7 +882,7 @@ $(PATCH_PACKAGE)-unpatch-%-all:
     * 方法
         * 配方文件的当前目录新建名为 `配方名` 或 `files` 的文件夹，补丁放在此文件夹内
             * 注：查找补丁文件的文件夹不止上面这些，但我们一般使用名为 `配方名` 的文件夹
-        * 配方中加上补丁文件名声明，无需文件夹路径 `SRC_URI += "file://0001-xxx.patch"` 
+        * 配方中加上补丁文件名声明，无需文件夹路径 `SRC_URI += "file://0001-xxx.patch"`
         * 如果配方继承了 `externalsrc` 类，还要设置变量 `RCTREECOVEREDTASKS = "do_unpack do_fetch"`
             * 注：`externalsrc` 类默认会把 `do_patch` 任务删除，所以要设置 `RCTREECOVEREDTASKS`
     * 优点
@@ -1102,7 +1100,7 @@ $(PATCH_PACKAGE)-unpatch-%-all:
                 for task in tasks:
                     task_name = 'do_%s' % (task)
                     src_name = 'EXTRASRC_%s' % (task.upper())
-                    src_str = d.getVar(src_name) 
+                    src_str = d.getVar(src_name)
 
                     if src_str:
                         srcs = src_str.split()
@@ -1160,14 +1158,16 @@ $(PATCH_PACKAGE)-unpatch-%-all:
 
 ### 测试 OSS 层和编译缓存
 
-OSS 层正在开发中，目前仅有几个包，需要大家的贡献完善
+OSS 层正在开发中，目前仅有几个包，需要大家的贡献完善<br>
+
+编译缓存演示demo [cache_demo](./notes/cbuild-cache.mp4)
 
 * 第一次编译，并统计各个包的编译时间
     * `make time_statistics` 是一个一个包编译过去(包内可能是多线程编译)，获取每个包的编译时间
     * `make` 是不仅是包内可能是多线程编译，多个包也是同时编译，不统计编译时间
 
 ```sh
-lengjing@lengjing:~/cbuild$ make time_statistics 
+lengjing@lengjing:~/cbuild$ make time_statistics
 Install Clean Done.
 Generate /home/lengjing/cbuild/output/config/Kconfig OK.
 Generate /home/lengjing/cbuild/output/config/auto.mk OK.
@@ -1238,7 +1238,7 @@ Push lua Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
 Build lua Done.
 Build done!
 
-lengjing@lengjing:~/cbuild$ cat output/config/time_statistics 
+lengjing@lengjing:~/cbuild$ cat output/config/time_statistics
 real		user		sys		package
 0.00		0.00		0.00		insclean
 0.11		0.09		0.02		deps
@@ -1256,7 +1256,7 @@ real		user		sys		package
 * 再次编译，直接从本地缓存取了，没有重新从代码编译
 
 ```sh
-lengjing@lengjing:~/cbuild$ make 
+lengjing@lengjing:~/cbuild$ make
 Install Clean Done.
 Generate /home/lengjing/cbuild/output/config/Kconfig OK.
 Generate /home/lengjing/cbuild/output/config/auto.mk OK.
@@ -1276,8 +1276,8 @@ Build done!
 ```sh
 lengjing@lengjing:~/cbuild$ mv output/mirror-cache/ .
 lengjing@lengjing:~/cbuild$ cd mirror-cache/
-lengjing@lengjing:~/cbuild/mirror-cache$ 
-lengjing@lengjing:~/cbuild/mirror-cache$ 
+lengjing@lengjing:~/cbuild/mirror-cache$
+lengjing@lengjing:~/cbuild/mirror-cache$
 lengjing@lengjing:~/cbuild/mirror-cache$ tree
 .
 ├── build-cache
@@ -1311,7 +1311,7 @@ Serving HTTP on 0.0.0.0 port 8888 (http://0.0.0.0:8888/) ...
 
 ```sh
 lengjing@lengjing:~/cbuild$ rm -rf output
-lengjing@lengjing:~/cbuild$ make 
+lengjing@lengjing:~/cbuild$ make
 Install Clean Done.
 Generate /home/lengjing/cbuild/output/config/Kconfig OK.
 Generate /home/lengjing/cbuild/output/config/auto.mk OK.
@@ -1334,14 +1334,14 @@ git pull in /home/lengjing/cbuild/output/mirror-cache/downloads/ljson
 Use ljson Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
 Build ljson Done.
 Build done!
-lengjing@lengjing:~/cbuild$ 
+lengjing@lengjing:~/cbuild$
 ```
 
 * 设置强制编译，总是从代码编译；取消强制编译，(没有网络缓存时需要重新从代码编译一次)，再次编译直接从缓存取了，没有重新从代码编译
     * 可用于代码开发
 
 ```sh
-engjing@lengjing:~/cbuild$ make lua_setforce 
+engjing@lengjing:~/cbuild$ make lua_setforce
 Set lua Force Build.
 lengjing@lengjing:~/cbuild$ make lua
 WARNING: Force Build lua.
@@ -1364,7 +1364,7 @@ WARNING: Force Build lua.
 Guessing Linux
 Push lua Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
 Build lua Done.
-lengjing@lengjing:~/cbuild$ make lua_unsetforce 
+lengjing@lengjing:~/cbuild$ make lua_unsetforce
 Unset lua Force Build.
 lengjing@lengjing:~/cbuild$ make lua
 Use lua Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
@@ -1372,13 +1372,13 @@ Build lua Done.
 lengjing@lengjing:~/cbuild$ make lua
 Use lua Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
 Build lua Done.
-lengjing@lengjing:~/cbuild$ 
+lengjing@lengjing:~/cbuild$
 ```
 
 * 修改加入到校验的文件，从代码编译了一次
 
 ```
-lengjing@lengjing:~/cbuild$ echo >> oss/ljson/patch/Makefile 
+lengjing@lengjing:~/cbuild$ echo >> oss/ljson/patch/Makefile
 lengjing@lengjing:~/cbuild$ make ljson
 gcc	json_test.c
 gcc	json.c
@@ -1399,7 +1399,7 @@ Build ljson Done.
 * 修改代码的 config，设置了强制编译，总是从代码编译
 
 ```sh
-lengjing@lengjing:~/cbuild$ make busybox_menuconfig 
+lengjing@lengjing:~/cbuild$ make busybox_menuconfig
 untar /home/lengjing/cbuild/output/mirror-cache/downloads/busybox-1.35.0.tar.bz2 to /home/lengjing/cbuild/output/objects/oss/busybox
 ......
 #
