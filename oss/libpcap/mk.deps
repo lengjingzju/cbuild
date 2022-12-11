@@ -1,0 +1,14 @@
+#DEPS(mk.deps) libpcap(cache): unselect
+
+PACKAGE_NAME     = libpcap
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 1.10.1
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.gz
+SRC_URL          = https://www.tcpdump.org/release/$(SRC_NAME)
+
+COMPILE_TOOL     = configure
+
+include $(ENV_MAKE_DIR)/inc.cache.mk

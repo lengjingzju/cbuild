@@ -1,44 +1,21 @@
 #DEPS(mk.deps) ljson(cache): unselect
 
-PACKAGE_NAME = ljson
+PACKAGE_NAME     = ljson
 
 include $(ENV_MAKE_DIR)/inc.env.mk
 
-VERSION         := 1.7.15
-SRC_DIRNAME     := $(PACKAGE_NAME)
-DOWNLOAD_NAME   := $(PACKAGE_NAME)
-SRC_URL         := https://github.com/lengjingzju/json.git
-FETCH_SCRIPT    := $(ENV_TOOL_DIR)/fetch_package.sh
-INSTALL_PATH    := $(OUT_PATH)/image
-MAKEFILE_PATH   := $(shell pwd)/patch/Makefile
+VERSION          = 1.7.15
+SRC_DIR          = $(PACKAGE_NAME)
+SRC_NAME         = $(SRC_DIR)
+SRC_URL          = https://github.com/lengjingzju/json.git
 
+MAKE_FILE        = $(shell pwd)/patch/Makefile
+CACHE_CHECKSUM  += $(MAKE_FILE)
+FETCH_METHOD     = git
+MAKES_FLAGS      = ENV_INS_ROOT=$(INS_PATH) OUT_PATH=$(OBJ_PATH) -C $(SRC_PATH)
 
-CACHE_CHECKSUM  = $(shell pwd)/mk.deps $(MAKEFILE_PATH)
-CACHE_DEPENDS   = none
-CACHE_URL       = [git]$(SRC_URL)
-
-MAKES           := make -s $(ENV_BUILD_JOBS) ENV_INS_ROOT=$(INSTALL_PATH) OUT_PATH=$(OUT_PATH)/objects -C $(OUT_PATH)/$(SRC_DIRNAME)
-
-define do_compile
-	$(FETCH_SCRIPT) git $(SRC_URL) $(DOWNLOAD_NAME) $(OUT_PATH) $(SRC_DIRNAME) && \
-	cp -f $(MAKEFILE_PATH) $(OUT_PATH)/$(SRC_DIRNAME) && \
-	rm -rf $(INSTALL_PATH) && $(MAKES) && $(MAKES) install
+define do_prepend
+	cp -f $(MAKE_FILE) $(SRC_PATH)
 endef
 
-.PHONY: all srcbuild clean install
-
-all: cachebuild
-
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-srcbuild:
-	@$(call do_compile)
-	@echo "Build $(PACKAGE_NAME) Done."
-
-clean:
-	@rm -rf $(OUT_PATH)
-	@echo "Clean $(PACKAGE_NAME) Done."
-
-install:
-	@install -d $(ENV_INS_ROOT)
-	@$(call safecp,-rfp,$(INSTALL_PATH)/* $(ENV_INS_ROOT))

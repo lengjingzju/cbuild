@@ -1439,27 +1439,51 @@ Build busybox Done.
     * 注意绝不要把编译后输出的文件加入到校验
 <br>
 
-* 用户要设置的变量
+* 用户可能要设置的变量
+    * FETCH_METHOD    : 下载包的方式，可选择 `tar zip git svn`，默认值为 tar
+    * SRC_PATH        : 包的源码路径，默认取变量 `$(OUT_PATH)/$(SRC_DIR)` 设置的值
+    * OBJ_PATH        : 包的编译输出路径，默认取变量 `$(OUT_PATH)/build` 设置的值
+    * INS_PATH        : 包的安装目录，默认取变量 `$(OUT_PATH)/image` 设置的值
+    * MAKES           : make 命令的值，默认为 `make -s $(ENV_BUILD_JOBS) $(MAKES_FLAGS)`，用户可以设置额外的参数 `MAKES_FLAGS`
     * CACHE_PACKAGE   : 包的名字，即 DEPS 语句中的包名，默认取值 `PACKAGE_NAME` (PACKAGE_NAME 可能和 DEPS 语句中的包名不对应，此时需要手动设置此变量)
-    * CACHE_SRCFILE   : http 下载保存的文件名，默认取变量 `DOWNLOAD_NAME` 设置的值
+    * CACHE_SRCFILE   : http 下载保存的文件名，默认取变量 `SRC_NAME` 设置的值
         * 指定了此变量会自动对下载的文件校验，本地代码不需要指定此变量
     * CACHE_OUTPATH   : 包的输出目录，会在此目录生成校验文件和 log 文件等，默认取变量 `OUT_PATH` 设置的值
-    * CACHE_INSPATH   : 包的安装目录，默认取变量 `$(OUT_PATH)/image` 设置的值
+    * CACHE_INSPATH   : 包的安装目录，默认取变量 `$(INS_PATH)` 设置的值
     * CACHE_GRADE     : 缓存级别，默认取 2，即缓存压缩包的名字以 `ENV_BUILD_GRADE` 设置的第 2 个字符串开头
-    * CACHE_CHECKSUM  : 额外需要校验的文件或目录，多个项目使用空格分开
+    * CACHE_CHECKSUM  : 额外需要校验的文件或目录，多个项目使用空格分开，默认加上当前目录的 mk.deps 文件
         * 目录支持如下语法: `搜索的目录路径:搜索的字符串:忽略的文件夹名:忽略的字符串`，其中子项目可以使用竖线 `|` 隔开
             * 例如: `"srca|srcb:*.c|*.h|Makefile:test:*.o|*.d"`, `"src:*.c|*.h|*.cpp|*.hpp"`
-    * CACHE_DEPENDS   : 手动指定包的依赖。如果包没有依赖可以设置为 `none`; 如果不指定会自动分析 `${ENV_CFG_ROOT}` 中的 DEPS 和 .config 文件获取依赖
-    * CACHE_URL       : 指定网络下载的 URL，格式需要是 `[download_method]url`，例如 `[tar]url` `[zip]url` `[git]url` `[svn]url`
+    * CACHE_DEPENDS   : 手动指定包的依赖，默认值为 none
+        * 如果包没有依赖可以设置为 `none`
+        * 如果不指定依赖会自动分析 `${ENV_CFG_ROOT}` 中的 DEPS 和 .config 文件获取依赖
+    * CACHE_URL       : 指定网络下载的 URL，如果设置了 SRC_URL，默认取变量 `[$(FETCH_METHOD)]$(SRC_URL)` 设置的值
+        * 格式需要是 `[download_method]url`，例如 `[tar]url` `[zip]url` `[git]url` `[svn]url`
     * CACHE_VERBOSE   : 是否生成 log 文件，默认取 1， 生成 log 文件是 `$(CACHE_OUTPATH)/$(CACHE_PACKAGE)-cache.log`
 <br>
 
-* 用户要设置的函数
-    * 用户必须设置 do_compile 函数用于编译安装
-<br>
 
 * 提供的函数
+    * do_fetch: 自动从网络拉取代码并解压到输出目录
+    * do_patch: 打补丁，用户需要设置补丁目录 `PATCH_FOLDER`
+    * do_compile: 用户如果没有设置此函数，将采用模板中的默认 do_compile 函数
+        * 如果用户设置了 SRC_URL 变量，会自动加上拉取代码操作
+        * 如果用户设置了 PATCH_FOLDER 变量，会自动加上打补丁操作
+        * 如果用户设置了 do_prepend 函数，会在 make 命令前运行此函数
+        * 如果 COMPILE_TOOL 值是 cmake，会在 make 命令前运行 cmake 命令，通过 `CMAKE_FLAGS` 变量提供额外的命令参数
+        * 如果 COMPILE_TOOL 值是 configure，会在 make 命令前运行 configure 命令，通过 `CONFIGURE_FLAGS` 变量提供额外的命令参数
+        * 如果用户设置了 do_append 函数，会在 make 命令后运行此函数
+    * do_check: 检查是否匹配 cache，返回的字符串有 MATCH 表示匹配，ERROR 表示错误
+    * do_pull: 如果 INS_PATH 目录不存在，将 cache 解压的输出目录
+    * do_push: 将 cache 加入到全局缓存目录
     * do_setforce: 设置强制编译，用户某些操作后需要重新编译的操作需要调用此函数，例如用户修改 config
     * do_unsetforce: 取消强制编译，例如用户还原默认 config
     * 其它函数用户一般不会在外部调用
+
+* 提供的目标
+    * 如果用户没有设置 `USER_DEFINED_TARGET` 为 y，采用模板默认提供的 `all clean install` 目标
+    * srcbuild: 没有缓存机制的编译
+    * cachebuild: 有缓存机制的编译
+    * do_setforce: 设置强制编译
+    * do_unsetforce: 取消强制编译
 

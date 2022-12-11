@@ -27,7 +27,7 @@ do_sync() {
             fi
             echo -e "\033[32mgit pull in $syncpath\033[0m"
             cd $syncpath && git pull -q
-            echo -n "$(git log | head -1)" > $syncpath.$checksuffix
+            echo -n "$(git log | head -1 | cut -d ' ' -f 2)" > $syncpath.$checksuffix
             ;;
 
         svn)
@@ -84,7 +84,7 @@ do_fetch() {
                 echo -e "\033[32mgit clone $url to ${ENV_DOWN_DIR}/$package\033[0m"
                 git clone $url ${ENV_DOWN_DIR}/$package || exit 1
                 cd ${ENV_DOWN_DIR} && tar -jcf $packname $package
-                echo -n "$(cd ${ENV_DOWN_DIR}/$package && git log | head -1)" > ${ENV_DOWN_DIR}/$package.$checksuffix
+                echo -n "$(cd ${ENV_DOWN_DIR}/$package && git log | head -1 | cut -d ' ' -f 2)" > ${ENV_DOWN_DIR}/$package.$checksuffix
             else
                 cd ${ENV_DOWN_DIR} && tar -jxf $packname
                 do_sync $method ${ENV_DOWN_DIR}/$package

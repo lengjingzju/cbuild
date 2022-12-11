@@ -1,19 +1,49 @@
-# Uppper Makefile should set the following variables first.
+FETCH_SCRIPT    := $(ENV_TOOL_DIR)/fetch_package.sh
+PATCH_SCRIPT    := $(ENV_TOOL_DIR)/exec_patch.sh
+CACHE_SCRIPT    := $(ENV_TOOL_DIR)/process_cache.sh
 
-CACHE_SCRIPT    ?= $(ENV_TOOL_DIR)/process_cache.sh
+FETCH_METHOD    ?= tar
+SRC_PATH        ?= $(OUT_PATH)/$(SRC_DIR)
+OBJ_PATH        ?= $(OUT_PATH)/build
+INS_PATH        ?= $(OUT_PATH)/image
+MAKES           ?= make -s $(ENV_BUILD_JOBS) $(MAKES_FLAGS)
+
 CACHE_PACKAGE   ?= $(PACKAGE_NAME)
-CACHE_SRCFILE   ?= $(DOWNLOAD_NAME)
+CACHE_SRCFILE   ?= $(SRC_NAME)
 CACHE_OUTPATH   ?= $(OUT_PATH)
-CACHE_INSPATH   ?= $(OUT_PATH)/image
+CACHE_INSPATH   ?= $(INS_PATH)
 CACHE_GRADE     ?= 2
-CACHE_CHECKSUM  ?=
-CACHE_DEPENDS   ?=
-CACHE_URL       ?=
+CACHE_CHECKSUM  += $(wildcard $(shell pwd)/mk.deps)
+CACHE_DEPENDS   ?= none
+CACHE_URL       ?= $(if $(SRC_URL),[$(FETCH_METHOD)]$(SRC_URL))
 CACHE_VERBOSE   ?= 1
 
-# define do_compile
-# Uppper Makefile should set do_compile function first.
-# endef
+define do_fetch
+	$(FETCH_SCRIPT) $(FETCH_METHOD) "$(SRC_URL)" $(SRC_NAME) $(OUT_PATH) $(SRC_DIR)
+endef
+
+define do_patch
+	$(PATCH_SCRIPT) patch $(PATCH_FOLDER) $(SRC_PATH)
+endef
+
+ifeq ($(do_compile), )
+define do_compile
+	$(if $(SRC_URL),$(call do_fetch),true); \
+	$(if $(PATCH_FOLDER),$(call do_patch),true); \
+	mkdir -p $(OBJ_PATH); \
+	$(if $(do_prepend),$(call do_prepend),true); \
+	if [ "$(COMPILE_TOOL)" = "cmake" ]; then \
+		mkdir -p $(OBJ_PATH) && cd $(OBJ_PATH) && \
+			cmake $(SRC_PATH) $(CMAKE_FLAGS) -DCMAKE_INSTALL_PREFIX=$(INS_PATH) 1>/dev/null; \
+	elif [ "$(COMPILE_TOOL)" = "configure" ]; then \
+		mkdir -p $(OBJ_PATH) && cd $(OBJ_PATH) && \
+			$(SRC_PATH)/configure $(CONFIGURE_FLAGS) --prefix=$(INS_PATH) \
+				$(if $(CROSS_COMPILE),--host=$(shell echo $(CROSS_COMPILE) | sed 's/-$//g')) 1>/dev/null; \
+	fi; \
+	rm -rf $(INS_PATH) && $(MAKES) 1>/dev/null && $(MAKES) install 1>/dev/null; \
+	$(if $(do_append),$(call do_append),true)
+endef
+endif
 
 define do_check
 	$(CACHE_SCRIPT) -m check -p $(CACHE_PACKAGE) -o $(CACHE_OUTPATH) \
@@ -48,7 +78,28 @@ define do_unsetforce
 	echo "Unset $(CACHE_PACKAGE) Force Build."
 endef
 
-.PHONY: cachebuild setforce unsetforce
+ifneq ($(USER_DEFINED_TARGET), y)
+
+.PHONY: all install clean
+
+all: cachebuild
+
+clean:
+	@rm -rf $(OUT_PATH)
+	@echo "Clean $(PACKAGE_NAME) Done."
+
+install:
+	@install -d $(ENV_INS_ROOT)
+	@$(call safecp,-rfp,$(INS_PATH)/* $(ENV_INS_ROOT))
+	@echo "Install $(PACKAGE_NAME) Done."
+
+endif
+
+.PHONY: srcbuild cachebuild setforce unsetforce
+
+srcbuild:
+	@$(call do_compile)
+	@echo "Build $(PACKAGE_NAME) Done."
 
 cachebuild:
 	@checksum=$$($(call do_check)); \

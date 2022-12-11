@@ -189,7 +189,7 @@ get_source_checksum() {
             ${checktool} ${ENV_DOWN_DIR}/${srcname} >> $checktmp1
         elif [ -d ${ENV_DOWN_DIR}/${srcname} ]; then
             if [ -e ${ENV_DOWN_DIR}/${srcname}/.git ]; then
-                echo "$(cd ${ENV_DOWN_DIR}/${srcname} && git log | head -1)" >> $checktmp1
+                echo "$(cd ${ENV_DOWN_DIR}/${srcname} && git log | head -1 | cut -d ' ' -f 2)" >> $checktmp1
             elif [ -e ${ENV_DOWN_DIR}/${srcname}/.svn ]; then
                 do_sync svn ${ENV_DOWN_DIR}/${srcname}
                 echo "$(cd ${ENV_DOWN_DIR}/${srcname} && svn log | sed -n '2p' | cut -d '|' -f 1 | sed 's/\s//g')"  >> $checktmp1
@@ -390,6 +390,7 @@ check_cache() {
             mkdir -p ${ENV_CACHE_DIR}
             curl -s ${ENV_MIRROR_URL}/build-cache/${cachefile} -o ${ENV_CACHE_DIR}/${cachefile} || exit 1
             echo "MATCH"
+            echo -e "\033[32mcurl ${ENV_MIRROR_URL}/build-cache/${cachefile} to ${ENV_CACHE_DIR}/${cachefile}\033[0m"
             wlog "INFO: fetchcmd: curl -s ${ENV_MIRROR_URL}/build-cache/${cachefile} -o ${ENV_CACHE_DIR}/${cachefile}"
             wlog "INFO: cachefile: MATCH"
         else
