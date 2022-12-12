@@ -11,6 +11,6 @@ SRC_URL          = http://www.lua.org/ftp/$(SRC_NAME)
 
 PATCH_FOLDER     = $(shell pwd)/patch
 CACHE_CHECKSUM  += $(PATCH_FOLDER)
-MAKES_FLAGS      = CC=$(CC) AR="$(AR) rcs" RANLIB="$(RANLIB) -D" INSTALL_TOP=$(INS_PATH) INSTALL_DATA="cp -rfp" -C $(SRC_PATH)
+MAKES_FLAGS      = CC=$(CC) AR="$(AR) rcs" RANLIB="$(RANLIB) -D" INSTALL_TOP=$(INS_PATH)$(INS_SUBDIR) INSTALL_DATA="cp -rfp" -C $(SRC_PATH)
 
 include $(ENV_MAKE_DIR)/inc.cache.mk

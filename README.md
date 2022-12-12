@@ -136,11 +136,18 @@
 
 注: Yocto 编译时，由于 BitBake 任务无法直接使用当前 shell 的环境变量，所以自定义环境变量应由配方文件导出，不需要 source 这个环境脚本
 
-### 编译环境模板 inc.env.mk
+## 编译环境模板 inc.env.mk
 
 * 编译环境被应用编译和内核模块编译共用
 * 普通编译时此模板作用是设置编译输出目录 `OUT_PATH`，设置并导出交叉编译环境
-* Yocto 编译时编译输出目录和交叉编译环境由 `bitbake` 设置并导出，此模板没有做任何操作
+* Yocto 编译时编译输出目录和交叉编译环境由 `bitbake` 设置并导出
+<br>
+
+### 编译环境模板的函数说明
+
+* `$(call safe_copy,cp选项,源和目标)`: 非 yocto 编译时使用加文件锁的 cp，防止多个目标多进程同时安装目录时报错
+* `$(call link_hdrs)`: 根据 PACKAGE_DEPS 变量的值自动生成查找头文件的 CFLAGS
+* `$(call link_libs)`: 自动生成查找库文件的 LDFLAGS
 
 ## 安装模板 inc.ins.mk
 
@@ -206,10 +213,6 @@
                                 ├── testa
                                 └── testb
             ```
-
-### 安装模板的函数说明
-
-* `$(call safe_cp,cp选项,源和目标)`: 非 yocto 编译时使用加文件锁的 cp，防止多个目标多进程同时安装目录时报错
 
 ## 应用模板 inc.app.mk
 
@@ -1443,7 +1446,8 @@ Build busybox Done.
     * FETCH_METHOD    : 下载包的方式，可选择 `tar zip git svn`，默认值为 tar
     * SRC_PATH        : 包的源码路径，默认取变量 `$(OUT_PATH)/$(SRC_DIR)` 设置的值
     * OBJ_PATH        : 包的编译输出路径，默认取变量 `$(OUT_PATH)/build` 设置的值
-    * INS_PATH        : 包的安装目录，默认取变量 `$(OUT_PATH)/image` 设置的值
+    * INS_PATH        : 包的安装根目录，默认取变量 `$(OUT_PATH)/image` 设置的值
+    * INS_SUBDIR      : 包的安装子目录，默认值为 `/usr`，则真正的安装目录为 `$(INS_PATH)$(INS_SUBDIR)`
     * MAKES           : make 命令的值，默认为 `make -s $(ENV_BUILD_JOBS) $(MAKES_FLAGS)`，用户可以设置额外的参数 `MAKES_FLAGS`
     * CACHE_PACKAGE   : 包的名字，即 DEPS 语句中的包名，默认取值 `PACKAGE_NAME` (PACKAGE_NAME 可能和 DEPS 语句中的包名不对应，此时需要手动设置此变量)
     * CACHE_SRCFILE   : http 下载保存的文件名，默认取变量 `SRC_NAME` 设置的值
@@ -1462,7 +1466,6 @@ Build busybox Done.
     * CACHE_VERBOSE   : 是否生成 log 文件，默认取 1， 生成 log 文件是 `$(CACHE_OUTPATH)/$(CACHE_PACKAGE)-cache.log`
 <br>
 
-
 * 提供的函数
     * do_fetch: 自动从网络拉取代码并解压到输出目录
     * do_patch: 打补丁，用户需要设置补丁目录 `PATCH_FOLDER`
@@ -1479,6 +1482,7 @@ Build busybox Done.
     * do_setforce: 设置强制编译，用户某些操作后需要重新编译的操作需要调用此函数，例如用户修改 config
     * do_unsetforce: 取消强制编译，例如用户还原默认 config
     * 其它函数用户一般不会在外部调用
+<br>
 
 * 提供的目标
     * 如果用户没有设置 `USER_DEFINED_TARGET` 为 y，采用模板默认提供的 `all clean install` 目标
@@ -1486,4 +1490,3 @@ Build busybox Done.
     * cachebuild: 有缓存机制的编译
     * do_setforce: 设置强制编译
     * do_unsetforce: 取消强制编译
-

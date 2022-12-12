@@ -1642,7 +1642,7 @@ egrep -o '\b\w+\b' $filename | \
 
 * `tar`
     ```
-    tar -[Jjz] -c -f [tarname] [objects] -C [dir]
+    tar -[Jjz] -c -f [tarname] -C [dir] [objects]
     tar        -x -f [tarname] -C [dir]
     tar        -t -f [tarname]
     ```

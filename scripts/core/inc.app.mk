@@ -16,10 +16,8 @@ CFLAGS         += -I. -I./include $(patsubst %,-I%,$(filter-out .,$(SRC_PATH))) 
 
 comma          :=,
 ifneq ($(PACKAGE_DEPS), )
-CFLAGS         += $(patsubst %,-I$(ENV_DEP_ROOT)%,/usr/include /usr/local/include)
-CFLAGS         += $(patsubst %,-I$(ENV_DEP_ROOT)/usr/include/%,$(PACKAGE_DEPS))
-LDFLAGS        += $(patsubst %,-L$(ENV_DEP_ROOT)%,/lib /usr/lib /usr/local/lib)
-LDFLAGS        += $(patsubst %,-Wl$(comma)-rpath-link=$(ENV_DEP_ROOT)%,/lib /usr/lib /usr/local/lib)
+CFLAGS         += $(call link_hdrs)
+LDFLAGS        += $(call link_libs)
 endif
 
 CFLAGS         += -Wall # This enables all the warnings about constructions that some users consider questionable.

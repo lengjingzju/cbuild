@@ -9,6 +9,7 @@ SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.bz2
 SRC_URL          = https://www.busybox.net/downloads/$(SRC_NAME)
 
+INS_SUBDIR       =
 CACHE_CHECKSUM  += $(shell pwd)/config/$(CFG_NAME)
 CFG_NAME         = default_defconfig
 MAKES_FLAGS      = -C $(SRC_PATH) O=$(OBJ_PATH) CONFIG_PREFIX=$(INS_PATH)
@@ -16,6 +17,7 @@ MAKES_FLAGS      = -C $(SRC_PATH) O=$(OBJ_PATH) CONFIG_PREFIX=$(INS_PATH)
 define do_prepend
 	if [ ! -f $(OBJ_PATH)/.config ]; then \
 		cp -f config/$(CFG_NAME) $(SRC_PATH)/configs/$(CFG_NAME); \
+		mkdir -p $(OBJ_PATH); \
 		$(MAKES) $(CFG_NAME) 1>/dev/null; \
 	fi
 endef
@@ -27,6 +29,7 @@ include $(ENV_MAKE_DIR)/inc.cache.mk
 defconfig:
 	@$(call do_fetch)
 	@cp -f config/$(CFG_NAME) $(SRC_PATH)/configs/$(CFG_NAME)
+	@mkdir -p $(OBJ_PATH)
 	@$(MAKES) $(CFG_NAME)
 	@$(call do_unsetforce)
 

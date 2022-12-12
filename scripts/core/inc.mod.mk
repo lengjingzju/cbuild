@@ -5,8 +5,7 @@ obj-m          := $(patsubst %,%.o,$(MOD_NAME))
 
 ccflags-y      += $(patsubst %,-I%,$(src) $(src)/include $(obj))
 ifneq ($(PACKAGE_DEPS), )
-ccflags-y      += $(patsubst %,-I$(ENV_DEP_ROOT)%,/usr/include /usr/local/include)
-ccflags-y      += $(patsubst %,-I$(ENV_DEP_ROOT)/usr/include/%,$(PACKAGE_DEPS))
+ccflags-y      += $(call link_hdrs)
 endif
 
 define translate_obj

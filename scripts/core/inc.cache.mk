@@ -6,6 +6,7 @@ FETCH_METHOD    ?= tar
 SRC_PATH        ?= $(OUT_PATH)/$(SRC_DIR)
 OBJ_PATH        ?= $(OUT_PATH)/build
 INS_PATH        ?= $(OUT_PATH)/image
+INS_SUBDIR      ?= /usr
 MAKES           ?= make -s $(ENV_BUILD_JOBS) $(MAKES_FLAGS)
 
 CACHE_PACKAGE   ?= $(PACKAGE_NAME)
@@ -34,11 +35,11 @@ define do_compile
 	$(if $(do_prepend),$(call do_prepend),true); \
 	if [ "$(COMPILE_TOOL)" = "cmake" ]; then \
 		mkdir -p $(OBJ_PATH) && cd $(OBJ_PATH) && \
-			cmake $(SRC_PATH) $(CMAKE_FLAGS) -DCMAKE_INSTALL_PREFIX=$(INS_PATH) 1>/dev/null; \
+			cmake $(SRC_PATH) $(CMAKE_FLAGS) -DCMAKE_INSTALL_PREFIX=$(INS_PATH)$(INS_SUBDIR) 1>/dev/null; \
 	elif [ "$(COMPILE_TOOL)" = "configure" ]; then \
 		mkdir -p $(OBJ_PATH) && cd $(OBJ_PATH) && \
-			$(SRC_PATH)/configure $(CONFIGURE_FLAGS) --prefix=$(INS_PATH) \
-				$(if $(CROSS_COMPILE),--host=$(shell echo $(CROSS_COMPILE) | sed 's/-$//g')) 1>/dev/null; \
+			$(SRC_PATH)/configure $(CONFIGURE_FLAGS) --prefix=$(INS_PATH)$(INS_SUBDIR) \
+				$(if $(CROSS_COMPILE),--host=$(shell echo $(CROSS_COMPILE) | sed 's/-$$//g')) 1>/dev/null; \
 	fi; \
 	rm -rf $(INS_PATH) && $(MAKES) 1>/dev/null && $(MAKES) install 1>/dev/null; \
 	$(if $(do_append),$(call do_append),true)
@@ -90,7 +91,7 @@ clean:
 
 install:
 	@install -d $(ENV_INS_ROOT)
-	@$(call safecp,-rfp,$(INS_PATH)/* $(ENV_INS_ROOT))
+	@$(call safe_copy,-rfp,$(INS_PATH)/* $(ENV_INS_ROOT))
 	@echo "Install $(PACKAGE_NAME) Done."
 
 endif
