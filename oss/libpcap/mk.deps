@@ -1,4 +1,5 @@
-#DEPS(mk.deps) libpcap(cache): unselect
+#DEPS(mk.deps) libpcap-native(cache): unselect
+#DEPS(mk.deps) libpcap(cache release): unselect
 
 PACKAGE_NAME     = libpcap
 
@@ -12,3 +13,9 @@ SRC_URL          = https://www.tcpdump.org/release/$(SRC_NAME)
 COMPILE_TOOL     = configure
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/libpcap.so*
+INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs install_bins

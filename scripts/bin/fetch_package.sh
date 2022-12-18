@@ -171,9 +171,9 @@ exec_main() {
     if [ ! -z $outdir ] || [ ! -z $outname ]; then
         if [ ! -e $outdir/$outname ] || [ ! -e $outdir/$outname.$checksuffix ] || \
             [ "$(cat ${ENV_DOWN_DIR}/$package.$checksuffix)" != "$(cat $outdir/$outname.$checksuffix)" ]; then
-                    rm -rf $outdir/$outname $outdir/$outname.$checksuffix
-                    mkdir -p $outdir
-                    do_unpack
+            rm -rf $outdir/$outname $outdir/$outname.$checksuffix
+            mkdir -p $outdir
+            do_unpack
         fi
     fi
 }

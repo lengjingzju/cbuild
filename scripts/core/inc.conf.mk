@@ -1,15 +1,18 @@
-CONF_SRC         ?= $(ENV_TOP_DIR)/scripts/kconfig
+ifeq ($(KERNELRELEASE), )
+
 ifeq ($(ENV_BUILD_MODE), external)
-CONF_PATH        ?= $(patsubst $(ENV_TOP_DIR)/%,$(ENV_OUT_ROOT)/%,$(CONF_SRC))
-OUT_PATH         ?= $(patsubst $(ENV_TOP_DIR)/%,$(ENV_OUT_ROOT)/%,$(shell pwd))
-else ifeq ($(ENV_BUILD_MODE), yocto)
-CONF_PATH        ?= $(CONF_SRC)/oe-workdir/build
-OUT_PATH         ?= .
+ifneq ($(BUILD_FOR_HOST), y)
+OUT_PREFIX       := $(ENV_OUT_ROOT)
 else
-CONF_PATH        ?= $(CONF_SRC)
+OUT_PREFIX       := $(ENV_OUT_HOST)
+endif
+OUT_PATH         ?= $(patsubst $(ENV_TOP_DIR)/%,$(OUT_PREFIX)/%,$(shell pwd))
+else
 OUT_PATH         ?= .
 endif
 
+CONF_SRC         ?= $(ENV_TOP_DIR)/scripts/kconfig
+CONF_PATH        ?= $(ENV_DEP_HOST)/usr/bin
 KCONFIG          ?= Kconfig
 CONF_SAVE_PATH   ?= config
 CONF_PREFIX      ?= srctree=$(shell pwd)
@@ -47,7 +50,7 @@ endef
 ifneq ($(ENV_BUILD_MODE), yocto)
 
 buildkconfig:
-	@make -s -C $(CONF_SRC)
+	@make -s -C $(CONF_SRC) && make -s -C $(CONF_SRC) install
 
 cleankconfig:
 	@make -s -C $(CONF_SRC) clean
@@ -111,3 +114,4 @@ syncconfig:
 cleanconfig: cleankconfig
 	@rm -rf $(CONFIG_PATH) $(CONFIG_PATH).old $(dir $(AUTOCONFIG_PATH)) $(AUTOHEADER_PATH)
 
+endif

@@ -1,4 +1,5 @@
-#DEPS(mk.deps) cjson(cache): unselect
+#DEPS(mk.deps) cjson-native(cache): unselect
+#DEPS(mk.deps) cjson(cache release): unselect
 
 PACKAGE_NAME     = cjson
 
@@ -13,3 +14,8 @@ COMPILE_TOOL     = cmake
 CMAKE_FLAGS      = -DENABLE_CJSON_UTILS=ON -DENABLE_CJSON_TEST=OFF
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/libcjson*.so*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs

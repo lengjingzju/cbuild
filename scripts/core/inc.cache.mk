@@ -1,3 +1,5 @@
+ifeq ($(KERNELRELEASE), )
+
 FETCH_SCRIPT    := $(ENV_TOOL_DIR)/fetch_package.sh
 PATCH_SCRIPT    := $(ENV_TOOL_DIR)/exec_patch.sh
 CACHE_SCRIPT    := $(ENV_TOOL_DIR)/process_cache.sh
@@ -19,8 +21,11 @@ CACHE_DEPENDS   ?= none
 CACHE_URL       ?= $(if $(SRC_URL),[$(FETCH_METHOD)]$(SRC_URL))
 CACHE_VERBOSE   ?= 1
 
+REAL_PACKAGE     = $(CACHE_PACKAGE)$(if $(filter y,$(BUILD_FOR_HOST)),-native)
+
 define do_fetch
-	$(FETCH_SCRIPT) $(FETCH_METHOD) "$(SRC_URL)" $(SRC_NAME) $(OUT_PATH) $(SRC_DIR)
+	mkdir -p $(ENV_DOWN_DIR) && echo > $(ENV_DOWN_DIR)/$(SRC_NAME).lock && \
+	flock $(ENV_DOWN_DIR)/$(SRC_NAME).lock -c "bash $(FETCH_SCRIPT) $(FETCH_METHOD) \"$(SRC_URL)\" $(SRC_NAME) $(OUT_PATH) $(SRC_DIR)"
 endef
 
 define do_patch
@@ -34,12 +39,10 @@ define do_compile
 	mkdir -p $(OBJ_PATH); \
 	$(if $(do_prepend),$(call do_prepend),true); \
 	if [ "$(COMPILE_TOOL)" = "cmake" ]; then \
-		mkdir -p $(OBJ_PATH) && cd $(OBJ_PATH) && \
-			cmake $(SRC_PATH) $(CMAKE_FLAGS) -DCMAKE_INSTALL_PREFIX=$(INS_PATH)$(INS_SUBDIR) 1>/dev/null; \
+		cd $(OBJ_PATH) && cmake $(SRC_PATH) $(CMAKE_FLAGS) -DCMAKE_INSTALL_PREFIX=$(INS_PATH)$(INS_SUBDIR) 1>/dev/null; \
 	elif [ "$(COMPILE_TOOL)" = "configure" ]; then \
-		mkdir -p $(OBJ_PATH) && cd $(OBJ_PATH) && \
-			$(SRC_PATH)/configure $(CONFIGURE_FLAGS) --prefix=$(INS_PATH)$(INS_SUBDIR) \
-				$(if $(CROSS_COMPILE),--host=$(shell echo $(CROSS_COMPILE) | sed 's/-$$//g')) 1>/dev/null; \
+		cd $(OBJ_PATH) && $(SRC_PATH)/configure $(CONFIGURE_FLAGS) --prefix=$(INS_PATH)$(INS_SUBDIR) \
+			$(if $(CROSS_COMPILE),--host=$(shell echo $(CROSS_COMPILE) | sed 's/-$$//g')) 1>/dev/null; \
 	fi; \
 	rm -rf $(INS_PATH) && $(MAKES) 1>/dev/null && $(MAKES) install 1>/dev/null; \
 	$(if $(do_append),$(call do_append),true)
@@ -47,36 +50,36 @@ endef
 endif
 
 define do_check
-	$(CACHE_SCRIPT) -m check -p $(CACHE_PACKAGE) -o $(CACHE_OUTPATH) \
-		-i $(CACHE_INSPATH) -g $(CACHE_GRADE) -v $(CACHE_VERBOSE) \
+	$(CACHE_SCRIPT) -m check -p $(CACHE_PACKAGE) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
+		-o $(CACHE_OUTPATH) -i $(CACHE_INSPATH) -g $(CACHE_GRADE) -v $(CACHE_VERBOSE) \
 		$(if $(CACHE_SRCFILE),-s $(CACHE_SRCFILE)) $(if $(CACHE_CHECKSUM),-c '$(CACHE_CHECKSUM)') \
 		$(if $(CACHE_DEPENDS),-d '$(CACHE_DEPENDS)') $(if $(CACHE_URL),-u '$(CACHE_URL)')
 endef
 
 define do_pull
-	$(CACHE_SCRIPT) -m pull  -p $(CACHE_PACKAGE) -o $(CACHE_OUTPATH) \
-		-i $(CACHE_INSPATH) -g $(CACHE_GRADE) -v $(CACHE_VERBOSE) && \
-	echo "Use $(CACHE_PACKAGE) Cache in $(ENV_CACHE_DIR)."
+	$(CACHE_SCRIPT) -m pull  -p $(CACHE_PACKAGE) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
+		-o $(CACHE_OUTPATH) -i $(CACHE_INSPATH) -g $(CACHE_GRADE) -v $(CACHE_VERBOSE) && \
+	echo "Use $(REAL_PACKAGE) Cache in $(ENV_CACHE_DIR)."
 endef
 
 define do_push
-	$(CACHE_SCRIPT) -m push  -p $(CACHE_PACKAGE) -o $(CACHE_OUTPATH) \
-		-i $(CACHE_INSPATH) -g $(CACHE_GRADE) -v $(CACHE_VERBOSE) \
+	$(CACHE_SCRIPT) -m push  -p $(CACHE_PACKAGE) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
+		-o $(CACHE_OUTPATH) -i $(CACHE_INSPATH) -g $(CACHE_GRADE) -v $(CACHE_VERBOSE) \
 		$(if $(CACHE_SRCFILE),-s $(CACHE_SRCFILE)) $(if $(CACHE_CHECKSUM),-c '$(CACHE_CHECKSUM)') \
 		$(if $(CACHE_DEPENDS),-d '$(CACHE_DEPENDS)') && \
-	echo "Push $(CACHE_PACKAGE) Cache to $(ENV_CACHE_DIR)."
+	echo "Push $(REAL_PACKAGE) Cache to $(ENV_CACHE_DIR)."
 endef
 
 define do_setforce
-	$(CACHE_SCRIPT) -m setforce -p $(CACHE_PACKAGE) -o $(CACHE_OUTPATH) \
-		-v $(CACHE_VERBOSE) && \
-	echo "Set $(CACHE_PACKAGE) Force Build."
+	$(CACHE_SCRIPT) -m setforce -p $(CACHE_PACKAGE) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
+		-o $(CACHE_OUTPATH) -v $(CACHE_VERBOSE) && \
+	echo "Set $(REAL_PACKAGE) Force Build."
 endef
 
 define do_unsetforce
-	$(CACHE_SCRIPT) -m unsetforce -p $(CACHE_PACKAGE) -o $(CACHE_OUTPATH) \
-		-i $(CACHE_INSPATH) -v $(CACHE_VERBOSE) && \
-	echo "Unset $(CACHE_PACKAGE) Force Build."
+	$(CACHE_SCRIPT) -m unsetforce -p $(CACHE_PACKAGE) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
+		-o $(CACHE_OUTPATH) -i $(CACHE_INSPATH) -v $(CACHE_VERBOSE) && \
+	echo "Unset $(REAL_PACKAGE) Force Build."
 endef
 
 ifneq ($(USER_DEFINED_TARGET), y)
@@ -87,12 +90,12 @@ all: cachebuild
 
 clean:
 	@rm -rf $(OUT_PATH)
-	@echo "Clean $(PACKAGE_NAME) Done."
+	@echo "Clean $(REAL_PACKAGE) Done."
 
 install:
-	@install -d $(ENV_INS_ROOT)
-	@$(call safe_copy,-rfp,$(INS_PATH)/* $(ENV_INS_ROOT))
-	@echo "Install $(PACKAGE_NAME) Done."
+	@install -d $(INS_PREFIX)
+	@$(call safe_copy,-rfp,$(INS_PATH)/* $(INS_PREFIX))
+	@echo "Install $(REAL_PACKAGE) Done."
 
 endif
 
@@ -100,7 +103,7 @@ endif
 
 srcbuild:
 	@$(call do_compile)
-	@echo "Build $(PACKAGE_NAME) Done."
+	@echo "Build $(REAL_PACKAGE) Done."
 
 cachebuild:
 	@checksum=$$($(call do_check)); \
@@ -118,10 +121,12 @@ cachebuild:
 		$(call do_compile); \
 		$(call do_push); \
 	fi
-	@echo "Build $(CACHE_PACKAGE) Done."
+	@echo "Build $(REAL_PACKAGE) Done."
 
 setforce:
 	@$(call do_setforce)
 
 unsetforce:
 	@$(call do_unsetforce)
+
+endif

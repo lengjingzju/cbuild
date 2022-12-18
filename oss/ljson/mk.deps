@@ -1,4 +1,5 @@
-#DEPS(mk.deps) ljson(cache): unselect
+#DEPS(mk.deps) ljson-native(cache): unselect
+#DEPS(mk.deps) ljson(cache release): unselect
 
 PACKAGE_NAME     = ljson
 
@@ -12,10 +13,15 @@ SRC_URL          = https://github.com/lengjingzju/json.git
 MAKE_FILE        = $(shell pwd)/patch/Makefile
 CACHE_CHECKSUM  += $(MAKE_FILE)
 FETCH_METHOD     = git
-MAKES_FLAGS      = ENV_INS_ROOT=$(INS_PATH) OUT_PATH=$(OBJ_PATH) -C $(SRC_PATH)
+MAKES_FLAGS      = INS_PREFIX=$(INS_PATH) OUT_PATH=$(OBJ_PATH) -C $(SRC_PATH)
 
 define do_prepend
 	cp -f $(MAKE_FILE) $(SRC_PATH)
 endef
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES   = $(INS_PATH)/usr/lib/lib*.so*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs

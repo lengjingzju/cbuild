@@ -810,12 +810,26 @@ class Deps:
                 dep_target_name = '%s_depends' % (item['target'])
                 dep_target_flag = False
 
+                dep_install_name = '%s_install_depends' % (item['target'])
+                install_flag = True
+                dep_install_flag = False
+                if item['target'].endswith('-native') or item['target'] in self.FinallyList:
+                    install_flag = False
+
                 make = '@$(PRECMD)make'
                 if item['targets'] and 'jobserver' in item['targets']:
                     make += ' $(ENV_BUILD_JOBS)'
                 make += ' -s -C %s' % (item['path'])
                 if item['make']:
                     make += ' -f %s' % (item['make'])
+
+                if item['target'].endswith('-native'):
+                    make += ' BUILD_FOR_HOST=y'
+                elif item['asdeps'] or item['awdeps']:
+                    for dep in item['asdeps'] + item['awdeps']:
+                        if dep.endswith('-native'):
+                            make += ' EXPORT_HOST_ENV=y'
+                            break
 
                 fp.write('ifeq ($(CONFIG_%s), y)\n\n' % (escape_toupper(item['target'])))
 
@@ -833,23 +847,32 @@ class Deps:
                     for dep in item['awdeps']:
                         fp.write('ifeq ($(CONFIG_%s), y)\n' % (escape_toupper(dep)))
                         fp.write('%s: %s\n' % (dep_target_name, dep))
+                        if not dep.endswith('-native') and install_flag:
+                            dep_install_flag = True
+                            fp.write('%s: %s_install\n' % (dep_install_name, dep))
                         fp.write('endif\n')
                     fp.write('\n')
 
-                deps = []
+                install_deps = []
                 if item['asdeps']:
-                    if 'finally' in item['asdeps']:
-                        deps = [dep for dep in item['asdeps'] if dep != 'finally']
-                    else:
-                        deps = [dep for dep in item['asdeps']]
-                if deps:
                     dep_target_flag = True
                     phony.append(dep_target_name)
-                    fp.write('%s: %s\n\n' % (dep_target_name, ' '.join(deps)))
+                    fp.write('%s: %s\n\n' % (dep_target_name, ' '.join(item['asdeps'] )))
+                    install_deps = ['%s_install' % (dep) for dep in item['asdeps']  if not dep.endswith('-native')]
                 else:
                     if dep_target_flag:
                         phony.append(dep_target_name)
                         fp.write('%s:\n\t@\n\n' % (dep_target_name))
+
+                if install_flag:
+                    if install_deps:
+                        dep_install_flag = True
+                        phony.append(dep_install_name)
+                        fp.write('%s: %s\n\n' % (dep_install_name, ' '.join(install_deps)))
+                    else:
+                        if dep_install_flag:
+                            phony.append(dep_install_name)
+                            fp.write('%s:\n\t@\n\n' % (dep_install_name))
 
                 phony.append(item['target'])
                 if dep_target_flag:
@@ -869,6 +892,18 @@ class Deps:
                     fp.write('\t%s\n' % (make))
                     fp.write('\t%s install\n\n' % (make))
 
+                if install_flag:
+                    phony.append(item['target'] + '_install')
+                    install = 'release' if 'release' in item['targets'] else 'install'
+                    if dep_install_flag:
+                        fp.write('%s_install: %s\n' % (item['target'], dep_install_name))
+                    else:
+                        fp.write('%s_install:\n' % (item['target']))
+                    if item['targets'] and 'union' in item['targets']:
+                        fp.write('\t%s %s-%s\n\n' % (make, item['target'], install))
+                    else:
+                        fp.write('\t%s %s\n\n' % (make, install))
+
                 phony.append(item['target'] + '_clean')
                 fp.write('%s_clean:\n' % (item['target']))
                 if item['targets'] and 'union' in item['targets']:
@@ -882,7 +917,7 @@ class Deps:
                     fp.write('%s_setforce %s_unsetforce:\n' % (item['target'], item['target']))
                     fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, item['target']))
 
-                ignore_targets = ['all', 'clean', 'install', 'prepare', 'jobserver', 'union', 'cache']
+                ignore_targets = ['all', 'clean', 'install', 'release', 'prepare', 'jobserver', 'union', 'cache']
                 targets = [t for t in item['targets'] if t not in ignore_targets]
 
                 targets_exact = [t for t in targets if ':' in t]
@@ -899,11 +934,15 @@ class Deps:
                     phony += self.__write_sub_target_make(fp, make, item['target'], targets_auto, depstr)
 
                 fp.write('ALL_TARGETS += %s\n' % (item['target']))
+                if install_flag:
+                    fp.write('ALL_INSTALL_TARGETS += %s_install\n' % (item['target']))
                 fp.write('ALL_CLEAN_TARGETS += %s_clean\n' % (item['target']))
                 fp.write('.PHONY: %s\n\n' % (' '.join(phony)))
                 fp.write('endif\n\n')
 
-            fp.write('%s: %s\n' % ('all_targets', '$(ALL_TARGETS)'))
+            fp.write('%s: %s\n\n' % ('all_targets', '$(ALL_TARGETS)'))
+            fp.write('%s: %s\n\n' % ('all_install_targets', '$(ALL_INSTALL_TARGETS)'))
+            fp.write('%s: %s\n' % ('all_clean_targets', '$(ALL_CLEAN_TARGETS)'))
 
 
     def __replace_list(self, rlist, ori, rep):

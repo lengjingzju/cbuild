@@ -3,7 +3,7 @@
 ## 特点
 
 * Linux 下纯粹的 Makefile 编译，支持 Makefile 封装包已有的 `Makefile` `CMake` `Autotools` 以实现对它们的支持
-* 支持交叉编译，支持自动分析头文件和编译脚本文件作为编译依赖，支持分别指定源文件的 CFLAGS
+* 支持本地编译和交叉编译，支持自动分析头文件和编译脚本文件作为编译依赖，支持分别指定源文件的 CFLAGS
 * 一个 Makefile 同时支持 Yocto 编译方式、源码和编译输出分离模式和不分离模式，一个 Makefile 支持生成多个库、可执行文件或外部内核模块
 * 提供编译静态库、共享库和可执行文件的模板 `inc.app.mk`，支持 C(`*.c`) C++(`*.cc *.cp *.cxx *.cpp *.CPP *.c++ *.C`) 和 汇编(`*.S *.s *.asm`) 混合编译
 * 提供编译外部内核模块的模板 `inc.mod.mk`，支持 C(`*.c`) 和 汇编(`*.S`) 混合编译
@@ -80,8 +80,8 @@
     lengjing@lengjing:~/cbuild$ source scripts/build.env
     ============================================================
     ENV_BUILD_MODE   : external
-    ENV_BUILD_ARCH   :
-    ENV_BUILD_TOOL   :
+    ENV_BUILD_ARCH   : 
+    ENV_BUILD_TOOL   : 
     ENV_BUILD_GRADE  : v1 v2 v3
     ENV_BUILD_JOBS   : -j8
     ENV_TOP_DIR      : /home/lengjing/cbuild
@@ -91,10 +91,13 @@
     ENV_CACHE_DIR    : /home/lengjing/cbuild/output/mirror-cache/build-cache
     ENV_MIRROR_URL   : http://127.0.0.1:8888
     ENV_TOP_OUT      : /home/lengjing/cbuild/output
+    ENV_CFG_ROOT     : /home/lengjing/cbuild/output/config
     ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
     ENV_INS_ROOT     : /home/lengjing/cbuild/output/sysroot
     ENV_DEP_ROOT     : /home/lengjing/cbuild/output/sysroot
-    ENV_CFG_ROOT     : /home/lengjing/cbuild/output/config
+    ENV_OUT_HOST     : /home/lengjing/cbuild/output/objects-native
+    ENV_INS_HOST     : /home/lengjing/cbuild/output/sysroot-native
+    ENV_DEP_HOST     : /home/lengjing/cbuild/output/sysroot-native
     ============================================================
     ```
 
@@ -113,7 +116,7 @@
 ### 环境变量说明
 
 * ENV_BUILD_MODE: 设置编译模式: external, 源码和编译输出分离; internal, 编译输出到源码; yocto, Yocto 编译方式
-    * external 时，编译输出目录是把包的源码目录的 ENV_TOP_DIR 部分换成了 ENV_OUT_ROOT
+    * external 时，编译输出目录是把包的源码目录的 ENV_TOP_DIR 部分换成了 ENV_OUT_ROOT / ENV_OUT_HOST
 * ENV_BUILD_ARCH: 指定交叉编译 linux 模块的 ARCH
 * ENV_BUILD_TOOL: 指定交叉编译器前缀
 * ENV_BUILD_GRADE: 指定编译缓存级别数组，比如我有一颗 acortex-a55 的 soc，那这个值可设置为 `socname cortex-a55 armv8-a`
@@ -129,17 +132,22 @@
 <br>
 
 * ENV_TOP_OUT: 工程的输出根目录，编译输出、安装文件、生成镜像等都在此目录下定义
+* ENV_CFG_ROOT: 工程自动生成文件的保存路径，例如全局 Kconfig 和 Makefile，各种统计文件等
 * ENV_OUT_ROOT: 源码和编译输出分离时的编译输出根目录
 * ENV_INS_ROOT: 工程安装文件的根目录
 * ENV_DEP_ROOT: 工程搜索库和头文件的根目录
-* ENV_CFG_ROOT: 工程自动生成文件的保存路径，例如全局 Kconfig 和 Makefile，各种统计文件等
+<br>
+
+* ENV_OUT_HOST: 本地编译源码和编译输出分离时的编译输出根目录
+* ENV_INS_HOST: 本地编译工程安装文件的根目录
+* ENV_DEP_HOST: 本地编译工程搜索库和头文件的根目录
 
 注: Yocto 编译时，由于 BitBake 任务无法直接使用当前 shell 的环境变量，所以自定义环境变量应由配方文件导出，不需要 source 这个环境脚本
 
 ## 编译环境模板 inc.env.mk
 
 * 编译环境被应用编译和内核模块编译共用
-* 普通编译时此模板作用是设置编译输出目录 `OUT_PATH`，设置并导出交叉编译环境
+* 普通编译时此模板作用是设置编译输出目录 `OUT_PATH`，设置并导出交叉编译环境或本地编译环境
 * Yocto 编译时编译输出目录和交叉编译环境由 `bitbake` 设置并导出
 <br>
 
@@ -148,6 +156,12 @@
 * `$(call safe_copy,cp选项,源和目标)`: 非 yocto 编译时使用加文件锁的 cp，防止多个目标多进程同时安装目录时报错
 * `$(call link_hdrs)`: 根据 PACKAGE_DEPS 变量的值自动生成查找头文件的 CFLAGS
 * `$(call link_libs)`: 自动生成查找库文件的 LDFLAGS
+
+### 编译环境模板变量说明
+
+* OUT_PREFIX : 编译输出根目录，本地编译取值 ENV_OUT_HOST，交叉编译取值 ENV_OUT_ROOT
+* INS_PREFIX : 安装根目录，本地编译取值 ENV_INS_HOST，交叉编译取值 ENV_INS_ROOT
+* DEP_PREFIX : 依赖根目录，本地编译取值 ENV_DEP_HOST，交叉编译取值 ENV_DEP_ROOT
 
 ## 安装模板 inc.ins.mk
 

@@ -1,0 +1,24 @@
+#DEPS(mk.deps) zlib-native(cache): unselect
+#DEPS(mk.deps) zlib(cache release): unselect
+
+PACKAGE_NAME     = zlib
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+FETCH_METHOD     = zip
+VERSION          = 1.2.13
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.gz
+SRC_URL          = http://www.zlib.net/zlib1213.zip
+
+define do_prepend
+cd $(OBJ_PATH) && \
+	$(SRC_PATH)/configure --prefix=$(INS_PATH)$(INS_SUBDIR) 1>/dev/null
+endef
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES   = $(INS_PATH)/usr/lib/libz.so*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs

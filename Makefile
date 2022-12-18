@@ -11,7 +11,7 @@ TIME_FORMAT    := /usr/bin/time -a -o $(OUT_PATH)/time_statistics -f \"%e\\t\\t%
 
 .PHONY: all clean insclean distclean deps all-deps total_time time_statistics
 
-all: insclean loadconfig
+all: loadconfig
 	@make $(ENV_BUILD_JOBS) -s MAKEFLAGS= all_targets
 	@echo "Build done!"
 
@@ -47,7 +47,7 @@ all-deps:
 		$(ENV_TOOL_DIR)/gen_depends_image.sh $${package} $(OUT_PATH)/depends $(OUT_PATH)/DEPS  $(OUT_PATH)/.config; \
 	done
 
-total_time: insclean loadconfig
+total_time: loadconfig
 	@$(PRECMD)make -s all_targets
 	@echo "Build done!"
 

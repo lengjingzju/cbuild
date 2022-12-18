@@ -1,3 +1,6 @@
+
+ifeq ($(KERNELRELEASE), )
+
 SRC_PATH       ?= .
 IGNORE_PATH    ?= .git scripts output
 REG_SUFFIX     ?= c cpp S
@@ -14,7 +17,6 @@ SRCS           ?= $(shell find $(SRC_PATH) $(patsubst %,-path '*/%' -prune -o,$(
 
 CFLAGS         += -I. -I./include $(patsubst %,-I%,$(filter-out .,$(SRC_PATH))) $(patsubst %,-I%/include,$(filter-out .,$(SRC_PATH))) -I$(OUT_PATH)
 
-comma          :=,
 ifneq ($(PACKAGE_DEPS), )
 CFLAGS         += $(call link_hdrs)
 LDFLAGS        += $(call link_libs)
@@ -155,3 +157,4 @@ endif
 INSTALL_LIBRARIES ?= $(LIB_TARGETS)
 INSTALL_BINARIES  ?= $(BIN_TARGETS)
 
+endif

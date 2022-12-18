@@ -3,48 +3,47 @@ ifeq ($(KERNELRELEASE), )
 .PHONY: install_libs install_base_libs install_bins install_base_bins install_hdrs install_datas
 
 install_libs:
-	@install -d $(ENV_INS_ROOT)/usr/lib
-	@$(call safe_copy,-drf,$(INSTALL_LIBRARIES) $(ENV_INS_ROOT)/usr/lib)
+	@install -d $(INS_PREFIX)/usr/lib
+	@$(call safe_copy,-drf,$(INSTALL_LIBRARIES) $(INS_PREFIX)/usr/lib)
 
 INSTALL_BASE_LIBRARIES ?= $(INSTALL_LIBRARIES)
 install_base_libs:
-	@install -d $(ENV_INS_ROOT)/lib
-	@$(call safe_copy,-drf,$(INSTALL_BASE_LIBRARIES) $(ENV_INS_ROOT)/lib)
+	@install -d $(INS_PREFIX)/lib
+	@$(call safe_copy,-drf,$(INSTALL_BASE_LIBRARIES) $(INS_PREFIX)/lib)
 
 install_bins:
-	@install -d $(ENV_INS_ROOT)/usr/bin
-	@$(call safe_copy,-drf,$(INSTALL_BINARIES) $(ENV_INS_ROOT)/usr/bin)
+	@install -d $(INS_PREFIX)/usr/bin
+	@$(call safe_copy,-drf,$(INSTALL_BINARIES) $(INS_PREFIX)/usr/bin)
 
 INSTALL_BASE_BINARIES ?= $(INSTALL_BINARIES)
 install_base_bins:
-	@install -d $(ENV_INS_ROOT)/bin
-	@$(call safe_copy,-drf,$(INSTALL_BASE_BINARIES) $(ENV_INS_ROOT)/bin)
+	@install -d $(INS_PREFIX)/bin
+	@$(call safe_copy,-drf,$(INSTALL_BASE_BINARIES) $(INS_PREFIX)/bin)
 
 install_hdrs:
-	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
-	@$(call safe_copy,-drfp,$(INSTALL_HEADERS) $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME))
+	@install -d $(INS_PREFIX)/usr/include/$(PACKAGE_NAME)
+	@$(call safe_copy,-drfp,$(INSTALL_HEADERS) $(INS_PREFIX)/usr/include/$(PACKAGE_NAME))
 
 install_datas:
-	@install -d $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)
-	@$(call safe_copy,-drf,$(INSTALL_DATAS) $(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME))
+	@install -d $(INS_PREFIX)/usr/share/$(PACKAGE_NAME)
+	@$(call safe_copy,-drf,$(INSTALL_DATAS) $(INS_PREFIX)/usr/share/$(PACKAGE_NAME))
 
 install_datas_%:
 	@icp="$(if $(findstring /include,$(lastword $(INSTALL_DATAS_$(patsubst install_datas_%,%,$@)))),-drfp,-drf)"; \
 		isrc="$(patsubst $(lastword $(INSTALL_DATAS_$(patsubst install_datas_%,%,$@))),,$(INSTALL_DATAS_$(patsubst install_datas_%,%,$@)))"; \
-		idst="$(ENV_INS_ROOT)/usr/share$(lastword $(INSTALL_DATAS_$(patsubst install_datas_%,%,$@)))"; \
+		idst="$(INS_PREFIX)/usr/share$(lastword $(INSTALL_DATAS_$(patsubst install_datas_%,%,$@)))"; \
 		install -d $${idst} && $(call safe_copy,$${icp},$${isrc} $${idst})
 
 install_todir_%:
 	@icp="$(if $(findstring /include,$(lastword $(INSTALL_TODIR_$(patsubst install_todir_%,%,$@)))),-drfp,-drf)"; \
 		isrc="$(patsubst $(lastword $(INSTALL_TODIR_$(patsubst install_todir_%,%,$@))),,$(INSTALL_TODIR_$(patsubst install_todir_%,%,$@)))"; \
-		idst="$(ENV_INS_ROOT)$(lastword $(INSTALL_TODIR_$(patsubst install_todir_%,%,$@)))"; \
+		idst="$(INS_PREFIX)$(lastword $(INSTALL_TODIR_$(patsubst install_todir_%,%,$@)))"; \
 		install -d $${idst} && $(call safe_copy,$${icp},$${isrc} $${idst})
 
 install_tofile_%:
 	@icp="$(if $(findstring /include,$(lastword $(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))),-dfp,-df)"; \
 		isrc="$(word 1,$(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))"; \
-		idst="$(ENV_INS_ROOT)$(lastword $(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))"; \
-		install -d $(dir $(ENV_INS_ROOT)$(lastword $(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))) && $(call safe_copy,$${icp},$${isrc} $${idst})
+		idst="$(INS_PREFIX)$(lastword $(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))"; \
+		install -d $(dir $(INS_PREFIX)$(lastword $(INSTALL_TOFILE_$(patsubst install_tofile_%,%,$@)))) && $(call safe_copy,$${icp},$${isrc} $${idst})
 
 endif
-

@@ -1,0 +1,51 @@
+#DEPS(mk.deps) rootfs(): finally
+
+PACKAGE_NAME  = rootfs
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+FAKEROOT_DIR ?= $(OUT_PATH)/fakeroot
+
+.PHONY: all clean install image_install package_install glibc_install strip_elfs
+
+all:
+	@rm -rf $(FAKEROOT_DIR)
+	@echo "Build $(PACKAGE_NAME) Done."
+
+clean:
+	@echo "Clean $(PACKAGE_NAME) Done."
+
+install: image_install
+
+package_install:
+	@echo "Install packages from $(ENV_INS_ROOT)"
+	@mkdir -p $(FAKEROOT_DIR)
+	@make -s -C $(ENV_TOP_DIR) PRECMD= ENV_INS_ROOT=$(FAKEROOT_DIR) all_install_targets
+	@if [ -d $(FAKEROOT_DIR)/lib ];then \
+		rm -rf $(FAKEROOT_DIR)/lib/lib*.a; \
+	fi
+	@if [ -d $(FAKEROOT_DIR)/usr/lib ]; then \
+		rm -rf $(FAKEROOT_DIR)/usr/lib/lib*.a; \
+	fi
+	@if [ -d $(FAKEROOT_DIR)/usr/local/lib ]; then \
+		rm -rf $(FAKEROOT_DIR)/usr/local/lib/lib*.a; \
+	fi
+	@if [ -d $(FAKEROOT_DIR)/include ]; then \
+		rm -rf $(FAKEROOT_DIR)/include/*; \
+	fi
+	@if [ -d $(FAKEROOT_DIR)/usr/include ]; then \
+		rm -rf $(FAKEROOT_DIR)/usr/include/*; \
+	fi
+	@if [ -d $(FAKEROOT_DIR)/usr/local/include ]; then \
+		rm -rf $(FAKEROOT_DIR)/usr/local/include/*; \
+	fi
+
+image_install: package_install
+	@elfs=$$(find $(FAKEROOT_DIR) -type f -executable -exec sh -c "file -i '{}' | \
+		grep -q -e 'x-sharedlib; charset=binary' \
+			-e 'x-executable; charset=binary' \
+			-e 'x-pie-executable; charset=binary'" \; -print | \
+		grep -v gdb | xargs); \
+	if [ ! -z "$${elfs}" ]; then \
+		$(STRIP) -s $${elfs}; \
+	fi

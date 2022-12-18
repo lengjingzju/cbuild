@@ -1,4 +1,39 @@
+ifneq ($(BUILD_FOR_HOST), y)
+OUT_PREFIX     := $(ENV_OUT_ROOT)
+INS_PREFIX     := $(ENV_INS_ROOT)
+DEP_PREFIX     := $(ENV_DEP_ROOT)
+else
+OUT_PREFIX     := $(ENV_OUT_HOST)
+INS_PREFIX     := $(ENV_INS_HOST)
+DEP_PREFIX     := $(ENV_DEP_HOST)
+endif
+
+define link_hdrs
+$(addprefix  -I,$(wildcard \
+	$(addprefix $(DEP_PREFIX),/include /usr/include /usr/local/include) \
+	$(addprefix $(DEP_PREFIX)/include/,$(PACKAGE_DEPS)) \
+	$(addprefix $(DEP_PREFIX)/usr/include/,$(PACKAGE_DEPS)) \
+	$(addprefix $(DEP_PREFIX)/usr/local/include/,$(PACKAGE_DEPS)) \
+))
+endef
+
 ifeq ($(KERNELRELEASE), )
+
+comma          :=,
+define link_libs
+$(addprefix -L,$(wildcard $(addprefix $(DEP_PREFIX),/lib /usr/lib /usr/local/lib))) \
+$(addprefix -Wl$(comma)-rpath-link=,$(wildcard $(addprefix $(DEP_PREFIX),/lib /usr/lib /usr/local/lib)))
+endef
+
+define safe_copy
+$(if $(filter yocto,$(ENV_BUILD_MODE)),cp $1 $2,flock $(INS_PREFIX) -c "cp $1 $2")
+endef
+
+ifeq ($(filter y,$(EXPORT_HOST_ENV) $(BUILD_FOR_HOST)), y)
+export PATH:=$(shell echo $(addprefix $(ENV_DEP_HOST),/bin /usr/bin /usr/local/bin)$(if $(PATH),:$(PATH)) | sed 's/ /:/g')
+export LD_LIBRARY_PATH:=$(shell echo $(addprefix $(ENV_DEP_HOST),/lib /usr/lib /usr/local/lib)$(if $(LD_LIBRARY_PATH),:$(LD_LIBRARY_PATH)) | sed 's/ /:/g')
+endif
+
 ifeq ($(ENV_BUILD_MODE), yocto)
 
 # envs should be exported by yocto recipe.
@@ -6,10 +41,12 @@ ifeq ($(ENV_BUILD_MODE), yocto)
 else
 
 ifeq ($(ENV_BUILD_MODE), external)
-OUT_PATH       ?= $(patsubst $(ENV_TOP_DIR)/%,$(ENV_OUT_ROOT)/%,$(shell pwd))
+OUT_PATH       ?= $(patsubst $(ENV_TOP_DIR)/%,$(OUT_PREFIX)/%,$(shell pwd))
 else
 OUT_PATH       ?= .
 endif
+
+ifneq ($(BUILD_FOR_HOST), y)
 
 ifneq ($(ENV_BUILD_ARCH), )
 ARCH           := $(ENV_BUILD_ARCH)
@@ -21,11 +58,10 @@ ifneq ($(findstring /,$(ENV_BUILD_TOOL)), )
 CROSS_TOOLPATH := $(shell dirname $(ENV_BUILD_TOOL))
 CROSS_COMPILE  := $(shell basename $(ENV_BUILD_TOOL))
 export PATH:=$(PATH):$(CROSS_TOOLPATH)
-export CROSS_TOOLPATH CROSS_COMPILE
 else
 CROSS_COMPILE  := $(ENV_BUILD_TOOL)
-export CROSS_COMPILE
 endif
+export CROSS_COMPILE
 endif
 
 CC             := $(CROSS_COMPILE)gcc
@@ -39,24 +75,22 @@ OBJCOPY        := $(CROSS_COMPILE)objcopy
 STRIP          := $(CROSS_COMPILE)strip
 export CC CXX CPP AS LD AR RANLIB OBJCOPY STRIP
 
+else
+
+undefine ARCH CROSS_COMPILE
+unexport ARCH CROSS_COMPILE
+
+CC             := gcc
+CPP            := gcc -E
+CXX            := g++
+AS             := as
+LD             := ld
+AR             := ar
+RANLIB         := ranlib
+OBJCOPY        := objcopy
+STRIP          := strip
+export CC CXX CPP AS LD AR RANLIB OBJCOPY STRIP
+
 endif
 endif
-
-define safe_copy
-$(if $(filter yocto,$(ENV_BUILD_MODE)),cp $1 $2,flock $(ENV_INS_ROOT) -c "cp $1 $2")
-endef
-
-define link_hdrs
-$(addprefix  -I,$(wildcard \
-	$(addprefix $(ENV_DEP_ROOT),/include /usr/include /usr/local/include) \
-	$(addprefix $(ENV_DEP_ROOT)/include/,$(PACKAGE_DEPS)) \
-	$(addprefix $(ENV_DEP_ROOT)/usr/include/,$(PACKAGE_DEPS)) \
-	$(addprefix $(ENV_DEP_ROOT)/usr/local/include/,$(PACKAGE_DEPS)) \
-))
-endef
-
-comma          :=,
-define link_libs
-$(addprefix -L,$(wildcard $(addprefix $(ENV_DEP_ROOT),/lib /usr/lib /usr/local/lib))) \
-$(addprefix -Wl$(comma)-rpath-link=,$(wildcard $(addprefix $(ENV_DEP_ROOT),/lib /usr/lib /usr/local/lib)))
-endef
+endif

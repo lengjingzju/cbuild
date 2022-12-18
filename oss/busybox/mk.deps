@@ -9,7 +9,6 @@ SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.bz2
 SRC_URL          = https://www.busybox.net/downloads/$(SRC_NAME)
 
-INS_SUBDIR       =
 CACHE_CHECKSUM  += $(shell pwd)/config/$(CFG_NAME)
 CFG_NAME         = default_defconfig
 MAKES_FLAGS      = -C $(SRC_PATH) O=$(OBJ_PATH) CONFIG_PREFIX=$(INS_PATH)

@@ -1,8 +1,9 @@
 ifeq ($(ENV_BUILD_MODE), external)
-OUT_PATH       ?= $(shell pwd | sed 's:$(ENV_TOP_DIR):$(ENV_OUT_ROOT):')
+OUT_PATH       ?= $(shell pwd | sed 's:$(ENV_TOP_DIR):$(ENV_OUT_HOST):')
 else
 OUT_PATH       ?= .
 endif
+KCONFIG_INS    ?= $(ENV_INS_HOST)/usr/bin
 
 AUTOGEN_BISON   = $(OUT_PATH)/autogen/parser.tab.c $(OUT_PATH)/autogen/parser.tab.h
 AUTOGEN_FLEX    = $(OUT_PATH)/autogen/lexer.lex.c
@@ -26,13 +27,18 @@ endif
 
 COLORECHO       = $(if $(findstring dash,$(shell readlink /bin/sh)),echo,echo -e)
 
-.PHONY: all clean
+.PHONY: all clean install
+
 all: $(OUT_PATH)/conf $(OUT_PATH)/mconf
 
 clean:
 	@-rm -rf $(OUT_PATH)/conf $(OUT_PATH)/mconf $(DEPEND_OBJS) \
 		$(AUTOGEN_BISON) $(AUTOGEN_FLEX) $(AUTOGEN_OBJS) \
 		$(PARSER_OBJS) $(LXDIALOG_OBJS) $(CONF_OBJS) $(MCONF_OBJS)
+
+install:
+	@install -d $(KCONFIG_INS)
+	@cp -f $(OUT_PATH)/conf $(OUT_PATH)/mconf $(KCONFIG_INS)
 
 -include $(DEPEND_OBJS)
 

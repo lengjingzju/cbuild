@@ -2,7 +2,7 @@
 
 usage() {
     echo "========================================"
-    echo -e "\033[34mUsage: '$0 -m method -p package -s srcfile -o outdir -i insdir -g grade -c checksum -d depends -u url -v verbose\033[0m"
+    echo -e "\033[34mUsage: '$0 -m method -p package -n -s srcfile -o outdir -i insdir -g grade -c checksum -d depends -u url -v verbose\033[0m"
     echo -e "\033[34moptions:\033[0m"
     echo -e "\033[34m-m method\033[0m       : Specify the method: check pull push force cache"
     echo                   "    check       : Check if cache is available, return 'MATCH' if it is available"
@@ -16,6 +16,7 @@ usage() {
     echo                   "    unsetforce  : Unset force build from source code"
     echo                   "                  Necessary options are '-m -p -o -i'"
     echo -e "\033[34m-p package\033[0m      : Specify the package name in DEPS statement"
+    echo -e "\033[34m-n\033[0m              : Specify the package is native package"
     echo -e "\033[34m-s srcname\033[0m      : Specify the download package name"
     echo -e "\033[34m-o outdir\033[0m       : Specify the output path"
     echo -e "\033[34m-i insdir\033[0m       : Specify the install dir name, it's not ENV_INS_ROOT"
@@ -34,6 +35,8 @@ usage() {
 cmd="$0 $*"
 method=
 package=
+packname=
+native=""
 srcname=
 outdir=
 insdir=
@@ -43,10 +46,11 @@ depends=
 url=
 verbose=1
 
-while getopts "m:p:s:o:i:g:c:d:u:v:h" opt; do
+while getopts "m:p:ns:o:i:g:c:d:u:v:h" opt; do
     case $opt in
         m) method=$OPTARG;;
         p) package=$OPTARG;;
+        n) native=$(uname -m);;
         s) srcname=$OPTARG;;
         o) outdir=$OPTARG;;
         i) insdir=$OPTARG;;
@@ -59,6 +63,12 @@ while getopts "m:p:s:o:i:g:c:d:u:v:h" opt; do
         *) echo -e "\033[31mERROR: invalid option: '-$opt'\033[0m"; usage; exit 1;;
     esac
 done
+
+if [ -z "${native}" ]; then
+    packname=${package}
+else
+    packname=${package}-native
+fi
 
 checktool=md5sum
 checktmp1=${outdir}/${package}-checktmp1
@@ -91,6 +101,7 @@ echo_params() {
     wlog "INFO: cmd: ${cmd}"
     wlog "method   = ${method}"
     wlog "package  = ${package}"
+    wlog "native   = ${native}"
     wlog "srcname  = ${srcname}"
     wlog "outdir   = ${outdir}"
     wlog "insdir   = ${insdir}"
@@ -181,7 +192,9 @@ get_source_checksum() {
     if [ ! -z "${srcname}" ]; then
         wlog "get_source_checksum: ${ENV_DOWN_DIR}/${srcname}"
         if [ ! -e ${ENV_DOWN_DIR}/${srcname} ] && [ ! -z "${url}" ]; then
-            ${fetchtool} "${url:1:3}" "${url:5}" ${srcname}
+            mkdir -p ${ENV_DOWN_DIR}
+            echo > ${ENV_DOWN_DIR}/${srcname}.lock
+            flock ${ENV_DOWN_DIR}/${srcname}.lock -c "bash ${fetchtool} \"${url:1:3}\" \"${url:5}\" ${srcname}"
             wlog "INFO: fetchcmd: ${fetchtool} ${url:1:3} ${url:5} ${srcname}"
         fi
 
@@ -209,26 +222,35 @@ get_one_depend_checksum() {
     depcache=""
 
     if [ ! -z "${depname}" ]; then
-        depcache=$(ls ${ENV_CACHE_DIR}/$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f 1)--${depname}--*.tar.gz 2>/dev/null)
-        if [ ! -z "${depcache}" ]; then
-            ${checktool} ${depcache} >> ${checktmp1}
-        else
-            depcache=$(ls ${ENV_CACHE_DIR}/$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f 2)--${depname}--*.tar.gz 2>/dev/null)
+        if [ -z "${native}" ] && [ "$(echo ${depname} | grep -c '\-native')" -eq 0 ]; then
+            depcache=$(ls ${ENV_CACHE_DIR}/$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f 1)--${depname}--*.tar.gz 2>/dev/null)
             if [ ! -z "${depcache}" ]; then
                 ${checktool} ${depcache} >> ${checktmp1}
             else
-                depcache=$(ls ${ENV_CACHE_DIR}/$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f 3)--${depname}--*.tar.gz 2>/dev/null)
+                depcache=$(ls ${ENV_CACHE_DIR}/$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f 2)--${depname}--*.tar.gz 2>/dev/null)
                 if [ ! -z "${depcache}" ]; then
                     ${checktool} ${depcache} >> ${checktmp1}
                 else
-                    depcache=""
+                    depcache=$(ls ${ENV_CACHE_DIR}/$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f 3)--${depname}--*.tar.gz 2>/dev/null)
+                    if [ ! -z "${depcache}" ]; then
+                        ${checktool} ${depcache} >> ${checktmp1}
+                    else
+                        depcache=""
+                    fi
                 fi
+            fi
+        else
+            depcache=$(ls ${ENV_CACHE_DIR}/$(uname -m)--${depname}--*.tar.gz 2>/dev/null)
+            if [ ! -z "${depcache}" ]; then
+                ${checktool} ${depcache} >> ${checktmp1}
+            else
+                depcache=""
             fi
         fi
     fi
 
     if [ -z "${depcache}" ]; then
-        wlog "depend (${depname}) of ${package} isn't found."
+        wlog "depend (${depname}) of ${packname} isn't found."
     else
         wlog "depfile: ${depcache}"
     fi
@@ -244,10 +266,10 @@ get_depend_checksum_auto() {
         exit 1
     fi
 
-    depstr=$(cat ${deppath} | grep "^${package}=\".*\"")
+    depstr=$(cat ${deppath} | grep "^${packname}=\".*\"")
     wlog "get_depend_checksum_auto: depstr: ${depstr}"
     if [ ! -z "${depstr}" ]; then
-        deps=$(echo "${depstr}" | sed -E "s/^${package}=\"(.*)\"/\1/g")
+        deps=$(echo "${depstr}" | sed -E "s/^${packname}=\"(.*)\"/\1/g")
         wlog "get_depend_checksum_auto: deps: ${deps}"
         if [ ! -z "${deps}" ]; then
             for dep in ${deps}; do
@@ -369,16 +391,24 @@ get_checksum() {
 }
 
 del_cache() {
-    rm -f ${ENV_CACHE_DIR}/$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f 1)--${package}--*.tar.gz \
-        ${ENV_CACHE_DIR}/$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f 2)--${package}--*.tar.gz \
-        ${ENV_CACHE_DIR}/$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f 3)--${package}--*.tar.gz
-    }
+    if [ -z "${native}" ]; then
+        rm -f ${ENV_CACHE_DIR}/$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f 1)--${packname}--*.tar.gz \
+            ${ENV_CACHE_DIR}/$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f 2)--${packname}--*.tar.gz \
+            ${ENV_CACHE_DIR}/$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f 3)--${packname}--*.tar.gz
+    else
+        rm -f ${ENV_CACHE_DIR}/${native}--${packname}--*.tar.gz
+    fi
+}
 
 check_cache() {
     get_checksum check
 
     if [ -e ${checkfile} ]; then
-        cachefile=$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f ${grade})--${package}--$(cat ${checkfile}).tar.gz
+        if [ -z "${native}" ]; then
+            cachefile=$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f ${grade})--${packname}--$(cat ${checkfile}).tar.gz
+        else
+            cachefile=${native}--${packname}--$(cat ${checkfile}).tar.gz
+        fi
         wlog "INFO: cachefile: ${cachefile}"
 
         if [ -e "${ENV_CACHE_DIR}/${cachefile}" ]; then
@@ -404,7 +434,11 @@ check_cache() {
 pull_cache() {
     if [ ! -e ${insdir} ]; then
         if [ -e ${checkfile} ]; then
-            cachefile=$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f ${grade})--${package}--$(cat ${checkfile}).tar.gz
+            if [ -z "${native}" ]; then
+                cachefile=$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f ${grade})--${packname}--$(cat ${checkfile}).tar.gz
+            else
+                cachefile=${native}--${packname}--$(cat ${checkfile}).tar.gz
+            fi
             if [ -e "${ENV_CACHE_DIR}/${cachefile}" ]; then
                 mkdir -p ${outdir}
                 tar -xf ${ENV_CACHE_DIR}/${cachefile} -C ${outdir}
@@ -434,7 +468,11 @@ push_cache() {
         wlog "INFO: push_cache: redo checksum"
     fi
     if [ -e ${checkfile} ]; then
-        cachefile=$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f ${grade})--${package}--$(cat ${checkfile}).tar.gz
+        if [ -z "${native}" ]; then
+            cachefile=$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f ${grade})--${packname}--$(cat ${checkfile}).tar.gz
+        else
+            cachefile=${native}--${packname}--$(cat ${checkfile}).tar.gz
+        fi
         cd $(dirname ${insdir})
         tar -jcf ${cachefile} $(basename ${insdir})
         del_cache

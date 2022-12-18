@@ -71,26 +71,26 @@ $(OUT_PATH)/$(KBUILD_MK): $(KBUILD_MK)
 
 endif
 
-export PACKAGE_DEPS ENV_DEP_ROOT
+export PACKAGE_DEPS
 
 .PHONY: modules modules_clean modules_install symvers_install
 
 modules:
-	@make $(MOD_MAKES) $(if $(PACKAGE_DEPS), KBUILD_EXTRA_SYMBOLS="$(wildcard $(patsubst %,$(ENV_DEP_ROOT)/usr/include/%/Module.symvers,$(PACKAGE_DEPS)))") modules
+	@make $(MOD_MAKES) $(if $(PACKAGE_DEPS), KBUILD_EXTRA_SYMBOLS="$(wildcard $(patsubst %,$(DEP_PREFIX)/usr/include/%/Module.symvers,$(PACKAGE_DEPS)))") modules
 
 modules_clean:
 	@make $(MOD_MAKES) clean
 
 modules_install:
 ifeq ($(ENV_BUILD_MODE), yocto)
-	@make $(MOD_MAKES) $(if $(ENV_INS_ROOT), INSTALL_MOD_PATH=$(ENV_INS_ROOT)) modules_install
+	@make $(MOD_MAKES) $(if $(INS_PREFIX), INSTALL_MOD_PATH=$(INS_PREFIX)) modules_install
 else
-	@flock $(KERNEL_SRC) -c 'make $(MOD_MAKES) $(if $(ENV_INS_ROOT), INSTALL_MOD_PATH=$(ENV_INS_ROOT)) modules_install'
+	@flock $(KERNEL_SRC) -c 'make $(MOD_MAKES) $(if $(INS_PREFIX), INSTALL_MOD_PATH=$(INS_PREFIX)) modules_install'
 endif
 
 symvers_install:
-	@install -d $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
-	@cp -dfp $(OUT_PATH)/Module.symvers $(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)
+	@install -d $(INS_PREFIX)/usr/include/$(PACKAGE_NAME)
+	@cp -dfp $(OUT_PATH)/Module.symvers $(INS_PREFIX)/usr/include/$(PACKAGE_NAME)
 
 install_hdrs: symvers_install
 
