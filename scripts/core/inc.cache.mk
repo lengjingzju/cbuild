@@ -17,15 +17,15 @@ CACHE_OUTPATH   ?= $(OUT_PATH)
 CACHE_INSPATH   ?= $(INS_PATH)
 CACHE_GRADE     ?= 2
 CACHE_CHECKSUM  += $(wildcard $(shell pwd)/mk.deps)
-CACHE_DEPENDS   ?= none
+CACHE_DEPENDS   ?=
 CACHE_URL       ?= $(if $(SRC_URL),[$(FETCH_METHOD)]$(SRC_URL))
 CACHE_VERBOSE   ?= 1
 
 REAL_PACKAGE     = $(CACHE_PACKAGE)$(if $(filter y,$(BUILD_FOR_HOST)),-native)
 
 define do_fetch
-	mkdir -p $(ENV_DOWN_DIR) && echo > $(ENV_DOWN_DIR)/$(SRC_NAME).lock && \
-	flock $(ENV_DOWN_DIR)/$(SRC_NAME).lock -c "bash $(FETCH_SCRIPT) $(FETCH_METHOD) \"$(SRC_URL)\" $(SRC_NAME) $(OUT_PATH) $(SRC_DIR)"
+	mkdir -p $(ENV_DOWN_DIR)/lock && echo > $(ENV_DOWN_DIR)/lock/$(SRC_NAME).lock && \
+	flock $(ENV_DOWN_DIR)/lock/$(SRC_NAME).lock -c "bash $(FETCH_SCRIPT) $(FETCH_METHOD) \"$(SRC_URL)\" $(SRC_NAME) $(OUT_PATH) $(SRC_DIR)"
 endef
 
 define do_patch

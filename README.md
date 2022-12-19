@@ -1472,7 +1472,7 @@ Build busybox Done.
     * CACHE_CHECKSUM  : 额外需要校验的文件或目录，多个项目使用空格分开，默认加上当前目录的 mk.deps 文件
         * 目录支持如下语法: `搜索的目录路径:搜索的字符串:忽略的文件夹名:忽略的字符串`，其中子项目可以使用竖线 `|` 隔开
             * 例如: `"srca|srcb:*.c|*.h|Makefile:test:*.o|*.d"`, `"src:*.c|*.h|*.cpp|*.hpp"`
-    * CACHE_DEPENDS   : 手动指定包的依赖，默认值为 none
+    * CACHE_DEPENDS   : 手动指定包的依赖，默认值为空(即自动分析依赖)
         * 如果包没有依赖可以设置为 `none`
         * 如果不指定依赖会自动分析 `${ENV_CFG_ROOT}` 中的 DEPS 和 .config 文件获取依赖
     * CACHE_URL       : 指定网络下载的 URL，如果设置了 SRC_URL，默认取变量 `[$(FETCH_METHOD)]$(SRC_URL)` 设置的值

@@ -29,7 +29,7 @@ define safe_copy
 $(if $(filter yocto,$(ENV_BUILD_MODE)),cp $1 $2,flock $(INS_PREFIX) -c "cp $1 $2")
 endef
 
-ifeq ($(filter y,$(EXPORT_HOST_ENV) $(BUILD_FOR_HOST)), y)
+ifneq ($(filter y,$(EXPORT_HOST_ENV) $(BUILD_FOR_HOST)), )
 export PATH:=$(shell echo $(addprefix $(ENV_DEP_HOST),/bin /usr/bin /usr/local/bin)$(if $(PATH),:$(PATH)) | sed 's/ /:/g')
 export LD_LIBRARY_PATH:=$(shell echo $(addprefix $(ENV_DEP_HOST),/lib /usr/lib /usr/local/lib)$(if $(LD_LIBRARY_PATH),:$(LD_LIBRARY_PATH)) | sed 's/ /:/g')
 endif

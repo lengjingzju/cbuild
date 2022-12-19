@@ -10,6 +10,7 @@ SRC_NAME         = $(SRC_DIR).tar.bz2
 SRC_URL          = https://www.busybox.net/downloads/$(SRC_NAME)
 
 CACHE_CHECKSUM  += $(shell pwd)/config/$(CFG_NAME)
+CACHE_DEPENDS    = none
 CFG_NAME         = default_defconfig
 MAKES_FLAGS      = -C $(SRC_PATH) O=$(OBJ_PATH) CONFIG_PREFIX=$(INS_PATH)
 

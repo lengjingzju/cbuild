@@ -5,6 +5,7 @@ PACKAGE_NAME     = ljson
 
 include $(ENV_MAKE_DIR)/inc.env.mk
 
+FETCH_METHOD     = git
 VERSION          = 1.7.15
 SRC_DIR          = $(PACKAGE_NAME)
 SRC_NAME         = $(SRC_DIR)
@@ -12,7 +13,7 @@ SRC_URL          = https://github.com/lengjingzju/json.git
 
 MAKE_FILE        = $(shell pwd)/patch/Makefile
 CACHE_CHECKSUM  += $(MAKE_FILE)
-FETCH_METHOD     = git
+CACHE_DEPENDS    = none
 MAKES_FLAGS      = INS_PREFIX=$(INS_PATH) OUT_PATH=$(OBJ_PATH) -C $(SRC_PATH)
 
 define do_prepend

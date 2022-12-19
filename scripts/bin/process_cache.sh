@@ -192,9 +192,9 @@ get_source_checksum() {
     if [ ! -z "${srcname}" ]; then
         wlog "get_source_checksum: ${ENV_DOWN_DIR}/${srcname}"
         if [ ! -e ${ENV_DOWN_DIR}/${srcname} ] && [ ! -z "${url}" ]; then
-            mkdir -p ${ENV_DOWN_DIR}
-            echo > ${ENV_DOWN_DIR}/${srcname}.lock
-            flock ${ENV_DOWN_DIR}/${srcname}.lock -c "bash ${fetchtool} \"${url:1:3}\" \"${url:5}\" ${srcname}"
+            mkdir -p ${ENV_DOWN_DIR}/lock
+            echo > ${ENV_DOWN_DIR}/lock/${srcname}.lock
+            flock ${ENV_DOWN_DIR}/lock/${srcname}.lock -c "bash ${fetchtool} \"${url:1:3}\" \"${url:5}\" ${srcname}"
             wlog "INFO: fetchcmd: ${fetchtool} ${url:1:3} ${url:5} ${srcname}"
         fi
 

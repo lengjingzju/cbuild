@@ -10,6 +10,7 @@ SRC_DIR          = cJSON-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.gz
 SRC_URL          = https://github.com/DaveGamble/cJSON/archive/refs/tags/v$(VERSION).tar.gz
 
+CACHE_DEPENDS    = none
 COMPILE_TOOL     = cmake
 CMAKE_FLAGS      = -DENABLE_CJSON_UTILS=ON -DENABLE_CJSON_TEST=OFF
 
