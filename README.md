@@ -157,6 +157,11 @@
 * `$(call link_hdrs)`: 根据 PACKAGE_DEPS 变量的值自动生成查找头文件的 CFLAGS
 * `$(call link_libs)`: 自动生成查找库文件的 LDFLAGS
 
+### 编译环境模板可设置变量说明
+
+* EXPORT_HOST_ENV : 交叉编译依赖本地编译的包时设置为 y
+* BUILD_FOR_HOST : 本地编译时设置为 y
+
 ### 编译环境模板变量说明
 
 * OUT_PREFIX : 编译输出根目录，本地编译取值 ENV_OUT_HOST，交叉编译取值 ENV_OUT_ROOT
@@ -357,10 +362,10 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ cd ../test-conf/
 lengjing@lengjing:~/cbuild/examples/test-conf$ ls config/
 def_config
 lengjing@lengjing:~/cbuild/examples/test-conf$ make def_config  # 加载配置
-bison	/home/lengjing/cbuild/output/objects/scripts/kconfig/autogen/parser.tab.c
-gcc	/home/lengjing/cbuild/output/objects/scripts/kconfig/autogen/parser.tab.c
-flex	/home/lengjing/cbuild/output/objects/scripts/kconfig/autogen/lexer.lex.c
-gcc	/home/lengjing/cbuild/output/objects/scripts/kconfig/autogen/lexer.lex.c
+bison	/home/lengjing/cbuild/output/objects-native/scripts/kconfig/autogen/parser.tab.c
+gcc	/home/lengjing/cbuild/output/objects-native/scripts/kconfig/autogen/parser.tab.c
+flex	/home/lengjing/cbuild/output/objects-native/scripts/kconfig/autogen/lexer.lex.c
+gcc	/home/lengjing/cbuild/output/objects-native/scripts/kconfig/autogen/lexer.lex.c
 gcc	parser/confdata.c
 gcc	parser/menu.c
 gcc	parser/util.c
@@ -368,7 +373,7 @@ gcc	parser/preprocess.c
 gcc	parser/expr.c
 gcc	parser/symbol.c
 gcc	conf.c
-gcc	/home/lengjing/cbuild/output/objects/scripts/kconfig/conf
+gcc	/home/lengjing/cbuild/output/objects-native/scripts/kconfig/conf
 gcc	lxdialog/checklist.c
 gcc	lxdialog/inputbox.c
 gcc	lxdialog/util.c
@@ -376,7 +381,7 @@ gcc	lxdialog/textbox.c
 gcc	lxdialog/yesno.c
 gcc	lxdialog/menubox.c
 gcc	mconf.c
-gcc	/home/lengjing/cbuild/output/objects/scripts/kconfig/mconf
+gcc	/home/lengjing/cbuild/output/objects-native/scripts/kconfig/mconf
 #
 # No change to /home/lengjing/cbuild/output/objects/examples/test-conf/.config
 #
@@ -650,11 +655,11 @@ gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-p $P
 
 * 普通编译实依赖格式 `#DEPS(Makefile_Name) Target_Name(Other_Target_Names): Depend_Names`
 
-    ![实依赖正则表达式](./scripts/bin/regex_deps.png)
+    ![实依赖正则表达式](./scripts/bin/regex_deps.svg)
 
 * 普通编译包含子路径格式 `#INCDEPS: Subdir_Names`
 
-    ![包含子路径正则表达式](./scripts/bin/regex_incdeps.png)
+    ![包含子路径正则表达式](./scripts/bin/regex_incdeps.svg)
 
 * 普通编译实依赖格式说明
     * Makefile_Name: make 运行的 Makefile 的名称 (可以为空)，不为空时 make 会运行指定的 Makefile (`-f Makefile_Name`)
@@ -668,8 +673,10 @@ gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-p $P
     * Other_Target_Names: 当前包的其它目标，多个目标使用空格隔开 (可以为空)
         * 忽略 Other_Target_Names 中的 all install clean 目标
         * `prepare` 关键字是特殊的实目标，表示 make 前运行 make prepare，一般用于当 .config 不存在时加载默认配置到 .config
+        * `release` 关键字是特殊的实目标，表示安装进 rootfs 时运行 make release，此目标不需要安装头文件和静态库文件等; 无此目标时运行 make install 代替
         * `union` 关键字是特殊的虚拟目标，用于多个包共享一个 Makefile
             * 此时 `prepare all install clean` 目标的名字变为 `Target_Name-prepare Target_Name-all Target_Name-install Target_Name-clean`
+        * `cache` 关键字是特殊的虚拟目标，表明该包是缓存编译的
         * `jobserver` 关键字是特殊的虚拟目标，表示 make 后加上 `$(ENV_BUILD_JOBS)`，用户需要 `export ENV_BUILD_JOBS=-j8` 才会启动多线程编译
             * 某些包的 Makefile 包含 make 指令时不要加上 jobserver 目标，例如编译外部内核模块
         * `subtarget1:subtarget2:...::dep1:dep2:...` 是特殊语法格式，用来显示指定子目标的依赖
@@ -695,7 +702,7 @@ gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-p $P
 
 * 虚依赖格式 `#VDEPS(Virtual_Type) Target_Name(Other_Infos): Depend_Names`
 
-    ![虚依赖正则表达式](./scripts/bin/regex_vdeps.png)
+    ![虚依赖正则表达式](./scripts/bin/regex_vdeps.svg)
 
 * Virtual_Type      : 必选，表示虚拟包的类型，目前有 4 种类型
     * `menuconfig`  : 表示生成 `menuconfig` 虚拟包，当前目录(含子目录)下的所有的包强依赖此包，且处于该包的菜单目录下
