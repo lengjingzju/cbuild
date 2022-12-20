@@ -474,7 +474,7 @@ push_cache() {
             cachefile=${native}--${packname}--$(cat ${checkfile}).tar.gz
         fi
         cd $(dirname ${insdir})
-        tar -jcf ${cachefile} $(basename ${insdir})
+        tar -zcf ${cachefile} $(basename ${insdir})
         del_cache
         mkdir -p ${ENV_CACHE_DIR}
         mv ${cachefile} ${ENV_CACHE_DIR}

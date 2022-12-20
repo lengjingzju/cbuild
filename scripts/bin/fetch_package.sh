@@ -83,10 +83,10 @@ do_fetch() {
             if [ ! -e ${ENV_DOWN_DIR}/$packname ]; then
                 echo -e "\033[32mgit clone $url to ${ENV_DOWN_DIR}/$package\033[0m"
                 git clone $url ${ENV_DOWN_DIR}/$package || exit 1
-                cd ${ENV_DOWN_DIR} && tar -jcf $packname $package
+                cd ${ENV_DOWN_DIR} && tar -zcf $packname $package
                 echo -n "$(cd ${ENV_DOWN_DIR}/$package && git log | head -1 | cut -d ' ' -f 2)" > ${ENV_DOWN_DIR}/$package.$checksuffix
             else
-                cd ${ENV_DOWN_DIR} && tar -jxf $packname
+                cd ${ENV_DOWN_DIR} && tar -xf $packname
                 do_sync $method ${ENV_DOWN_DIR}/$package
             fi
             ;;
@@ -99,10 +99,10 @@ do_fetch() {
             if [ ! -e ${ENV_DOWN_DIR}/$packname ]; then
                 echo -e "\033[32msvn checkout $url to ${ENV_DOWN_DIR}/$package\033[0m"
                 svn checkout -q $url ${ENV_DOWN_DIR}/$package || exit 1
-                cd ${ENV_DOWN_DIR} && tar -jcf $packname $package
+                cd ${ENV_DOWN_DIR} && tar -zcf $packname $package
                 echo -n "$(cd ${ENV_DOWN_DIR}/$package && svn log | sed -n '2p' | cut -d '|' -f 1 | sed 's/\s//g')" > ${ENV_DOWN_DIR}/$package.$checksuffix
             else
-                cd ${ENV_DOWN_DIR} && tar -jxf $packname
+                cd ${ENV_DOWN_DIR} && tar -xf $packname
                 do_sync $method ${ENV_DOWN_DIR}/$package
             fi
             ;;
