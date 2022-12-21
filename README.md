@@ -1482,6 +1482,7 @@ Build busybox Done.
     * CACHE_DEPENDS   : 手动指定包的依赖，默认值为空(即自动分析依赖)
         * 如果包没有依赖可以设置为 `none`
         * 如果不指定依赖会自动分析 `${ENV_CFG_ROOT}` 中的 DEPS 和 .config 文件获取依赖
+    * CACHE_APPENDS   : 增加额外的校验字符串，例如动态变化的配置
     * CACHE_URL       : 指定网络下载的 URL，如果设置了 SRC_URL，默认取变量 `[$(FETCH_METHOD)]$(SRC_URL)` 设置的值
         * 格式需要是 `[download_method]url`，例如 `[tar]url` `[zip]url` `[git]url` `[svn]url`
     * CACHE_VERBOSE   : 是否生成 log 文件，默认取 1， 生成 log 文件是 `$(CACHE_OUTPATH)/$(CACHE_PACKAGE)-cache.log`
@@ -1501,6 +1502,7 @@ Build busybox Done.
     * do_pull: 如果 INS_PATH 目录不存在，将 cache 解压的输出目录
     * do_push: 将 cache 加入到全局缓存目录
     * do_setforce: 设置强制编译，用户某些操作后需要重新编译的操作需要调用此函数，例如用户修改 config
+    * do_set1force: 设置强制编译一次，下次编译就是正常编译
     * do_unsetforce: 取消强制编译，例如用户还原默认 config
     * 其它函数用户一般不会在外部调用
 <br>
@@ -1510,4 +1512,5 @@ Build busybox Done.
     * srcbuild: 没有缓存机制的编译
     * cachebuild: 有缓存机制的编译
     * do_setforce: 设置强制编译
+    * do_set1force: 设置强制编译
     * do_unsetforce: 取消强制编译

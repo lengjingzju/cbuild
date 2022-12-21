@@ -2,7 +2,7 @@
 
 usage() {
     echo "========================================"
-    echo -e "\033[34mUsage: '$0 -m method -p package -n -s srcfile -o outdir -i insdir -g grade -c checksum -d depends -u url -v verbose\033[0m"
+    echo -e "\033[34mUsage: '$0 -m method -p package -n -s srcfile -o outdir -i insdir -g grade -c checksum -d depends -a appends -u url -v verbose\033[0m"
     echo -e "\033[34moptions:\033[0m"
     echo -e "\033[34m-m method\033[0m       : Specify the method: check pull push force cache"
     echo                   "    check       : Check if cache is available, return 'MATCH' if it is available"
@@ -12,6 +12,8 @@ usage() {
     echo                   "    push        : Compress the image dir in outdir to image package"
     echo                   "                  Necessary options are '-m -p -o -i -g'; Optional options are '-s -c -d'"
     echo                   "    setforce    : Set force build from source code"
+    echo                   "                  Necessary options are '-m -p -o'"
+    echo                   "    set1force   : Set force build from source code once"
     echo                   "                  Necessary options are '-m -p -o'"
     echo                   "    unsetforce  : Unset force build from source code"
     echo                   "                  Necessary options are '-m -p -o -i'"
@@ -26,6 +28,7 @@ usage() {
     echo                   "    Dir Grammar : findpaths:findstrs:ignoredirs:ignorestrs, multiple items in subitems can be separated by '|'"
     echo                   "    For Example : 'srca|srcb:*.c|*.h', 'src::.git:*.o|*.d'"
     echo -e "\033[34m-d depends\033[0m      : Specify the depends manually instead of automatically analyzing global DEPS and .config, 'none' means no depends"
+    echo -e "\033[34m-a appends\033[0m      : Specify the append strings"
     echo -e "\033[34m-u url\033[0m          : Specify the package download url, the format needs to be '[type]url'"
     echo                   "    For Example : '[tar]url', '[zip]url', '[git]url', '[svn]url'"
     echo -e "\033[34m-v verbose\033[0m      : Specify the verbose mode, log file is outdir/package-cache.log"
@@ -43,10 +46,11 @@ insdir=
 grade=
 checksum=
 depends=
+appends=
 url=
 verbose=1
 
-while getopts "m:p:ns:o:i:g:c:d:u:v:h" opt; do
+while getopts "m:p:ns:o:i:g:c:d:a:u:v:h" opt; do
     case $opt in
         m) method=$OPTARG;;
         p) package=$OPTARG;;
@@ -57,6 +61,7 @@ while getopts "m:p:ns:o:i:g:c:d:u:v:h" opt; do
         g) grade=$OPTARG;;
         c) checksum=$OPTARG;;
         d) depends=$OPTARG;;
+        d) appends=$OPTARG;;
         u) url=$OPTARG;;
         v) verbose=$OPTARG;;
         h) usage; exit 0;;
@@ -108,6 +113,7 @@ echo_params() {
     wlog "grade    = ${grade}"
     wlog "checksum = ${checksum}"
     wlog "depends  = ${depends}"
+    wlog "appends  = ${appends}"
     wlog "url      = ${url}"
     wlog "verbose  = ${verbose}"
     wlog "============================================================"
@@ -166,7 +172,7 @@ check_env() {
                 ret="fail"
             fi
             ;;
-        setforce)
+        setforce|set1force)
             if [ -z "${package}" ] || [ -z "${outdir}" ]; then
                 ret="fail"
             fi
@@ -373,7 +379,11 @@ get_checksum() {
 
     mkdir -p ${outdir}
     if [ -e "${forcefile}" ]; then
-        echo force > ${checktmp1}
+        if [ -z "$(cat ${forcefile})" ]; then
+            echo force > ${checktmp1}
+        else
+            rm -f ${forcefile}
+        fi
     else
         : > ${checktmp1}
     fi
@@ -382,11 +392,16 @@ get_checksum() {
     get_depend_checksum
     get_extra_checksum
 
+    cat ${checktmp1} | cut -d ' ' -f 1 | sort > ${checktmp2}
+    if [ ! -z "${appends}" ]; then
+        echo "${appends}" >> ${checktmp1}
+        echo "${appends}" >> ${checktmp2}
+    fi
+    ${checktool} ${checktmp2} | cut -d ' ' -f 1 > ${checkfile}
+
     wlog "-------------------------- ${checktool} --------------------------"
     wlog "$(cat ${checktmp1})"
     wlog "------------------------------------------------------------"
-    cat ${checktmp1} | cut -d ' ' -f 1 | sort > ${checktmp2}
-    ${checktool} ${checktmp2} | cut -d ' ' -f 1 > ${checkfile}
     rm -f ${checktmp1} ${checktmp2}
 }
 
@@ -488,10 +503,10 @@ push_cache() {
 
 set_force() {
     mkdir -p ${outdir}
-    : > ${forcefile}
+    echo -n "$1" > ${forcefile}
 }
 
-clean_force() {
+unset_force() {
     rm -f ${forcefile}
     rm -rf ${insdir}
     del_cache
@@ -505,7 +520,8 @@ exec_main() {
         pull) pull_cache;;
         push) push_cache;;
         setforce) set_force;;
-        unsetforce) clean_force;;
+        set1force) set_force once;;
+        unsetforce) unset_force;;
         *) exit 1;;
     esac
 }

@@ -18,6 +18,7 @@ CACHE_INSPATH   ?= $(INS_PATH)
 CACHE_GRADE     ?= 2
 CACHE_CHECKSUM  += $(wildcard $(shell pwd)/mk.deps)
 CACHE_DEPENDS   ?=
+CACHE_APPENDS   ?=
 CACHE_URL       ?= $(if $(SRC_URL),[$(FETCH_METHOD)]$(SRC_URL))
 CACHE_VERBOSE   ?= 1
 
@@ -53,7 +54,8 @@ define do_check
 	$(CACHE_SCRIPT) -m check -p $(CACHE_PACKAGE) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
 		-o $(CACHE_OUTPATH) -i $(CACHE_INSPATH) -g $(CACHE_GRADE) -v $(CACHE_VERBOSE) \
 		$(if $(CACHE_SRCFILE),-s $(CACHE_SRCFILE)) $(if $(CACHE_CHECKSUM),-c '$(CACHE_CHECKSUM)') \
-		$(if $(CACHE_DEPENDS),-d '$(CACHE_DEPENDS)') $(if $(CACHE_URL),-u '$(CACHE_URL)')
+		$(if $(CACHE_DEPENDS),-d '$(CACHE_DEPENDS)') $(if $(CACHE_APPENDS),-d '$(CACHE_APPENDS)') \
+		$(if $(CACHE_URL),-u '$(CACHE_URL)')
 endef
 
 define do_pull
@@ -66,12 +68,18 @@ define do_push
 	$(CACHE_SCRIPT) -m push  -p $(CACHE_PACKAGE) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
 		-o $(CACHE_OUTPATH) -i $(CACHE_INSPATH) -g $(CACHE_GRADE) -v $(CACHE_VERBOSE) \
 		$(if $(CACHE_SRCFILE),-s $(CACHE_SRCFILE)) $(if $(CACHE_CHECKSUM),-c '$(CACHE_CHECKSUM)') \
-		$(if $(CACHE_DEPENDS),-d '$(CACHE_DEPENDS)') && \
+		$(if $(CACHE_DEPENDS),-d '$(CACHE_DEPENDS)') $(if $(CACHE_APPENDS),-d '$(CACHE_APPENDS)') && \
 	echo "Push $(REAL_PACKAGE) Cache to $(ENV_CACHE_DIR)."
 endef
 
 define do_setforce
 	$(CACHE_SCRIPT) -m setforce -p $(CACHE_PACKAGE) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
+		-o $(CACHE_OUTPATH) -v $(CACHE_VERBOSE) && \
+	echo "Set $(REAL_PACKAGE) Force Build."
+endef
+
+define do_set1force
+	$(CACHE_SCRIPT) -m set1force -p $(CACHE_PACKAGE) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
 		-o $(CACHE_OUTPATH) -v $(CACHE_VERBOSE) && \
 	echo "Set $(REAL_PACKAGE) Force Build."
 endef
@@ -125,6 +133,9 @@ cachebuild:
 
 setforce:
 	@$(call do_setforce)
+
+set1force:
+	@$(call do_set1force)
 
 unsetforce:
 	@$(call do_unsetforce)
