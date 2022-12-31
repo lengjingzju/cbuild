@@ -26,7 +26,6 @@ REAL_PACKAGE     = $(CACHE_PACKAGE)$(if $(filter y,$(BUILD_FOR_HOST)),-native)
 
 SYSTEM_INFO      = $(shell echo $(shell uname -m)-$(shell uname -s) | tr '[A-Z ]' '[a-z-]')
 CROSS_INFO       = $(if $(CROSS_COMPILE),$(shell echo $(CROSS_COMPILE) | sed 's/-$$//g'))
-SYSTEM_TYPES     = --build=$(SYSTEM_INFO) --host=$(if $(CROSS_COMPILE),$(CROSS_INFO),$(SYSTEM_INFO))
 
 define do_fetch
 	mkdir -p $(ENV_DOWN_DIR)/lock && echo > $(ENV_DOWN_DIR)/lock/$(SRC_NAME).lock && \
@@ -39,6 +38,7 @@ endef
 
 ifeq ($(do_compile), )
 define do_compile
+	set -e; \
 	$(if $(SRC_URL),$(call do_fetch),true); \
 	$(if $(PATCH_FOLDER),$(call do_patch),true); \
 	mkdir -p $(OBJ_PATH); \
@@ -46,10 +46,11 @@ define do_compile
 	if [ "$(COMPILE_TOOL)" = "cmake" ]; then \
 		cd $(OBJ_PATH) && cmake $(SRC_PATH) -DCMAKE_INSTALL_PREFIX=$(INS_PATH)$(INS_SUBDIR) $(CMAKE_FLAGS) 1>/dev/null; \
 	elif [ "$(COMPILE_TOOL)" = "configure" ]; then \
-		cd $(OBJ_PATH) && $(SRC_PATH)/configure $(SYSTEM_TYPES) --prefix=$(INS_PATH)$(INS_SUBDIR) $(CONFIGURE_FLAGS) 1>/dev/null; \
+		cd $(OBJ_PATH) && $(SRC_PATH)/configure $(if $(CROSS_COMPILE),--host=$(CROSS_INFO)) --prefix=$(INS_PATH)$(INS_SUBDIR) $(CONFIGURE_FLAGS) 1>/dev/null; \
 	fi; \
 	rm -rf $(INS_PATH) && $(MAKES) 1>/dev/null && $(MAKES) install 1>/dev/null; \
-	$(if $(do_append),$(call do_append),true)
+	$(if $(do_append),$(call do_append),true); \
+	set +e
 endef
 endif
 

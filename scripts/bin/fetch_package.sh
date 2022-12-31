@@ -119,10 +119,20 @@ do_unpack() {
         zip)
             echo -e "\033[32munzip ${ENV_DOWN_DIR}/$package to $outdir\033[0m"
             unzip -q ${ENV_DOWN_DIR}/$package -d $outdir
+            if [ $? -ne 0 ]; then
+                rm -rf ${ENV_DOWN_DIR}/$package ${ENV_DOWN_DIR}/$package.$checksuffix
+                echo "ERROR: ${ENV_DOWN_DIR}/$package is invalid zip file."
+                exit 1
+            fi
             ;;
         tar)
             echo -e "\033[32muntar ${ENV_DOWN_DIR}/$package to $outdir\033[0m"
             tar -xf ${ENV_DOWN_DIR}/$package -C $outdir
+            if [ $? -ne 0 ]; then
+                rm -rf ${ENV_DOWN_DIR}/$package ${ENV_DOWN_DIR}/$package.$checksuffix
+                echo "ERROR: ${ENV_DOWN_DIR}/$package is invalid tar file."
+                exit 1
+            fi
             ;;
         git|svn)
             echo -e "\033[32mcopy ${ENV_DOWN_DIR}/$package to $outdir\033[0m"

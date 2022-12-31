@@ -1,0 +1,26 @@
+#DEPS(mk.deps) libnl-native(cache): unselect
+#DEPS(mk.deps) libnl(cache release): unselect
+
+PACKAGE_NAME     = libnl
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 3.7.0
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.gz
+SRC_URL          = https://github.com/thom311/libnl/releases/download/libnl$(subst .,_,$(VERSION))/$(SRC_NAME)
+
+CACHE_DEPENDS    = none
+COMPILE_TOOL     = configure
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_TODIR_sbin = $(INS_PATH)/usr/bin/* /bin
+INSTALL_TODIR_etc  = $(INS_PATH)/usr/etc/* /etc
+INSTALL_TODIR_cls  = $(INS_PATH)/usr/lib/libnl/cli/cls/*.so /lib/libnl/cli/cls
+INSTALL_TODIR_qdisc= $(INS_PATH)/usr/lib/libnl/cli/qdisc/*.so /lib/libnl/cli/qdisc
+INSTALL_LIBRARIES  = $(INS_PATH)/usr/lib/*.so*
+
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_todir_sbin install_todir_etc install_todir_cls install_todir_qdisc install_base_libs

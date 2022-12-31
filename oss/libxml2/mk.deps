@@ -1,0 +1,23 @@
+#DEPS(mk.deps) libxml2-native(cache): unselect
+#DEPS(mk.deps) libxml2(cache release): unselect
+
+PACKAGE_NAME     = libxml2
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 2.9.12
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.gz
+SRC_URL          = http://xmlsoft.org/sources/$(SRC_NAME)
+
+CACHE_DEPENDS    = none
+COMPILE_TOOL     = configure
+CONFIGURE_FLAGS  = --without-zlib --without-python
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/libxml2.so*
+INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs install_bins

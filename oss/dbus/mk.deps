@@ -1,0 +1,32 @@
+#DEPS(mk.deps) dbus-native(cache): unselect expat-native
+#DEPS(mk.deps) dbus(cache release): unselect expat
+
+PACKAGE_NAME     = dbus
+PACKAGE_DEPS     = expat
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 1.15.2
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.xz
+SRC_URL          = http://dbus.freedesktop.org/releases/dbus/$(SRC_NAME)
+
+COMPILE_TOOL     = configure
+CONFIGURE_FLAGS  = CFLAGS="$(call link_hdrs)" LDFLAGS="$(call link_libs)"
+
+define do_prepend
+	export PKG_CONFIG_PATH=$(DEP_PREFIX)/usr/lib/pkgconfig
+endef
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_BINARIES  = $(INS_PATH)/usr/bin/*
+INSTALL_LIBRARIES = $(INS_PATH)/usr/lib/libdbus-1.so* $(INS_PATH)/usr/lib/dbus-*
+INSTALL_TODIR_etc = $(INS_PATH)/usr/etc/* /etc
+INSTALL_TODIR_libexec = $(INS_PATH)/usr/libexec/* /usr/libexec
+INSTALL_TODIR_share = $(INS_PATH)/usr/share/dbus-1 $(INS_PATH)/usr/share/xml /usr/share
+INSTALL_TODIR_var = $(INS_PATH)/usr/var/* /var
+
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_bins install_libs install_todir_etc install_todir_libexec install_todir_share install_todir_var

@@ -1,6 +1,6 @@
 
           <svg xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" version="1.1" width="528.4484252929688" height="306.20001220703125">
-          <text x='20' y='30' fill='blue'>INCDEPS Statement for Amba Build</text>
+          <text x='20' y='30' fill='blue'>INCDEPS Statement for Normal Build</text>
             <defs>
               <style type="text/css">svg {
           background-color: #fff; }

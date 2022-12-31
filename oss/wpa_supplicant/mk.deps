@@ -1,0 +1,29 @@
+#DEPS(mk.deps) wpa-supplicant-native(cache): unselect openssl-native libnl-native dbus-native
+#DEPS(mk.deps) wpa-supplicant(cache release): unselect openssl libnl dbus
+
+PACKAGE_NAME     = wpa_supplicant
+PACKAGE_DEPS     = libnl3 openssl dbus-1.0
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 2.10
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.gz
+SRC_URL          = http://w1.fi/releases/$(SRC_NAME)
+
+MAKES_FLAGS      = EXTRA_CFLAGS="$(call link_hdrs)" LDFLAGS="$(call link_libs)"
+MAKES_FLAGS     += LIBDIR=$(INS_PATH)/lib BINDIR=$(INS_PATH)/sbin INCDIR=$(INS_PATH)$(INS_SUBDIR)/include
+MAKES_FLAGS     += $(if $(CROSS_COMPILE),CC=$(CROSS_COMPILE)gcc AR=$(CROSS_COMPILE)ar)
+MAKES_FLAGS     += -C $(OUT_PATH)/$(SRC_DIR)/wpa_supplicant
+
+define do_prepend
+	cp -f $(OUT_PATH)/$(SRC_DIR)/wpa_supplicant/defconfig $(OUT_PATH)/$(SRC_DIR)/wpa_supplicant/.config; \
+		export PKG_CONFIG_PATH=$(DEP_PREFIX)/usr/lib/pkgconfig
+endef
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_TODIR_sbin = $(INS_PATH)/sbin/* /sbin
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_todir_sbin

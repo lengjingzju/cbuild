@@ -1,5 +1,5 @@
           <svg xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" version="1.1" width="1445.8875732421875" height="402.0000305175781">
-          <text x='20' y='30' fill='blue'>VDEPS Statement for Amba Build and Yocto Build</text>
+          <text x='20' y='30' fill='blue'>VDEPS Statement for Normal Build and Yocto Build</text>
             <defs>
               <style type="text/css">svg {
           background-color: #fff; }

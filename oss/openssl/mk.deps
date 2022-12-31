@@ -1,0 +1,29 @@
+#DEPS(mk.deps) openssl-native(cache): unselect
+#DEPS(mk.deps) openssl(cache release): unselect
+
+PACKAGE_NAME     = openssl
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 1.1.1s
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.gz
+SRC_URL          = http://ftp.openssl.org/source/$(SRC_NAME)
+
+CACHE_DEPENDS    = none
+define do_compile
+	$(call do_fetch); \
+	cd $(OUT_PATH)/$(SRC_DIR) && ./config shared no-asm no-async --prefix=$(INS_PATH)$(INS_SUBDIR) \
+		$(if $(CROSS_COMPILE),--cross-compile-prefix='') 1>/dev/null; \
+	sed -i 's/ -m64//g' Makefile; \
+	rm -rf $(INS_PATH) && $(MAKES) 1>/dev/null && $(MAKES) install 1>/dev/null
+endef
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/engines-* $(INS_PATH)/usr/lib/*.so*
+INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
+INSTALL_TODIR_ssl= $(INS_PATH)/usr/ssl /usr
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs install_bins install_todir_ssl
