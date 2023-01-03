@@ -12,15 +12,16 @@ SRC_URL          = https://github.com/thom311/libnl/releases/download/libnl$(sub
 
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = configure
+PC_FILES         = libnl-3.0.pc libnl-cli-3.0.pc libnl-genl-3.0.pc libnl-idiag-3.0.pc libnl-nf-3.0.pc libnl-route-3.0.pc libnl-xfrm-3.0.pc
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
 
-INSTALL_TODIR_sbin = $(INS_PATH)/usr/bin/* /bin
 INSTALL_TODIR_etc  = $(INS_PATH)/usr/etc/* /etc
 INSTALL_TODIR_cls  = $(INS_PATH)/usr/lib/libnl/cli/cls/*.so /lib/libnl/cli/cls
 INSTALL_TODIR_qdisc= $(INS_PATH)/usr/lib/libnl/cli/qdisc/*.so /lib/libnl/cli/qdisc
 INSTALL_LIBRARIES  = $(INS_PATH)/usr/lib/*.so*
+INSTALL_BINARIES   = $(INS_PATH)/usr/bin/*
 
 include $(ENV_MAKE_DIR)/inc.ins.mk
 
-release: install_todir_sbin install_todir_etc install_todir_cls install_todir_qdisc install_base_libs
+release: install_todir_etc install_todir_cls install_todir_qdisc install_base_libs install_base_bins

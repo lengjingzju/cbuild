@@ -13,6 +13,7 @@ SRC_URL          = http://xmlsoft.org/sources/$(SRC_NAME)
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = configure
 CONFIGURE_FLAGS  = --without-zlib --without-python
+PC_FILES         = libxml-2.0.pc
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
 

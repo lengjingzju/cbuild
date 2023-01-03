@@ -4,6 +4,7 @@
 PACKAGE_NAME     = wpa_supplicant
 PACKAGE_DEPS     = libnl3 openssl dbus-1.0
 
+EXPORT_PC_ENV    = y
 include $(ENV_MAKE_DIR)/inc.env.mk
 
 VERSION          = 2.10
@@ -17,8 +18,7 @@ MAKES_FLAGS     += $(if $(CROSS_COMPILE),CC=$(CROSS_COMPILE)gcc AR=$(CROSS_COMPI
 MAKES_FLAGS     += -C $(OUT_PATH)/$(SRC_DIR)/wpa_supplicant
 
 define do_prepend
-	cp -f $(OUT_PATH)/$(SRC_DIR)/wpa_supplicant/defconfig $(OUT_PATH)/$(SRC_DIR)/wpa_supplicant/.config; \
-		export PKG_CONFIG_PATH=$(DEP_PREFIX)/usr/lib/pkgconfig
+	cp -f $(OUT_PATH)/$(SRC_DIR)/wpa_supplicant/defconfig $(OUT_PATH)/$(SRC_DIR)/wpa_supplicant/.config
 endef
 
 include $(ENV_MAKE_DIR)/inc.cache.mk

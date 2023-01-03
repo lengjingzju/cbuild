@@ -12,6 +12,7 @@ SRC_URL          = http://nchc.dl.sourceforge.net/project/lzmautils/$(SRC_NAME)
 
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = configure
+PC_FILES         = liblzma.pc
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
 

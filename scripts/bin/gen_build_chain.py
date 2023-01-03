@@ -941,8 +941,9 @@ class Deps:
 
                 if item['targets'] and 'cache' in item['targets']:
                     phony.append(item['target'] + '_setforce')
+                    phony.append(item['target'] + '_set1force')
                     phony.append(item['target'] + '_unsetforce')
-                    fp.write('%s_setforce %s_unsetforce:\n' % (item['target'], item['target']))
+                    fp.write('%s_setforce %s_set1force %s_unsetforce:\n' % (item['target'], item['target'], item['target']))
                     fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, item['target']))
 
                 targets_exact = [t for t in real_targets if ':' in t]

@@ -160,7 +160,8 @@
 ### 编译环境模板可设置变量说明
 
 * EXPORT_HOST_ENV : 交叉编译依赖本地编译的包时设置为 y
-* BUILD_FOR_HOST : 本地编译时设置为 y
+* EXPORT_PC_ENV: 设置为 y 时导出 pkg-config 的搜索路径
+* BUILD_FOR_HOST : 设置为 y 时表示本地编译(native-compile)
 
 ### 编译环境模板变量说明
 
@@ -1469,6 +1470,7 @@ Build busybox Done.
     * OBJ_PATH        : 包的编译输出路径，默认取变量 `$(OUT_PATH)/build` 设置的值
     * INS_PATH        : 包的安装根目录，默认取变量 `$(OUT_PATH)/image` 设置的值
     * INS_SUBDIR      : 包的安装子目录，默认值为 `/usr`，则真正的安装目录为 `$(INS_PATH)$(INS_SUBDIR)`
+    * PC_FILES        : 包安装的 pkg-config 配置文件的文件名，多个文件空格分开
     * MAKES           : make 命令的值，默认为 `make -s $(ENV_BUILD_JOBS) $(MAKES_FLAGS)`，用户可以设置额外的参数 `MAKES_FLAGS`
     * CACHE_PACKAGE   : 包的名字，即 DEPS 语句中的包名，默认取值 `PACKAGE_NAME` (PACKAGE_NAME 可能和 DEPS 语句中的包名不对应，此时需要手动设置此变量)
     * CACHE_SRCFILE   : http 下载保存的文件名，默认取变量 `SRC_NAME` 设置的值
@@ -1489,6 +1491,7 @@ Build busybox Done.
 <br>
 
 * 提供的函数
+    * do_inspc / do_syspc: 将 pkg-config 配置文件中的路径转换为虚拟路径和实际路径，需要先设置配置文件名变量 PC_FILES 
     * do_fetch: 自动从网络拉取代码并解压到输出目录
     * do_patch: 打补丁，用户需要设置补丁目录 `PATCH_FOLDER`
     * do_compile: 用户如果没有设置此函数，将采用模板中的默认 do_compile 函数
@@ -1509,8 +1512,9 @@ Build busybox Done.
 
 * 提供的目标
     * 如果用户没有设置 `USER_DEFINED_TARGET` 为 y，采用模板默认提供的 `all clean install` 目标
+        * 如果用户设置了 do_install_append 函数，会在 install 目标尾部运行此函数
     * srcbuild: 没有缓存机制的编译
     * cachebuild: 有缓存机制的编译
     * do_setforce: 设置强制编译
-    * do_set1force: 设置强制编译
+    * do_set1force: 设置强制编译一次
     * do_unsetforce: 取消强制编译

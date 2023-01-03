@@ -34,6 +34,11 @@ export PATH:=$(shell echo $(addprefix $(ENV_DEP_HOST),/bin /usr/bin /usr/local/b
 export LD_LIBRARY_PATH:=$(shell echo $(addprefix $(ENV_DEP_HOST),/lib /usr/lib /usr/local/lib)$(if $(LD_LIBRARY_PATH),:$(LD_LIBRARY_PATH)) | sed 's/ /:/g')
 endif
 
+ifeq ($(EXPORT_PC_ENV), y)
+export PKG_CONFIG_LIBDIR=$(DEP_PREFIX)/usr/lib/pkgconfig
+export PKG_CONFIG_PATH=$(shell echo $(wildcard $(addprefix $(DEP_PREFIX),$(addsuffix /pkgconfig,/lib /usr/lib /usr/local/lib))) | sed 's@ @:@g')
+endif
+
 ifeq ($(ENV_BUILD_MODE), yocto)
 
 # envs should be exported by yocto recipe.

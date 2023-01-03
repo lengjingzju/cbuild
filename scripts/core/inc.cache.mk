@@ -9,6 +9,7 @@ SRC_PATH        ?= $(OUT_PATH)/$(SRC_DIR)
 OBJ_PATH        ?= $(OUT_PATH)/build
 INS_PATH        ?= $(OUT_PATH)/image
 INS_SUBDIR      ?= /usr
+PC_FILES        ?=
 MAKES           ?= make -s $(ENV_BUILD_JOBS) $(MAKES_FLAGS)
 
 CACHE_PACKAGE   ?= $(PACKAGE_NAME)
@@ -26,6 +27,16 @@ REAL_PACKAGE     = $(CACHE_PACKAGE)$(if $(filter y,$(BUILD_FOR_HOST)),-native)
 
 SYSTEM_INFO      = $(shell echo $(shell uname -m)-$(shell uname -s) | tr '[A-Z ]' '[a-z-]')
 CROSS_INFO       = $(if $(CROSS_COMPILE),$(shell echo $(CROSS_COMPILE) | sed 's/-$$//g'))
+
+ifneq ($(PC_FILES), )
+define do_inspc
+	sed -i "s@$(INS_PATH)@INS_PREFIX@g" $(addprefix $(INS_PATH)$(INS_SUBDIR)/lib/pkgconfig/,$(PC_FILES))
+endef
+
+define do_syspc
+	sed -i "s@INS_PREFIX@$(INS_PREFIX)@g" $(addprefix $(INS_PREFIX)$(INS_SUBDIR)/lib/pkgconfig/,$(PC_FILES))
+endef
+endif
 
 define do_fetch
 	mkdir -p $(ENV_DOWN_DIR)/lock && echo > $(ENV_DOWN_DIR)/lock/$(SRC_NAME).lock && \
@@ -49,6 +60,7 @@ define do_compile
 		cd $(OBJ_PATH) && $(SRC_PATH)/configure $(if $(CROSS_COMPILE),--host=$(CROSS_INFO)) --prefix=$(INS_PATH)$(INS_SUBDIR) $(CONFIGURE_FLAGS) 1>/dev/null; \
 	fi; \
 	rm -rf $(INS_PATH) && $(MAKES) 1>/dev/null && $(MAKES) install 1>/dev/null; \
+	$(if $(PC_FILES),$(call do_inspc),true); \
 	$(if $(do_append),$(call do_append),true); \
 	set +e
 endef
@@ -107,6 +119,8 @@ clean:
 install:
 	@install -d $(INS_PREFIX)
 	@$(call safe_copy,-rfp,$(INS_PATH)/* $(INS_PREFIX))
+	@$(if $(PC_FILES),$(call do_syspc))
+	@$(if $(do_install_append),$(call do_install_append))
 	@echo "Install $(REAL_PACKAGE) Done."
 
 endif

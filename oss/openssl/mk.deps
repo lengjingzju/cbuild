@@ -11,6 +11,8 @@ SRC_NAME         = $(SRC_DIR).tar.gz
 SRC_URL          = http://ftp.openssl.org/source/$(SRC_NAME)
 
 CACHE_DEPENDS    = none
+PC_FILES         = libcrypto.pc libssl.pc openssl.pc
+
 define do_compile
 	$(call do_fetch); \
 	cd $(OUT_PATH)/$(SRC_DIR) && ./config shared no-asm no-async --prefix=$(INS_PATH)$(INS_SUBDIR) \

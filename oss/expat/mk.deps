@@ -12,6 +12,7 @@ SRC_URL          = https://github.com/libexpat/libexpat/releases/download/R_$(su
 
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = configure
+PC_FILES         = expat.pc
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
 

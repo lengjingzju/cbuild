@@ -12,6 +12,7 @@ SRC_NAME         = $(SRC_DIR).zip
 SRC_URL          = http://www.zlib.net/zlib1213.zip
 
 CACHE_DEPENDS    = none
+PC_FILES         = zlib.pc
 
 define do_prepend
 cd $(OBJ_PATH) && \
