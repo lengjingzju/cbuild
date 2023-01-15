@@ -2,7 +2,7 @@
 
 ## 特点
 
-* Linux 下纯粹的 Makefile 编译，支持 Makefile 封装包已有的 `Makefile` `CMake` `Autotools` 以实现对它们的支持
+* Linux 下纯粹的 Makefile 编译，支持 Makefile 封装包已有的 `Makefile` `CMake` `Autotools` `Meson` 以实现对它们的支持
 * 支持本地编译和交叉编译，支持自动分析头文件和编译脚本文件作为编译依赖，支持分别指定源文件的 CFLAGS
 * 一个 Makefile 同时支持 Yocto 编译方式、源码和编译输出分离模式和不分离模式，一个 Makefile 支持生成多个库、可执行文件或外部内核模块
 * 提供编译静态库、共享库和可执行文件的模板 `inc.app.mk`，支持 C(`*.c`) C++(`*.cc *.cp *.cxx *.cpp *.CPP *.c++ *.C`) 和 汇编(`*.S *.s *.asm`) 混合编译
@@ -11,17 +11,16 @@
 * 提供 Kconfig 配置参数的模板 `inc.conf.mk`
 * 提供根据依赖关系自动生成总系统编译链和配置链的脚本 `gen_build_chain.py`
     * 支持通过 make menuconfig 选择是否编译包
-    * 支持收集包下的 Kconfig 配置放在包编译开关项目的 menuconfig 菜单下，编译开关和编译参数一起设置
+    * 支持收集包下的 Kconfig 配置放在包编译开关项目的 menuconfig 菜单下，编译开关和编译参数统一设置
     * 支持非常多的依赖规则
         * 支持自动生成参与编译的实包和不参与编译的虚包的规则，虚包可用于控制管理一组实包
         * 支持普通结构(config)、层次结构(menuconfig)、选择结构(choice) 等自动生成
         * 支持强依赖(depends on)、弱依赖(if...endif)、强选择(select)、弱选择(imply)、或规则(||) 等自动生成
-* 提供源码包和预编译包切换机制，可选择预编译包加快编译
 * 提供方便的打补丁和去补丁切换的机制，例如动态决定是否打补丁 `exec_patch.sh` `externalpatch.bbclass`
 * 支持生成包的依赖关系的图片，并有颜色等属性查看包是否被选中等 `gen_depends_image.sh`
 * 支持自动拉取开源包编译，支持从 http git 或 svn 下载包，支持镜像下载 `fetch_package.sh`
 * 支持编译缓存镜像，再次编译不需要从代码编译，直接从本地缓存或网络镜像缓存拉取 `process_cache.sh` `inc.cache.mk`
-* 开源代码 OSS 层开发中，需要大家的贡献
+* 提供丰富的开源包 OSS 层，不断增加中
 
 ## 笔记
 
@@ -77,39 +76,53 @@
 * 初始化编译环境运行如下命令
 
     ```sh
-    lengjing@lengjing:~/cbuild$ source scripts/build.env
+    lengjing@lengjing:~/data/cbuild$ source scripts/build.env 
     ============================================================
     ENV_BUILD_MODE   : external
-    ENV_BUILD_ARCH   : 
-    ENV_BUILD_TOOL   : 
-    ENV_BUILD_GRADE  : v1 v2 v3
     ENV_BUILD_JOBS   : -j8
-    ENV_TOP_DIR      : /home/lengjing/cbuild
-    ENV_MAKE_DIR     : /home/lengjing/cbuild/scripts/core
-    ENV_TOOL_DIR     : /home/lengjing/cbuild/scripts/bin
-    ENV_DOWN_DIR     : /home/lengjing/cbuild/output/mirror-cache/downloads
-    ENV_CACHE_DIR    : /home/lengjing/cbuild/output/mirror-cache/build-cache
+    ENV_TOP_DIR      : /home/lengjing/data/cbuild
+    ENV_MAKE_DIR     : /home/lengjing/data/cbuild/scripts/core
+    ENV_TOOL_DIR     : /home/lengjing/data/cbuild/scripts/bin
+    ENV_DOWN_DIR     : /home/lengjing/data/cbuild/output/mirror-cache/downloads
+    ENV_CACHE_DIR    : /home/lengjing/data/cbuild/output/mirror-cache/build-cache
     ENV_MIRROR_URL   : http://127.0.0.1:8888
-    ENV_TOP_OUT      : /home/lengjing/cbuild/output
-    ENV_CFG_ROOT     : /home/lengjing/cbuild/output/config
-    ENV_OUT_ROOT     : /home/lengjing/cbuild/output/objects
-    ENV_INS_ROOT     : /home/lengjing/cbuild/output/sysroot
-    ENV_DEP_ROOT     : /home/lengjing/cbuild/output/sysroot
-    ENV_OUT_HOST     : /home/lengjing/cbuild/output/objects-native
-    ENV_INS_HOST     : /home/lengjing/cbuild/output/sysroot-native
-    ENV_DEP_HOST     : /home/lengjing/cbuild/output/sysroot-native
+    ENV_TOP_OUT      : /home/lengjing/data/cbuild/output/noarch
+    ENV_CFG_ROOT     : /home/lengjing/data/cbuild/output/noarch/config
+    ENV_OUT_ROOT     : /home/lengjing/data/cbuild/output/noarch/objects
+    ENV_INS_ROOT     : /home/lengjing/data/cbuild/output/noarch/sysroot
+    ENV_DEP_ROOT     : /home/lengjing/data/cbuild/output/noarch/sysroot
+    ENV_OUT_HOST     : /home/lengjing/data/cbuild/output/noarch/objects-native
+    ENV_INS_HOST     : /home/lengjing/data/cbuild/output/noarch/sysroot-native
+    ENV_DEP_HOST     : /home/lengjing/data/cbuild/output/noarch/sysroot-native
     ============================================================
     ```
 
 * 还可以指定 ARCH 和交叉编译器
 
     ```sh
-    lengjing@lengjing:~/cbuild$ source scripts/build.env arm64 arm-linux-gnueabihf-
     ============================================================
     ENV_BUILD_MODE   : external
+    ENV_BUILD_SOC    : cortex-a76
     ENV_BUILD_ARCH   : arm64
-    ENV_BUILD_TOOL   : arm-linux-gnueabihf-
-    ...
+    ENV_BUILD_TOOL   : /home/lengjing/data/cbuild/output/toolchain/cortex-a76-toolchain-gcc12.2.0-linux5.15.88/bin/aarch64-linux-gnu-
+    ENV_BUILD_JOBS   : -j8
+    KERNEL_VER       : 5.15.88
+    KERNEL_SRC       : /home/lengjing/data/cbuild/output/kernel/linux-5.15.88
+    KERNEL_OUT       : /home/lengjing/data/cbuild/output/cortex-a76/objects/linux-5.15.88
+    ENV_TOP_DIR      : /home/lengjing/data/cbuild
+    ENV_MAKE_DIR     : /home/lengjing/data/cbuild/scripts/core
+    ENV_TOOL_DIR     : /home/lengjing/data/cbuild/scripts/bin
+    ENV_DOWN_DIR     : /home/lengjing/data/cbuild/output/mirror-cache/downloads
+    ENV_CACHE_DIR    : /home/lengjing/data/cbuild/output/mirror-cache/build-cache
+    ENV_MIRROR_URL   : http://127.0.0.1:8888
+    ENV_TOP_OUT      : /home/lengjing/data/cbuild/output/cortex-a76
+    ENV_CFG_ROOT     : /home/lengjing/data/cbuild/output/cortex-a76/config
+    ENV_OUT_ROOT     : /home/lengjing/data/cbuild/output/cortex-a76/objects
+    ENV_INS_ROOT     : /home/lengjing/data/cbuild/output/cortex-a76/sysroot
+    ENV_DEP_ROOT     : /home/lengjing/data/cbuild/output/cortex-a76/sysroot
+    ENV_OUT_HOST     : /home/lengjing/data/cbuild/output/cortex-a76/objects-native
+    ENV_INS_HOST     : /home/lengjing/data/cbuild/output/cortex-a76/sysroot-native
+    ENV_DEP_HOST     : /home/lengjing/data/cbuild/output/cortex-a76/sysroot-native
     ============================================================
     ```
 
@@ -117,10 +130,15 @@
 
 * ENV_BUILD_MODE: 设置编译模式: external, 源码和编译输出分离; internal, 编译输出到源码; yocto, Yocto 编译方式
     * external 时，编译输出目录是把包的源码目录的 ENV_TOP_DIR 部分换成了 ENV_OUT_ROOT / ENV_OUT_HOST
+* ENV_BUILD_ARCH: 指定交叉编译的 SOC，根据 SOC 和 process_machine.sh 脚本得到和 SOC 相关的一系列参数
 * ENV_BUILD_ARCH: 指定交叉编译 linux 模块的 ARCH
 * ENV_BUILD_TOOL: 指定交叉编译器前缀
-* ENV_BUILD_GRADE: 指定编译缓存级别数组，比如我有一颗 acortex-a55 的 soc，那这个值可设置为 `socname cortex-a55 armv8-a`
 * ENV_BUILD_JOBS: 指定编译线程数
+<br>
+
+* KERNEL_VER: Linux 内核版本
+* KERNEL_SRC: Linux 内核解压后的目录
+* KERNEL_OUT: Linux 内核编译输出目录
 <br>
 
 * ENV_TOP_DIR: 工程的根目录
@@ -149,25 +167,35 @@
 * 编译环境被应用编译和内核模块编译共用
 * 普通编译时此模板作用是设置编译输出目录 `OUT_PATH`，设置并导出交叉编译环境或本地编译环境
 * Yocto 编译时编译输出目录和交叉编译环境由 `bitbake` 设置并导出
-<br>
 
 ### 编译环境模板的函数说明
 
 * `$(call safe_copy,cp选项,源和目标)`: 非 yocto 编译时使用加文件锁的 cp，防止多个目标多进程同时安装目录时报错
-* `$(call link_hdrs)`: 根据 PACKAGE_DEPS 变量的值自动生成查找头文件的 CFLAGS
+* `$(call link_hdrs)`: 根据 SEARCH_HDRS 变量的值自动生成查找头文件的 CFLAGS
 * `$(call link_libs)`: 自动生成查找库文件的 LDFLAGS
-
-### 编译环境模板可设置变量说明
-
-* EXPORT_HOST_ENV : 交叉编译依赖本地编译的包时设置为 y
-* EXPORT_PC_ENV: 设置为 y 时导出 pkg-config 的搜索路径
-* BUILD_FOR_HOST : 设置为 y 时表示本地编译(native-compile)
+* `$(call prepare_sysroot)`: 普通编译时在 OUT_PATH 目录准备 sysroot
 
 ### 编译环境模板变量说明
 
-* OUT_PREFIX : 编译输出根目录，本地编译取值 ENV_OUT_HOST，交叉编译取值 ENV_OUT_ROOT
-* INS_PREFIX : 安装根目录，本地编译取值 ENV_INS_HOST，交叉编译取值 ENV_INS_ROOT
-* DEP_PREFIX : 依赖根目录，本地编译取值 ENV_DEP_HOST，交叉编译取值 ENV_DEP_ROOT
+* PACKAGE_NAME: 包的名称，要和 DEPS语句的包名()一致，本地编译 的 PACKAGE_NAME 不需要加后缀 `-native`)
+* PACKAGE_ID: 只读，包的实际名称，交叉编译时等于 PACKAGE_NAME 的值，本地编译时会加上后缀 `-native`
+* INSTALL_HDR: 头文件安装的子文件夹，默认值等于 PACKAGE_NAME 的值
+* PACKAGE_DEPS: 包的依赖列表，未来可能会删除
+* SEARCH_HDRS: 查找头文件子目录列表，默认值等于 PACKAGE_DEPS 的值
+<br>
+
+* OUT_PREFIX : 顶层编译输出目录，本地编译取值 ENV_OUT_HOST，交叉编译取值 ENV_OUT_ROOT
+* INS_PREFIX : 顶层编译安装目录，本地编译取值 ENV_INS_HOST，交叉编译取值 ENV_INS_ROOT
+* DEP_PREFIX : 顶层依赖查找目录，本地编译取值 ENV_DEP_HOST，交叉编译取值 ENV_DEP_ROOT
+* PATH_PREFIX: 顶层主机工具查找目录
+* OUT_PATH   : 输出目录
+<br>
+
+* EXPORT_HOST_ENV: 交叉编译包依赖自己编译的本地包时需要设置为 y
+* EXPORT_PC_ENV: 设置为 y 时导出 pkg-config 的搜索路径
+* BUILD_FOR_HOST: 设置为 y 时表示本地编译(native-compile)
+* PREPARE_SYSROOT: 设置为 y 时普通编译使用 OUT_PATH 下的 sysroot 而不是 ENV_TOP_OUT 下的 sysroot / sysroot-native
+* LOGOUTPUT: 默认值为 1>/dev/null，置为空时编译 应用(include inc.app.mk) 和 oss 源码时 (include inc.cache.mk) 时输出更多信息
 
 ## 安装模板 inc.ins.mk
 
@@ -191,10 +219,10 @@
     * 安装目录是 `$(ENV_INS_ROOT)/bin`
 * install_hdrs: 安装头文件集
     * 用户需要设置被安装的头文件集变量 INSTALL_HEADERS
-    * 安装目录是 `$(ENV_INS_ROOT)/usr/include/$(PACKAGE_NAME)`
+    * 安装目录是 `$(ENV_INS_ROOT)/usr/include/$(INSTALL_HDR)`
 * install_datas: 安装数据文件集
     * 用户需要设置被安装的数据文件集变量 INSTALL_DATAS
-    * 安装目录是 `$(ENV_INS_ROOT)/usr/share/$(PACKAGE_NAME)`
+    * 安装目录是 `$(ENV_INS_ROOT)/usr/share`
 * install_datas_xxx / install_todir_xxx / install_tofile_xxx: 安装文件集到特定文件夹
     * 要安装的文件集分别由 INSTALL_DATAS_xxx / INSTALL_TODIR_xxx / INSTALL_TOFILE_xxx 定义
     * 定义的值前面部分是要安装的文件集，最后一项是以斜杆 `/` 开头的安装目标路径
@@ -318,9 +346,6 @@ lengjing@lengjing:~/cbuild/examples/test-app3$ make install
 
 ### 应用模板的可设置变量说明
 
-* PACKAGE_NAME: 包的名称，决定头文件等的安装路径(inc.ins.mk 的此变量意义相同)
-* PACKAGE_DEPS: 包的依赖(多个依赖空格隔开)，决定头文件的搜索路径等
-    * 默认将包依赖对应的路径加到当前包的头文件的搜索路径
 * SRC_PATH: 包中源码所在的目录，默认是包的根目录，也有的包将源码放在 src 下
     * 也可以指定包下多个(不交叉)目录的源码，例如 `SRC_PATH = src1 src2 src3`
 * IGNORE_PATH: 查找源码文件时，忽略搜索的目录名集合，默认已忽略 `.git scripts output` 文件夹
@@ -511,9 +536,6 @@ Build test-mod2 Done.
     * symvers_install: 安装 Module.symvers 符号文件到指定位置(已设置此目标为 `install_hdrs` 目标的依赖)
 
 * 可设置的变量
-    * PACKAGE_NAME: 包的名称
-    * PACKAGE_DEPS: 包的依赖(多个依赖空格隔开)
-        * 默认将包依赖对应的路径加到当前包的头文件的搜索路径
     * MOD_MAKES: 用户指定一些模块自己的信息，例如 XXXX=xxxx
     * KERNEL_SRC: Linux 内核源码目录 (必须）
     * KERNEL_OUT: Linux 内核编译输出目录 （`make -O $(KERNEL_OUT)` 编译内核的情况下必须）
@@ -674,10 +696,12 @@ gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-p $P
     * Other_Target_Names: 当前包的其它目标，多个目标使用空格隔开 (可以为空)
         * 忽略 Other_Target_Names 中的 all install clean 目标
         * `prepare` 关键字是特殊的实目标，表示 make 前运行 make prepare，一般用于当 .config 不存在时加载默认配置到 .config
-        * `release` 关键字是特殊的实目标，表示安装进 rootfs 时运行 make release，此目标不需要安装头文件和静态库文件等; 无此目标时运行 make install 代替
+        * `psysroot` 关键字是特殊的实目标，表示使用 OUT_PATH 的 sysroot 而不是 ENV_TOP_OUT 下的 sysroot / sysroot-native
+        * `release` 关键字是特殊的实目标，表示安装进 rootfs 时运行 make release，此目标不需要安装头文件和静态库文件等
+            * release 目标不存在时，rootfs 安装到 fakeroot 时运行 make install
         * `union` 关键字是特殊的虚拟目标，用于多个包共享一个 Makefile
             * 此时 `prepare all install clean` 目标的名字变为 `Target_Name-prepare Target_Name-all Target_Name-install Target_Name-clean`
-        * `cache` 关键字是特殊的虚拟目标，表明该包是缓存编译的
+        * `cache` 关键字是特殊的虚拟目标，表明该包支持缓存机制
         * `jobserver` 关键字是特殊的虚拟目标，表示 make 后加上 `$(ENV_BUILD_JOBS)`，用户需要 `export ENV_BUILD_JOBS=-j8` 才会启动多线程编译
             * 某些包的 Makefile 包含 make 指令时不要加上 jobserver 目标，例如编译外部内核模块
         * `subtarget1:subtarget2:...::dep1:dep2:...` 是特殊语法格式，用来显示指定子目标的依赖
@@ -1471,13 +1495,14 @@ Build busybox Done.
     * INS_PATH        : 包的安装根目录，默认取变量 `$(OUT_PATH)/image` 设置的值
     * INS_SUBDIR      : 包的安装子目录，默认值为 `/usr`，则真正的安装目录为 `$(INS_PATH)$(INS_SUBDIR)`
     * PC_FILES        : 包安装的 pkg-config 配置文件的文件名，多个文件空格分开
-    * MAKES           : make 命令的值，默认为 `make -s $(ENV_BUILD_JOBS) $(MAKES_FLAGS)`，用户可以设置额外的参数 `MAKES_FLAGS`
-    * CACHE_PACKAGE   : 包的名字，即 DEPS 语句中的包名，默认取值 `PACKAGE_NAME` (PACKAGE_NAME 可能和 DEPS 语句中的包名不对应，此时需要手动设置此变量)
+    * MAKES           : make 命令的值，默认值为 `make -s $(ENV_BUILD_JOBS) $(MAKES_FLAGS)`，用户可以设置额外的参数 `MAKES_FLAGS`
+        * meson 编译时默认值为 `ninja $(ENV_BUILD_JOBS) $(MAKES_FLAGS)`，用户可以设置额外的参数 `MAKES_FLAGS`
     * CACHE_SRCFILE   : http 下载保存的文件名，默认取变量 `SRC_NAME` 设置的值
         * 指定了此变量会自动对下载的文件校验，本地代码不需要指定此变量
     * CACHE_OUTPATH   : 包的输出目录，会在此目录生成校验文件和 log 文件等，默认取变量 `OUT_PATH` 设置的值
     * CACHE_INSPATH   : 包的安装目录，默认取变量 `$(INS_PATH)` 设置的值
-    * CACHE_GRADE     : 缓存级别，默认取 2，即缓存压缩包的名字以 `ENV_BUILD_GRADE` 设置的第 2 个字符串开头
+    * CACHE_GRADE     : 缓存级别，默认取 2，缓存总共4个级别，分别是 soc_name cpu_name arch_name cpu_family
+        * 例如: 我有一颗 cortex-a55 的 soc 名字叫做 a9，那么缓存级别数组为 `a9 cortex-a55 armv8-a aarch64`
     * CACHE_CHECKSUM  : 额外需要校验的文件或目录，多个项目使用空格分开，默认加上当前目录的 mk.deps 文件
         * 目录支持如下语法: `搜索的目录路径:搜索的字符串:忽略的文件夹名:忽略的字符串`，其中子项目可以使用竖线 `|` 隔开
             * 例如: `"srca|srcb:*.c|*.h|Makefile:test:*.o|*.d"`, `"src:*.c|*.h|*.cpp|*.hpp"`
@@ -1497,9 +1522,16 @@ Build busybox Done.
     * do_compile: 用户如果没有设置此函数，将采用模板中的默认 do_compile 函数
         * 如果用户设置了 SRC_URL 变量，会自动加上拉取代码操作
         * 如果用户设置了 PATCH_FOLDER 变量，会自动加上打补丁操作
-        * 如果用户设置了 do_prepend 函数，会在 make 命令前运行此函数
-        * 如果 COMPILE_TOOL 值是 cmake，会在 make 命令前运行 cmake 命令，通过 `CMAKE_FLAGS` 变量提供额外的命令参数
+    * 如果用户设置了 do_prepend 函数，会在 make 命令前运行此函数
+        * 如果用户设置了 COMPILE_TOOL 变量，提供如下编译方式的支持
+        * 如果 COMPILE_TOOL 值是 cmake，会在编译命令 make 前运行 cmake 命令，通过 `CMAKE_FLAGS` 变量提供额外的命令参数
+            * CROSS_CONFIGURE: configure 配置交叉编译时的参数
         * 如果 COMPILE_TOOL 值是 configure，会在 make 命令前运行 configure 命令，通过 `CONFIGURE_FLAGS` 变量提供额外的命令参数
+            * CROSS_CMAKE: cmake 配置交叉编译时的参数
+        * 如果 COMPILE_TOOL 值是 meson，会在编译命令 ninja 前运行 meson 配置命令，通过 `MESON_FLAGS` 变量提供额外的命令参数
+            * meson 使用 ini 文件配置交叉编译，用户可以定义 do_meson_cfg 函数追加或修改默认的配置
+            * MESON_WRAP_MODE 默认值 `--wrap-mode=nodownload` 表示禁止 meson 下载依赖包编译
+            * MESON_LIBDIR 默认值 `--libdir=$(INS_PATH)$(INS_SUBDIR)/lib`，表示设置安装库文件路径，不然本地编译时会安装到 lib 下的 x86_64-linux-gnu
         * 如果用户设置了 do_append 函数，会在 make 命令后运行此函数
     * do_check: 检查是否匹配 cache，返回的字符串有 MATCH 表示匹配，ERROR 表示错误
     * do_pull: 如果 INS_PATH 目录不存在，将 cache 解压的输出目录
@@ -1513,8 +1545,13 @@ Build busybox Done.
 * 提供的目标
     * 如果用户没有设置 `USER_DEFINED_TARGET` 为 y，采用模板默认提供的 `all clean install` 目标
         * 如果用户设置了 do_install_append 函数，会在 install 目标尾部运行此函数
+    * psysroot: 在 OUT_PATH 目录准备 sysroot
     * srcbuild: 没有缓存机制的编译
     * cachebuild: 有缓存机制的编译
     * do_setforce: 设置强制编译
     * do_set1force: 设置强制编译一次
     * do_unsetforce: 取消强制编译
+    
+
+注: 我们从源码编译 OSS 包时，一般会在 DEPS 语句的其它目标加上 cache psysroot，表示使用缓存机制加快再次编译和在 OUT_PATH 准备 sysroot 防止 OSS 自动加上依赖未声明的包导致编译出错
+

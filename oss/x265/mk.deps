@@ -1,0 +1,26 @@
+
+#DEPS(mk.deps) x265-native(cache psysroot): unselect
+#DEPS(mk.deps) x265(cache psysroot release): unselect
+
+PACKAGE_NAME     = x265
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 2.7
+SRC_DIR          = multicoreware-x265-e41a9bf2bac4
+SRC_NAME         = $(PACKAGE_NAME)-$(VERSION).tar.bz2
+SRC_URL          = http://download.videolan.org/videolan/x265/$(SRC_NAME)
+SRC_PATH         = $(OUT_PATH)/$(SRC_DIR)/source
+
+CACHE_DEPENDS    = none
+COMPILE_TOOL     = cmake
+CMAKE_FLAGS      = -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_CXX_FLAGS="-fPIC"
+PC_FILES         = x265.pc
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
+INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs install_bins

@@ -1,5 +1,6 @@
-#DEPS(mk.deps) xz-native(cache): unselect
-#DEPS(mk.deps) xz(cache release): unselect
+
+#DEPS(mk.deps) xz-native(cache psysroot): unselect
+#DEPS(mk.deps) xz(cache psysroot release): unselect
 
 PACKAGE_NAME     = xz
 

@@ -22,8 +22,8 @@ usage() {
     echo -e "\033[34m-s srcname\033[0m      : Specify the download package name"
     echo -e "\033[34m-o outdir\033[0m       : Specify the output path"
     echo -e "\033[34m-i insdir\033[0m       : Specify the install dir name, it's not ENV_INS_ROOT"
-    echo -e "\033[34m-g grade\033[0m        : Specify the grade number in ENV_BUILD_GRADE"
-    echo                   "    For Example : If ENV_BUILD_GRADE is 'socname cortex-a55 armv8-a', 1 means socname, 2 means cortex-a55, 3 means armv8-a"
+    echo -e "\033[34m-g grade\033[0m        : Specify the grade number in cache_grades"
+    echo                   "    For Example : If cache_grades is 'socname cortex-a55 armv8-a aarch64', 1 means socname, 2 means cortex-a55, 3 means armv8-a, 4 means aarch64"
     echo -e "\033[34m-c checksum\033[0m     : Specify extra files and dirs to checksum, dirs support the following grammar"
     echo                   "    Dir Grammar : findpaths:findstrs:ignoredirs:ignorestrs, multiple items in subitems can be separated by '|'"
     echo                   "    For Example : 'srca|srcb:*.c|*.h', 'src::.git:*.o|*.d'"
@@ -35,10 +35,15 @@ usage() {
     echo "========================================"
 }
 
+fetchtool=${ENV_TOOL_DIR}/fetch_package.sh
+machinetool=${ENV_TOOL_DIR}/process_machine.sh
+
 cmd="$0 $*"
 method=
 package=
 packname=
+cache_grades=noarch
+cache_prefix=
 native=""
 srcname=
 outdir=
@@ -71,8 +76,18 @@ done
 
 if [ -z "${native}" ]; then
     packname=${package}
+    if [ ! -z "${ENV_BUILD_SOC}" ]; then
+        cache_grades=$(${machinetool} cache_grades)
+    fi
+    grade_num=$(echo ${cache_grades} | wc -w)
+    grade_sel=${grade}
+    if [ ${grade_sel} -gt ${grade_num} ]; then
+        grade_sel=${grade_num}
+    fi
+    cache_prefix=$(echo ${cache_grades} | cut -d ' ' -f ${grade_sel})
 else
     packname=${package}-native
+    cache_prefix=${native}
 fi
 
 checktool=md5sum
@@ -80,7 +95,6 @@ checktmp1=${outdir}/${package}-checktmp1
 checktmp2=${outdir}/${package}-checktmp2
 checkfile=${outdir}/${package}-checksum
 forcefile=${outdir}/${package}-force
-fetchtool=${ENV_TOOL_DIR}/fetch_package.sh
 confpath=${ENV_CFG_ROOT}/.config
 deppath=${ENV_CFG_ROOT}/DEPS
 
@@ -137,11 +151,6 @@ check_env() {
 
     if [ -z "$(which ${checktool})" ]; then
         wlog "ERROR: please install ${checktool} first."
-        exit 1
-    fi
-
-    if [ -z "${ENV_BUILD_GRADE}" ]; then
-        wlog "ERROR: please export ENV_BUILD_GRADE first."
         exit 1
     fi
 
@@ -229,22 +238,15 @@ get_one_depend_checksum() {
 
     if [ ! -z "${depname}" ]; then
         if [ -z "${native}" ] && [ "$(echo ${depname} | grep -c '\-native')" -eq 0 ]; then
-            depcache=$(ls ${ENV_CACHE_DIR}/$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f 1)--${depname}--*.tar.gz 2>/dev/null)
-            if [ ! -z "${depcache}" ]; then
-                ${checktool} ${depcache} >> ${checktmp1}
-            else
-                depcache=$(ls ${ENV_CACHE_DIR}/$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f 2)--${depname}--*.tar.gz 2>/dev/null)
+            for prefixname in ${cache_grades}; do
+                depcache=$(ls ${ENV_CACHE_DIR}/${prefixname}--${depname}--*.tar.gz 2>/dev/null)
                 if [ ! -z "${depcache}" ]; then
                     ${checktool} ${depcache} >> ${checktmp1}
+                    break
                 else
-                    depcache=$(ls ${ENV_CACHE_DIR}/$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f 3)--${depname}--*.tar.gz 2>/dev/null)
-                    if [ ! -z "${depcache}" ]; then
-                        ${checktool} ${depcache} >> ${checktmp1}
-                    else
-                        depcache=""
-                    fi
+                    depcache=""
                 fi
-            fi
+            done
         else
             depcache=$(ls ${ENV_CACHE_DIR}/$(uname -m)--${depname}--*.tar.gz 2>/dev/null)
             if [ ! -z "${depcache}" ]; then
@@ -407,9 +409,12 @@ get_checksum() {
 
 del_cache() {
     if [ -z "${native}" ]; then
-        rm -f ${ENV_CACHE_DIR}/$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f 1)--${packname}--*.tar.gz \
-            ${ENV_CACHE_DIR}/$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f 2)--${packname}--*.tar.gz \
-            ${ENV_CACHE_DIR}/$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f 3)--${packname}--*.tar.gz
+        for prefixname in ${cache_grades}; do
+            packcache=$(ls ${ENV_CACHE_DIR}/${prefixname}--${packname}--*.tar.gz 2>/dev/null)
+            if [ ! -z "${packcache}" ]; then
+                rm -f ${packcache}
+            fi
+        done
     else
         rm -f ${ENV_CACHE_DIR}/${native}--${packname}--*.tar.gz
     fi
@@ -419,11 +424,7 @@ check_cache() {
     get_checksum check
 
     if [ -e ${checkfile} ]; then
-        if [ -z "${native}" ]; then
-            cachefile=$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f ${grade})--${packname}--$(cat ${checkfile}).tar.gz
-        else
-            cachefile=${native}--${packname}--$(cat ${checkfile}).tar.gz
-        fi
+        cachefile=${cache_prefix}--${packname}--$(cat ${checkfile}).tar.gz
         wlog "INFO: cachefile: ${cachefile}"
 
         if [ -e "${ENV_CACHE_DIR}/${cachefile}" ]; then
@@ -449,11 +450,7 @@ check_cache() {
 pull_cache() {
     if [ ! -e ${insdir} ]; then
         if [ -e ${checkfile} ]; then
-            if [ -z "${native}" ]; then
-                cachefile=$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f ${grade})--${packname}--$(cat ${checkfile}).tar.gz
-            else
-                cachefile=${native}--${packname}--$(cat ${checkfile}).tar.gz
-            fi
+            cachefile=${cache_prefix}--${packname}--$(cat ${checkfile}).tar.gz
             if [ -e "${ENV_CACHE_DIR}/${cachefile}" ]; then
                 mkdir -p ${outdir}
                 tar -xf ${ENV_CACHE_DIR}/${cachefile} -C ${outdir}
@@ -483,11 +480,7 @@ push_cache() {
         wlog "INFO: push_cache: redo checksum"
     fi
     if [ -e ${checkfile} ]; then
-        if [ -z "${native}" ]; then
-            cachefile=$(echo ${ENV_BUILD_GRADE} | cut -d ' ' -f ${grade})--${packname}--$(cat ${checkfile}).tar.gz
-        else
-            cachefile=${native}--${packname}--$(cat ${checkfile}).tar.gz
-        fi
+        cachefile=${cache_prefix}--${packname}--$(cat ${checkfile}).tar.gz
         cd $(dirname ${insdir})
         tar -zcf ${cachefile} $(basename ${insdir})
         del_cache

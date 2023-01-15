@@ -1,0 +1,24 @@
+
+#DEPS(mk.deps) tbb-native(cache psysroot): unselect
+#DEPS(mk.deps) tbb(cache psysroot release): unselect
+
+PACKAGE_NAME     = tbb
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 2021.7.0
+SRC_DIR          = oneTBB-$(VERSION)
+SRC_NAME         = $(PACKAGE_NAME)-$(VERSION).tar.gz
+SRC_URL          = http://github.com/oneapi-src/oneTBB/archive/refs/tags/v$(VERSION).tar.gz
+
+CACHE_DEPENDS    = none
+COMPILE_TOOL     = cmake
+CMAKE_FLAGS      = -DTBB_TEST=OFF -DTBB_STRICT=OFF
+PC_FILES         = tbb.pc
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs

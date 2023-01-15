@@ -1,13 +1,14 @@
-#DEPS(mk.deps) busybox(cache defconfig menuconfig): unselect
+
+#DEPS(mk.deps) busybox(cache psysroot defconfig menuconfig): unselect
 
 PACKAGE_NAME     = busybox
 
 include $(ENV_MAKE_DIR)/inc.env.mk
 
 VERSION          = 1.35.0
-SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_DIR          = busybox-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.bz2
-SRC_URL          = https://www.busybox.net/downloads/$(SRC_NAME)
+SRC_URL          = http://www.busybox.net/downloads/$(SRC_NAME)
 
 CACHE_CHECKSUM  += $(shell pwd)/config/$(CFG_NAME)
 CACHE_DEPENDS    = none
@@ -18,7 +19,7 @@ define do_prepend
 	if [ ! -f $(OBJ_PATH)/.config ]; then \
 		cp -f config/$(CFG_NAME) $(SRC_PATH)/configs/$(CFG_NAME); \
 		mkdir -p $(OBJ_PATH); \
-		$(MAKES) $(CFG_NAME) 1>/dev/null; \
+		$(MAKES) $(CFG_NAME) $(LOGOUTPUT); \
 	fi
 endef
 

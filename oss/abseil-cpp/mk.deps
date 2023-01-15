@@ -1,0 +1,22 @@
+
+#DEPS(mk.deps) abseil-cpp-native(cache psysroot): unselect
+#DEPS(mk.deps) abseil-cpp(cache psysroot release): unselect
+
+PACKAGE_NAME     = abseil-cpp
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 20220623.1
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.gz
+SRC_URL          = http://github.com/abseil/abseil-cpp/archive/refs/tags/$(VERSION).tar.gz
+
+CACHE_DEPENDS    = none
+COMPILE_TOOL     = cmake
+CMAKE_FLAGS      = -DCMAKE_CXX_STANDARD=11 -DABSL_PROPAGATE_CXX_STD=ON
+PC_FILES         = absl_*.pc
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+release:
+	@

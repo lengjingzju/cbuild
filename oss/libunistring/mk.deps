@@ -1,0 +1,23 @@
+
+#DEPS(mk.deps) libunistring-native(cache psysroot): unselect libiconv-native
+#DEPS(mk.deps) libunistring(cache psysroot release): unselect libiconv
+
+PACKAGE_NAME     = libunistring
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 1.1
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.xz
+SRC_URL          = http://ftp.gnu.org/gnu/libunistring/$(SRC_NAME)
+
+CACHE_DEPENDS    =
+COMPILE_TOOL     = configure
+CONFIGURE_FLAGS  = --with-libiconv-prefix=$(DEP_PREFIX)/usr
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs

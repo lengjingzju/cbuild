@@ -1,5 +1,6 @@
-#DEPS(mk.deps) openssl-native(cache): unselect
-#DEPS(mk.deps) openssl(cache release): unselect
+
+#DEPS(mk.deps) openssl-native(cache psysroot): unselect
+#DEPS(mk.deps) openssl(cache psysroot release): unselect
 
 PACKAGE_NAME     = openssl
 
@@ -16,9 +17,9 @@ PC_FILES         = libcrypto.pc libssl.pc openssl.pc
 define do_compile
 	$(call do_fetch); \
 	cd $(OUT_PATH)/$(SRC_DIR) && ./config shared no-asm no-async --prefix=$(INS_PATH)$(INS_SUBDIR) \
-		$(if $(CROSS_COMPILE),--cross-compile-prefix='') 1>/dev/null; \
+		$(if $(CROSS_COMPILE),--cross-compile-prefix='') $(LOGOUTPUT); \
 	sed -i 's/ -m64//g' Makefile; \
-	rm -rf $(INS_PATH) && $(MAKES) 1>/dev/null && $(MAKES) install 1>/dev/null
+	rm -rf $(INS_PATH) && $(MAKES) $(LOGOUTPUT) && $(MAKES) install $(LOGOUTPUT)
 endef
 
 include $(ENV_MAKE_DIR)/inc.cache.mk

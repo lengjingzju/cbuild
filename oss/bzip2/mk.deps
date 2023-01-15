@@ -1,5 +1,6 @@
-#DEPS(mk.deps) bzip2-native(cache): unselect
-#DEPS(mk.deps) bzip2(cache release): unselect
+
+#DEPS(mk.deps) bzip2-native(cache psysroot): unselect
+#DEPS(mk.deps) bzip2(cache psysroot release): unselect
 
 PACKAGE_NAME     = bzip2
 
@@ -14,13 +15,22 @@ PATCH_FOLDER     = $(shell pwd)/patch
 CACHE_CHECKSUM  += $(PATCH_FOLDER)
 CACHE_DEPENDS    = none
 MAKES_FLAGS      = -C $(OUT_PATH)/$(SRC_DIR) PREFIX=$(INS_PATH)$(INS_SUBDIR)
-ifneq ($(BUILD_FOR_HOST), y)
-MAKES_FLAGS     += CC=$(CROSS_COMPILE)gcc AR=$(CROSS_COMPILE)ar RANLIB=$(CROSS_COMPILE)ranlib
-endif
+MAKES_FLAGS     += $(if $(CROSS_COMPILE),CC=$(CC) AR=$(AR) RANLIB=$(RANLIB))
+PMAKES           = $(MAKES) -f Makefile-libbz2_so
+
+define do_compile
+	set -e; \
+	$(if $(SRC_URL),$(call do_fetch),true); \
+	$(if $(PATCH_FOLDER),$(call do_patch),true); \
+	rm -rf $(INS_PATH) && $(PMAKES) $(LOGOUTPUT) && $(PMAKES) $(LOGOUTPUT) install && \
+		$(MAKES) $(LOGOUTPUT) && $(MAKES) install $(LOGOUTPUT); \
+	set +e
+endef
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
 
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
 INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
 include $(ENV_MAKE_DIR)/inc.ins.mk
 
-release: install_bins
+release: install_libs install_bins

@@ -1,0 +1,30 @@
+
+#DEPS(mk.deps) wireless-tools-native(cache psysroot): unselect
+#DEPS(mk.deps) wireless-tools(cache psysroot release): unselect
+
+PACKAGE_NAME     = wireless-tools
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 29
+SRC_DIR          = $(subst -,_,$(PACKAGE_NAME)).$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.gz
+SRC_URL          = http://hewlettpackard.github.io/wireless-tools/$(SRC_NAME)
+
+CACHE_DEPENDS    = none
+PATCH_FOLDER     = $(shell pwd)/patch
+CACHE_CHECKSUM  += $(PATCH_FOLDER)
+MAKES_FLAGS      = PREFIX=$(INS_PATH) -C $(SRC_PATH)
+MAKES_FLAGS     += $(if $(CROSS_COMPILE),CC=$(CC) AR=$(AR) RANLIB=$(RANLIB))
+
+define do_prepend
+	sed -i '/ldconfig/ d' $(SRC_PATH)/Makefile
+endef
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES   = $(INS_PATH)/lib/*.so*
+INSTALL_TODIR_sbin = $(INS_PATH)/sbin/* /sbin
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_base_libs install_todir_sbin

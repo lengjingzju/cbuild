@@ -1,0 +1,25 @@
+
+#DEPS(mk.deps) eigen-native(cache psysroot): unselect
+#DEPS(mk.deps) eigen(cache psysroot release): unselect
+
+PACKAGE_NAME     = eigen
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 3.4.0
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.bz2
+SRC_URL          = http://gitlab.com/libeigen/eigen/-/archive/$(VERSION)/$(SRC_NAME)
+
+CACHE_DEPENDS    = none
+COMPILE_TOOL     = cmake
+PC_FILES         = eigen3.pc
+
+define do_prepend
+	sed -i 's@\$${CMAKE_INSTALL_DATADIR}/pkgconfig@$${CMAKE_INSTALL_LIBDIR}/pkgconfig@g' $(SRC_PATH)/CMakeLists.txt
+endef
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+release:
+	@

@@ -1,0 +1,23 @@
+
+#DEPS(mk.deps) gmp-native(cache psysroot): unselect
+#DEPS(mk.deps) gmp(cache psysroot release): unselect
+
+PACKAGE_NAME     = gmp
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 6.2.1
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.xz
+SRC_URL          = http://ftp.gnu.org/gnu/gmp/$(SRC_NAME)
+
+CACHE_DEPENDS    = none
+COMPILE_TOOL     = configure
+PC_FILES         = gmp.pc
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs

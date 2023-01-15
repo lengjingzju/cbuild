@@ -1,0 +1,42 @@
+
+#DEPS(harfbuzz-without-freetype.mk) harfbuzz-without-freetype-native(cache psysroot): unselect icu-native glib-native
+#DEPS(harfbuzz-without-freetype.mk) harfbuzz-without-freetype(cache psysroot release): unselect icu glib
+#DEPS(mk.deps) harfbuzz-native(cache psysroot): unselect icu-native libpng-native freetype-native glib-native
+#DEPS(mk.deps) harfbuzz(cache psysroot release): unselect icu libpng freetype glib
+
+PACKAGE_NAME    ?= harfbuzz
+PACKAGE_DEPS     = icu glib
+
+EXPORT_PC_ENV    = y
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 6.0.0
+SRC_DIR          = harfbuzz-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.xz
+SRC_URL          = http://github.com/harfbuzz/harfbuzz/releases/download/$(VERSION)/$(SRC_NAME)
+
+CACHE_DEPENDS    =
+COMPILE_TOOL     = configure
+CONFIGURE_FLAGS  = --with-icu=yes --with-glib=yes
+CONFIGURE_FLAGS  = PKG_CONFIG=pkg-config
+PC_FILES         = harfbuzz*.pc
+CONFIGURE_FLAGS += CFLAGS="$(call link_hdrs)" LDFLAGS="$(call link_libs)"
+
+ifeq ($(findstring -without-freetype,$(PACKAGE_NAME)), )
+PACKAGE_DEPS    += freetype2 libpng16
+CONFIGURE_FLAGS += --with-freetype=yes
+else
+CONFIGURE_FLAGS += --with-freetype=no
+OBJ_PATH         = $(OUT_PATH)/build-without-freetype
+INS_PATH         = $(OUT_PATH)/image-without-freetype
+define do_append
+	cp -fp $(SRC_PATH)/src/hb-ft.h $(INS_PATH)$(INS_SUBDIR)/include/harfbuzz
+endef
+endif
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs

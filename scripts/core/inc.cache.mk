@@ -1,8 +1,10 @@
 ifeq ($(KERNELRELEASE), )
-
+COLORECHO       ?= $(if $(findstring dash,$(shell readlink /bin/sh)),echo,echo -e)
 FETCH_SCRIPT    := $(ENV_TOOL_DIR)/fetch_package.sh
 PATCH_SCRIPT    := $(ENV_TOOL_DIR)/exec_patch.sh
 CACHE_SCRIPT    := $(ENV_TOOL_DIR)/process_cache.sh
+MACHINE_SCRIPT  := $(ENV_TOOL_DIR)/process_machine.sh
+MESON_SCRIPT    := $(ENV_TOOL_DIR)/meson_cross.sh
 
 FETCH_METHOD    ?= tar
 SRC_PATH        ?= $(OUT_PATH)/$(SRC_DIR)
@@ -10,9 +12,17 @@ OBJ_PATH        ?= $(OUT_PATH)/build
 INS_PATH        ?= $(OUT_PATH)/image
 INS_SUBDIR      ?= /usr
 PC_FILES        ?=
-MAKES           ?= make -s $(ENV_BUILD_JOBS) $(MAKES_FLAGS)
 
-CACHE_PACKAGE   ?= $(PACKAGE_NAME)
+ifneq ($(COMPILE_TOOL), meson)
+MAKES           ?= make -s $(ENV_BUILD_JOBS) $(MAKES_FLAGS)
+else
+MAKES           ?= ninja $(ENV_BUILD_JOBS) $(MAKES_FLAGS)
+MESON_WRAP_MODE ?= --wrap-mode=nodownload
+MESON_LIBDIR    ?= --libdir=$(INS_PATH)$(INS_SUBDIR)/lib
+endif
+CROSS_CONFIGURE ?= $(shell $(MACHINE_SCRIPT) cross_configure)
+CROSS_CMAKE     ?= $(shell $(MACHINE_SCRIPT) cross_cmake)
+
 CACHE_SRCFILE   ?= $(SRC_NAME)
 CACHE_OUTPATH   ?= $(OUT_PATH)
 CACHE_INSPATH   ?= $(INS_PATH)
@@ -22,11 +32,6 @@ CACHE_DEPENDS   ?=
 CACHE_APPENDS   ?=
 CACHE_URL       ?= $(if $(SRC_URL),[$(FETCH_METHOD)]$(SRC_URL))
 CACHE_VERBOSE   ?= 1
-
-REAL_PACKAGE     = $(CACHE_PACKAGE)$(if $(filter y,$(BUILD_FOR_HOST)),-native)
-
-SYSTEM_INFO      = $(shell echo $(shell uname -m)-$(shell uname -s) | tr '[A-Z ]' '[a-z-]')
-CROSS_INFO       = $(if $(CROSS_COMPILE),$(shell echo $(CROSS_COMPILE) | sed 's/-$$//g'))
 
 ifneq ($(PC_FILES), )
 define do_inspc
@@ -55,11 +60,20 @@ define do_compile
 	mkdir -p $(OBJ_PATH); \
 	$(if $(do_prepend),$(call do_prepend),true); \
 	if [ "$(COMPILE_TOOL)" = "cmake" ]; then \
-		cd $(OBJ_PATH) && cmake $(SRC_PATH) -DCMAKE_INSTALL_PREFIX=$(INS_PATH)$(INS_SUBDIR) $(CMAKE_FLAGS) 1>/dev/null; \
+		cd $(OBJ_PATH) && cmake $(SRC_PATH) $(if $(CROSS_COMPILE),$(CROSS_CMAKE)) \
+			-DCMAKE_INSTALL_PREFIX=$(INS_PATH)$(INS_SUBDIR) $(CMAKE_FLAGS) $(LOGOUTPUT); \
 	elif [ "$(COMPILE_TOOL)" = "configure" ]; then \
-		cd $(OBJ_PATH) && $(SRC_PATH)/configure $(if $(CROSS_COMPILE),--host=$(CROSS_INFO)) --prefix=$(INS_PATH)$(INS_SUBDIR) $(CONFIGURE_FLAGS) 1>/dev/null; \
+		cd $(OBJ_PATH) && $(SRC_PATH)/configure $(if $(CROSS_COMPILE),$(CROSS_CONFIGURE)) \
+			--prefix=$(INS_PATH)$(INS_SUBDIR) $(CONFIGURE_FLAGS) $(LOGOUTPUT); \
+	elif [ "$(COMPILE_TOOL)" = "meson" ]; then \
+		$(if $(CROSS_COMPILE),$(MESON_SCRIPT) $(OBJ_PATH),true); \
+		$(if $(do_meson_cfg),$(call do_meson_cfg),true); \
+		cd $(SRC_PATH) && meson $(if $(CROSS_COMPILE),--cross-file $(OBJ_PATH)/cross.ini) \
+			--prefix=$(INS_PATH)$(INS_SUBDIR) $(MESON_LIBDIR) $(MESON_WRAP_MODE) \
+			$(MESON_FLAGS) $(OBJ_PATH) $(LOGOUTPUT); \
+		cd $(OBJ_PATH); \
 	fi; \
-	rm -rf $(INS_PATH) && $(MAKES) 1>/dev/null && $(MAKES) install 1>/dev/null; \
+	rm -rf $(INS_PATH) && $(MAKES) $(LOGOUTPUT) && $(MAKES) install $(LOGOUTPUT); \
 	$(if $(PC_FILES),$(call do_inspc),true); \
 	$(if $(do_append),$(call do_append),true); \
 	set +e
@@ -67,7 +81,7 @@ endef
 endif
 
 define do_check
-	$(CACHE_SCRIPT) -m check -p $(CACHE_PACKAGE) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
+	$(CACHE_SCRIPT) -m check -p $(PACKAGE_NAME) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
 		-o $(CACHE_OUTPATH) -i $(CACHE_INSPATH) -g $(CACHE_GRADE) -v $(CACHE_VERBOSE) \
 		$(if $(CACHE_SRCFILE),-s $(CACHE_SRCFILE)) $(if $(CACHE_CHECKSUM),-c '$(CACHE_CHECKSUM)') \
 		$(if $(CACHE_DEPENDS),-d '$(CACHE_DEPENDS)') $(if $(CACHE_APPENDS),-d '$(CACHE_APPENDS)') \
@@ -75,35 +89,35 @@ define do_check
 endef
 
 define do_pull
-	$(CACHE_SCRIPT) -m pull  -p $(CACHE_PACKAGE) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
+	$(CACHE_SCRIPT) -m pull  -p $(PACKAGE_NAME) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
 		-o $(CACHE_OUTPATH) -i $(CACHE_INSPATH) -g $(CACHE_GRADE) -v $(CACHE_VERBOSE) && \
-	echo "Use $(REAL_PACKAGE) Cache in $(ENV_CACHE_DIR)."
+	$(COLORECHO) "\033[33mUse $(PACKAGE_ID) Cache in $(ENV_CACHE_DIR).\033[0m"
 endef
 
 define do_push
-	$(CACHE_SCRIPT) -m push  -p $(CACHE_PACKAGE) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
+	$(CACHE_SCRIPT) -m push  -p $(PACKAGE_NAME) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
 		-o $(CACHE_OUTPATH) -i $(CACHE_INSPATH) -g $(CACHE_GRADE) -v $(CACHE_VERBOSE) \
 		$(if $(CACHE_SRCFILE),-s $(CACHE_SRCFILE)) $(if $(CACHE_CHECKSUM),-c '$(CACHE_CHECKSUM)') \
 		$(if $(CACHE_DEPENDS),-d '$(CACHE_DEPENDS)') $(if $(CACHE_APPENDS),-d '$(CACHE_APPENDS)') && \
-	echo "Push $(REAL_PACKAGE) Cache to $(ENV_CACHE_DIR)."
+	$(COLORECHO) "\033[33mPush $(PACKAGE_ID) Cache to $(ENV_CACHE_DIR).\033[0m"
 endef
 
 define do_setforce
-	$(CACHE_SCRIPT) -m setforce -p $(CACHE_PACKAGE) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
+	$(CACHE_SCRIPT) -m setforce -p $(PACKAGE_NAME) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
 		-o $(CACHE_OUTPATH) -v $(CACHE_VERBOSE) && \
-	echo "Set $(REAL_PACKAGE) Force Build."
+	echo "Set $(PACKAGE_ID) Force Build."
 endef
 
 define do_set1force
-	$(CACHE_SCRIPT) -m set1force -p $(CACHE_PACKAGE) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
+	$(CACHE_SCRIPT) -m set1force -p $(PACKAGE_NAME) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
 		-o $(CACHE_OUTPATH) -v $(CACHE_VERBOSE) && \
-	echo "Set $(REAL_PACKAGE) Force Build."
+	echo "Set $(PACKAGE_ID) Force Build."
 endef
 
 define do_unsetforce
-	$(CACHE_SCRIPT) -m unsetforce -p $(CACHE_PACKAGE) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
+	$(CACHE_SCRIPT) -m unsetforce -p $(PACKAGE_NAME) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
 		-o $(CACHE_OUTPATH) -i $(CACHE_INSPATH) -v $(CACHE_VERBOSE) && \
-	echo "Unset $(REAL_PACKAGE) Force Build."
+	echo "Unset $(PACKAGE_ID) Force Build."
 endef
 
 ifneq ($(USER_DEFINED_TARGET), y)
@@ -114,22 +128,33 @@ all: cachebuild
 
 clean:
 	@rm -rf $(OUT_PATH)
-	@echo "Clean $(REAL_PACKAGE) Done."
+	@echo "Clean $(PACKAGE_ID) Done."
 
 install:
 	@install -d $(INS_PREFIX)
 	@$(call safe_copy,-rfp,$(INS_PATH)/* $(INS_PREFIX))
 	@$(if $(PC_FILES),$(call do_syspc))
 	@$(if $(do_install_append),$(call do_install_append))
-	@echo "Install $(REAL_PACKAGE) Done."
+	@echo "Install $(PACKAGE_ID) Done."
 
+endif
+
+ifeq ($(PREPARE_SYSROOT), y)
+.PHONY: psysroot
+
+psysroot:
+	@checksum=$$($(call do_check)); \
+	matchflag=$$(echo "$${checksum}" | grep -wc MATCH); \
+	if [ $${matchflag} -eq 0 ]; then \
+		$(call prepare_sysroot); \
+	fi
 endif
 
 .PHONY: srcbuild cachebuild setforce unsetforce
 
 srcbuild:
 	@$(call do_compile)
-	@echo "Build $(REAL_PACKAGE) Done."
+	@echo "Build $(PACKAGE_ID) Done."
 
 cachebuild:
 	@checksum=$$($(call do_check)); \
@@ -147,7 +172,7 @@ cachebuild:
 		$(call do_compile); \
 		$(call do_push); \
 	fi
-	@echo "Build $(REAL_PACKAGE) Done."
+	@echo "Build $(PACKAGE_ID) Done."
 
 setforce:
 	@$(call do_setforce)

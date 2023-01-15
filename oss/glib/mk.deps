@@ -1,0 +1,32 @@
+
+#DEPS(mk.deps) glib-native(cache psysroot): unselect libffi-native zlib-native pcre2-native
+#DEPS(mk.deps) glib(cache psysroot release): unselect libffi zlib pcre2
+
+PACKAGE_NAME     = glib
+PACKAGE_DEPS     = libffi zlib pcre2
+
+EXPORT_PC_ENV    = y
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 2.75.2
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.xz
+SRC_URL          = http://download.gnome.org/sources/glib/$(shell echo $(VERSION) | sed -E 's/([0-9]+).([0-9]+).([0-9]+)/\1.\2/g')/$(SRC_NAME)
+
+CACHE_DEPENDS    =
+COMPILE_TOOL     = meson
+PC_FILES         = gio-2.0.pc gio-unix-2.0.pc glib-2.0.pc gmodule-2.0.pc gmodule-export-2.0.pc gmodule-no-export-2.0.pc gobject-2.0.pc gthread-2.0.pc
+
+define do_prepend
+	sed -i "s@^gdb_install_dir = join_paths.*@gdb_install_dir = join_paths(glib_datadir, 'gdb', 'auto-load')@g" $(SRC_PATH)/glib/meson.build
+endef
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES     = $(INS_PATH)/usr/lib/*.so*
+INSTALL_BINARIES      = $(INS_PATH)/usr/bin/*
+INSTALL_TODIR_libexec = $(INS_PATH)/usr/libexec/* /usr/libexec
+INSTALL_DATAS         = $(INS_PATH)/usr/share/*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs install_bins install_todir_libexec install_datas

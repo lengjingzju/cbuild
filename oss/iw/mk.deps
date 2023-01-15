@@ -1,0 +1,24 @@
+
+#DEPS(mk.deps) iw-native(cache psysroot): unselect libnl-native
+#DEPS(mk.deps) iw(cache psysroot release): unselect libnl
+
+PACKAGE_NAME     = iw
+PACKAGE_DEPS     = libnl3
+
+EXPORT_PC_ENV    = y
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 5.19
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.xz
+SRC_URL          = http://cdn.kernel.org/pub/software/network/iw/$(SRC_NAME)
+
+CACHE_DEPENDS    =
+MAKES_FLAGS      = PREFIX=$(INS_PATH) -C $(SRC_PATH)
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_TODIR_sbin = $(INS_PATH)/sbin/* /sbin
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_todir_sbin

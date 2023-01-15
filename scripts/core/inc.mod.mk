@@ -4,7 +4,7 @@ MOD_NAME       ?= hello
 obj-m          := $(patsubst %,%.o,$(MOD_NAME))
 
 ccflags-y      += $(patsubst %,-I%,$(src) $(src)/include $(obj))
-ifneq ($(PACKAGE_DEPS), )
+ifneq ($(SEARCH_HDRS), )
 ccflags-y      += $(call link_hdrs)
 endif
 
@@ -71,12 +71,12 @@ $(OUT_PATH)/$(KBUILD_MK): $(KBUILD_MK)
 
 endif
 
-export PACKAGE_DEPS
+export SEARCH_HDRS
 
 .PHONY: modules modules_clean modules_install symvers_install
 
 modules:
-	@make $(MOD_MAKES) $(if $(PACKAGE_DEPS), KBUILD_EXTRA_SYMBOLS="$(wildcard $(patsubst %,$(DEP_PREFIX)/usr/include/%/Module.symvers,$(PACKAGE_DEPS)))") modules
+	@make $(MOD_MAKES) $(if $(SEARCH_HDRS), KBUILD_EXTRA_SYMBOLS="$(wildcard $(patsubst %,$(DEP_PREFIX)/usr/include/%/Module.symvers,$(SEARCH_HDRS)))") modules
 
 modules_clean:
 	@make $(MOD_MAKES) clean
@@ -89,8 +89,8 @@ else
 endif
 
 symvers_install:
-	@install -d $(INS_PREFIX)/usr/include/$(PACKAGE_NAME)
-	@cp -dfp $(OUT_PATH)/Module.symvers $(INS_PREFIX)/usr/include/$(PACKAGE_NAME)
+	@install -d $(INS_PREFIX)/usr/include/$(INSTALL_HDR)
+	@cp -dfp $(OUT_PATH)/Module.symvers $(INS_PREFIX)/usr/include/$(INSTALL_HDR)
 
 install_hdrs: symvers_install
 

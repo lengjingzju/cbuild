@@ -1,5 +1,6 @@
-#DEPS(mk.deps) libxml2-native(cache): unselect
-#DEPS(mk.deps) libxml2(cache release): unselect
+
+#DEPS(mk.deps) libxml2-native(cache psysroot): unselect
+#DEPS(mk.deps) libxml2(cache psysroot release): unselect
 
 PACKAGE_NAME     = libxml2
 

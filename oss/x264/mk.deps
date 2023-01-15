@@ -1,0 +1,27 @@
+
+#DEPS(mk.deps) x264-native(cache psysroot): unselect
+#DEPS(mk.deps) x264(cache psysroot release): unselect
+
+PACKAGE_NAME     = x264
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+FETCH_METHOD     = git
+VERSION          = git
+SRC_DIR          = $(PACKAGE_NAME)
+SRC_NAME         = $(PACKAGE_NAME)
+SRC_URL          = https://code.videolan.org/videolan/$(PACKAGE_NAME).git
+
+
+CACHE_DEPENDS    = none
+COMPILE_TOOL     = configure
+CONFIGURE_FLAGS  = --disable-asm --enable-shared
+PC_FILES         = x264.pc
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES  = $(INS_PATH)/usr/lib/*.so*
+INSTALL_BINARIES   = $(INS_PATH)/usr/bin/*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs install_bins

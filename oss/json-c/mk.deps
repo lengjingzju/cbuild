@@ -1,0 +1,23 @@
+
+#DEPS(mk.deps) json-c-native(cache psysroot): unselect
+#DEPS(mk.deps) json-c(cache psysroot release): unselect
+
+PACKAGE_NAME     = json-c
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 0.16-20220414
+SRC_DIR          = $(PACKAGE_NAME)-$(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(PACKAGE_NAME)-$(VERSION).tar.gz
+SRC_URL          = http://github.com/json-c/json-c/archive/refs/tags/$(SRC_NAME)
+
+CACHE_DEPENDS    = none
+COMPILE_TOOL     = cmake
+PC_FILES         = json-c.pc
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs

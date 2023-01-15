@@ -1,0 +1,23 @@
+
+#DEPS(mk.deps) gflags-native(cache psysroot): unselect
+#DEPS(mk.deps) gflags(cache psysroot release): unselect
+
+PACKAGE_NAME     = gflags
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 2.2.2
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.gz
+SRC_URL          = http://github.com/gflags/gflags/archive/refs/tags/v$(VERSION).tar.gz
+
+CACHE_DEPENDS    = none
+COMPILE_TOOL     = cmake
+PC_FILES         = gflags.pc
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_BINARIES= $(INS_PATH)/usr/bin/*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_bins

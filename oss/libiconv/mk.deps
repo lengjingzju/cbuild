@@ -1,0 +1,24 @@
+
+#DEPS(mk.deps) libiconv-native(cache psysroot): unselect
+#DEPS(mk.deps) libiconv(cache psysroot release): unselect
+
+PACKAGE_NAME     = libiconv
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 1.17
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.gz
+SRC_URL          = http://ftp.gnu.org/gnu/libiconv/$(SRC_NAME)
+
+CACHE_DEPENDS    = none
+COMPILE_TOOL     = configure
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
+INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
+INSTALL_DATAS    = $(INS_PATH)/usr/share/locale
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs install_bins install_datas

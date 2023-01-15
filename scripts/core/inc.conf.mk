@@ -2,9 +2,9 @@ ifeq ($(KERNELRELEASE), )
 
 ifeq ($(ENV_BUILD_MODE), external)
 ifneq ($(BUILD_FOR_HOST), y)
-OUT_PREFIX       := $(ENV_OUT_ROOT)
+OUT_PREFIX       ?= $(ENV_OUT_ROOT)
 else
-OUT_PREFIX       := $(ENV_OUT_HOST)
+OUT_PREFIX       ?= $(ENV_OUT_HOST)
 endif
 OUT_PATH         ?= $(patsubst $(ENV_TOP_DIR)/%,$(OUT_PREFIX)/%,$(shell pwd))
 else

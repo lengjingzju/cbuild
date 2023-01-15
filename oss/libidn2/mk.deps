@@ -1,0 +1,29 @@
+
+#DEPS(mk.deps) libidn2-native(cache psysroot): unselect libiconv-native libunistring-native
+#DEPS(mk.deps) libidn2(cache psysroot release): unselect libiconv libunistring
+
+PACKAGE_NAME     = libidn2
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 2.3.4
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.gz
+SRC_URL          = http://ftp.gnu.org/gnu/libidn/$(SRC_NAME)
+CONFIGURE_FLAGS  = --with-libiconv-prefix=$(DEP_PREFIX)/usr \
+                   --with-libunistring-prefix=$(DEP_PREFIX)/usr \
+                   --without-included-libunistring
+CONFIGURE_FLAGS += CFLAGS="$(call link_hdrs)" LDFLAGS="$(call link_libs)"
+
+CACHE_DEPENDS    =
+COMPILE_TOOL     = configure
+PC_FILES         = libidn2.pc
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
+INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
+INSTALL_DATAS    = $(INS_PATH)/usr/share/locale
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs install_bins install_datas

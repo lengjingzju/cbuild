@@ -1,0 +1,26 @@
+
+#DEPS(mk.deps) libnice-native(cache psysroot): unselect openssl-native glib-native
+#DEPS(mk.deps) libnice(cache psysroot release): unselect openssl glib
+
+PACKAGE_NAME     = libnice
+PACKAGE_DEPS     = openssl glib-2.0
+
+EXPORT_PC_ENV    = y
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 0.1.21
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.gz
+SRC_URL          = http://libnice.freedesktop.org/releases/$(SRC_NAME)
+
+CACHE_DEPENDS    =
+COMPILE_TOOL     = meson
+PC_FILES         = nice.pc
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
+INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs install_bins

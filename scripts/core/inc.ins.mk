@@ -21,12 +21,12 @@ install_base_bins:
 	@$(call safe_copy,-drf,$(INSTALL_BASE_BINARIES) $(INS_PREFIX)/bin)
 
 install_hdrs:
-	@install -d $(INS_PREFIX)/usr/include/$(PACKAGE_NAME)
-	@$(call safe_copy,-drfp,$(INSTALL_HEADERS) $(INS_PREFIX)/usr/include/$(PACKAGE_NAME))
+	@install -d $(INS_PREFIX)/usr/include/$(INSTALL_HDR)
+	@$(call safe_copy,-drfp,$(INSTALL_HEADERS) $(INS_PREFIX)/usr/include/$(INSTALL_HDR))
 
 install_datas:
-	@install -d $(INS_PREFIX)/usr/share/$(PACKAGE_NAME)
-	@$(call safe_copy,-drf,$(INSTALL_DATAS) $(INS_PREFIX)/usr/share/$(PACKAGE_NAME))
+	@install -d $(INS_PREFIX)/usr/share
+	@$(call safe_copy,-drf,$(INSTALL_DATAS) $(INS_PREFIX)/usr/share)
 
 install_datas_%:
 	@icp="$(if $(findstring /include,$(lastword $(INSTALL_DATAS_$(patsubst install_datas_%,%,$@)))),-drfp,-drf)"; \

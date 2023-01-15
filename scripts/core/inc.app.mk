@@ -1,6 +1,7 @@
 
 ifeq ($(KERNELRELEASE), )
 
+COLORECHO      ?= $(if $(findstring dash,$(shell readlink /bin/sh)),echo,echo -e)
 SRC_PATH       ?= .
 IGNORE_PATH    ?= .git scripts output
 REG_SUFFIX     ?= c cpp S
@@ -17,7 +18,7 @@ SRCS           ?= $(shell find $(SRC_PATH) $(patsubst %,-path '*/%' -prune -o,$(
 
 CFLAGS         += -I. -I./include $(patsubst %,-I%,$(filter-out .,$(SRC_PATH))) $(patsubst %,-I%/include,$(filter-out .,$(SRC_PATH))) -I$(OUT_PATH)
 
-ifneq ($(PACKAGE_DEPS), )
+ifneq ($(SEARCH_HDRS), )
 CFLAGS         += $(call link_hdrs)
 LDFLAGS        += $(call link_libs)
 endif
@@ -35,8 +36,6 @@ CFLAGS         += -ffunction-sections -fdata-sections -O2
 LDFLAGS        += -Wl,--gc-sections
 endif
 #LDFLAGS       += -static
-
-COLORECHO       = $(if $(findstring dash,$(shell readlink /bin/sh)),echo,echo -e)
 
 define translate_obj
 $(patsubst %,$(OUT_PATH)/%.o,$(basename $(1)))
@@ -70,7 +69,7 @@ ifneq ($(filter %.$(1),$(SRCS)), )
 $$(patsubst %.$(1),$$(OUT_PATH)/%.o,$$(filter %.$(1),$$(SRCS))): $$(OUT_PATH)/%.o: %.$(1)
 	@mkdir -p $$(dir $$@)
 	@$$(if $$(filter-out $$(patsubst %,\%.%,$$(ASM_SUFFIX)),$$<),$(2) -c $$(CFLAGS) $$(CFLAGS_$$(patsubst %.$(1),%.o,$$<)) -MM -MT $$@ -MF $$(patsubst %.o,%.d,$$@) $$<)
-	@$(COLORECHO) "\033[032m$(2)\033[0m	$$<"
+	@$(COLORECHO) "\033[032m$(2)\033[0m	$$<" $(LOGOUTPUT)
 	@$$(if $$(filter-out $$(AS),$(2)),$(2) -c $$(CFLAGS) $$(CFLAGS_$$(patsubst %.$(1),%.o,$$<)) -fPIC -o $$@ $$<,$(AS) $$(AFLAGS) $$(AFLAGS_$$(patsubst %.$(1),%.o,$$<)) -o $$@ $$<)
 endif
 endif

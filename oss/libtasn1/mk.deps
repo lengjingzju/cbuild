@@ -1,0 +1,24 @@
+
+#DEPS(mk.deps) libtasn1-native(cache psysroot): unselect
+#DEPS(mk.deps) libtasn1(cache psysroot release): unselect
+
+PACKAGE_NAME     = libtasn1
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 4.19.0
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.gz
+SRC_URL          = http://ftp.gnu.org/gnu/libtasn1/$(SRC_NAME)
+
+CACHE_DEPENDS    = none
+COMPILE_TOOL     = configure
+PC_FILES         = libtasn1.pc
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
+INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs install_bins

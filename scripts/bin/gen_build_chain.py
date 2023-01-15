@@ -810,7 +810,7 @@ class Deps:
                 dep_target_name = '%s_depends' % (item['target'])
                 dep_target_flag = False
 
-                ignore_targets = ['all', 'clean', 'install', 'release', 'prepare', 'jobserver', 'union', 'cache']
+                ignore_targets = ['all', 'clean', 'install', 'release', 'psysroot', 'prepare', 'jobserver', 'union', 'cache']
                 real_targets = [t for t in item['targets'] if t not in ignore_targets]
 
                 dep_targets_name = '%s_targets_depends' % (item['target'])
@@ -820,10 +820,12 @@ class Deps:
                     targets_flag = True
 
                 dep_install_name = '%s_install_depends' % (item['target'])
-                dep_install_flag = False
-                install_flag = True
+
+                dep_release_name = '%s_release_depends' % (item['target'])
+                dep_release_flag = False
+                release_flag = True
                 if item['target'].endswith('-native') or item['target'] in self.FinallyList:
-                    install_flag = False
+                    release_flag = False
 
                 make = '@$(PRECMD)make'
                 if item['targets'] and 'jobserver' in item['targets']:
@@ -831,6 +833,9 @@ class Deps:
                 make += ' -s -C %s' % (item['path'])
                 if item['make']:
                     make += ' -f %s' % (item['make'])
+
+                if item['targets'] and 'psysroot' in item['targets']:
+                    make += ' PREPARE_SYSROOT=y'
 
                 if item['target'].endswith('-native'):
                     make += ' BUILD_FOR_HOST=y'
@@ -859,25 +864,31 @@ class Deps:
                         if targets_flag and dep not in self.FinallyList:
                             dep_targets_flag = True
                             fp.write('%s: %s\n' % (dep_targets_name, dep))
-                        if install_flag and not dep.endswith('-native'):
-                            dep_install_flag = True
-                            fp.write('%s: %s_install\n' % (dep_install_name, dep))
+                        fp.write('%s: %s_install\n' % (dep_install_name, dep))
+                        if release_flag and not dep.endswith('-native'):
+                            dep_release_flag = True
+                            fp.write('%s: %s_release\n' % (dep_release_name, dep))
                         fp.write('endif\n')
                     fp.write('\n')
 
-                install_deps = []
+                release_deps = []
                 nofinal_deps = []
                 if item['asdeps']:
                     dep_target_flag = True
                     phony.append(dep_target_name)
                     fp.write('%s: %s\n\n' % (dep_target_name, ' '.join(item['asdeps'])))
-                    install_deps = ['%s_install' % (dep) for dep in item['asdeps'] if not dep.endswith('-native')]
+                    phony.append(dep_install_name)
+                    install_deps = ['%s_install' % (dep) for dep in item['asdeps']]
+                    fp.write('%s: %s\n' % (dep_install_name, ' '.join(install_deps)))
+                    release_deps = ['%s_release' % (dep) for dep in item['asdeps'] if not dep.endswith('-native')]
                     if targets_flag:
                         nofinal_deps = ['%s' % (dep) for dep in item['asdeps'] if dep not in self.FinallyList]
                 else:
                     if dep_target_flag:
                         phony.append(dep_target_name)
                         fp.write('%s:\n\t@\n\n' % (dep_target_name))
+                    phony.append(dep_install_name)
+                    fp.write('%s:\n\t@\n\n' % (dep_install_name))
 
                 if targets_flag:
                     if nofinal_deps:
@@ -892,15 +903,16 @@ class Deps:
                     dep_targets_name = dep_target_name
                     dep_targets_flag = dep_target_flag
 
-                if install_flag:
-                    if install_deps:
-                        dep_install_flag = True
-                        phony.append(dep_install_name)
-                        fp.write('%s: %s\n\n' % (dep_install_name, ' '.join(install_deps)))
+
+                if release_flag:
+                    if release_deps:
+                        dep_release_flag = True
+                        phony.append(dep_release_name)
+                        fp.write('%s: %s\n\n' % (dep_release_name, ' '.join(release_deps)))
                     else:
-                        if dep_install_flag:
-                            phony.append(dep_install_name)
-                            fp.write('%s:\n\t@\n\n' % (dep_install_name))
+                        if dep_release_flag:
+                            phony.append(dep_release_name)
+                            fp.write('%s:\n\t@\n\n' % (dep_release_name))
 
                 phony.append(item['target'])
                 if dep_target_flag:
@@ -910,27 +922,38 @@ class Deps:
                 else:
                     fp.write('%s:\n' % (item['target']))
                 if item['targets'] and 'union' in item['targets']:
+                    if item['targets'] and 'psysroot' in item['targets']:
+                        fp.write('\t%s %s-psysroot\n' % (make, item['target']))
                     if item['targets'] and 'prepare' in item['targets']:
                         fp.write('\t%s %s-prepare\n' % (make, item['target']))
                     fp.write('\t%s %s-all\n' % (make, item['target']))
                     fp.write('\t%s %s-install\n\n' % (make, item['target']))
                 else:
+                    if item['targets'] and 'psysroot' in item['targets']:
+                        fp.write('\t%s psysroot\n' % (make))
                     if item['targets'] and 'prepare' in item['targets']:
                         fp.write('\t%s prepare\n' % (make))
                     fp.write('\t%s\n' % (make))
                     fp.write('\t%s install\n\n' % (make))
 
-                if install_flag:
-                    phony.append(item['target'] + '_install')
-                    install = 'release' if 'release' in item['targets'] else 'install'
-                    if dep_install_flag:
-                        fp.write('%s_install: %s\n' % (item['target'], dep_install_name))
+                phony.append(item['target'] + '_install')
+                fp.write('%s_install: %s\n' % (item['target'], dep_install_name))
+                if item['targets'] and 'union' in item['targets']:
+                    fp.write('\t%s %s-install\n\n' % (make, item['target']))
+                else:
+                    fp.write('\t%s install\n\n' % (make))
+
+                if release_flag:
+                    phony.append(item['target'] + '_release')
+                    release = 'release' if 'release' in item['targets'] else 'install'
+                    if dep_release_flag:
+                        fp.write('%s_release: %s\n' % (item['target'], dep_release_name))
                     else:
-                        fp.write('%s_install:\n' % (item['target']))
+                        fp.write('%s_release:\n' % (item['target']))
                     if item['targets'] and 'union' in item['targets']:
-                        fp.write('\t%s %s-%s\n\n' % (make, item['target'], install))
+                        fp.write('\t%s %s-%s\n\n' % (make, item['target'], release))
                     else:
-                        fp.write('\t%s %s\n\n' % (make, install))
+                        fp.write('\t%s %s\n\n' % (make, release))
 
                 phony.append(item['target'] + '_clean')
                 fp.write('%s_clean:\n' % (item['target']))
@@ -960,14 +983,14 @@ class Deps:
                     phony += self.__write_sub_target_make(fp, make, item['target'], targets_auto, depstr)
 
                 fp.write('ALL_TARGETS += %s\n' % (item['target']))
-                if install_flag:
-                    fp.write('ALL_INSTALL_TARGETS += %s_install\n' % (item['target']))
+                if release_flag:
+                    fp.write('ALL_RELEASE_TARGETS += %s_release\n' % (item['target']))
                 fp.write('ALL_CLEAN_TARGETS += %s_clean\n' % (item['target']))
                 fp.write('.PHONY: %s\n\n' % (' '.join(phony)))
                 fp.write('endif\n\n')
 
             fp.write('%s: %s\n\n' % ('all_targets', '$(ALL_TARGETS)'))
-            fp.write('%s: %s\n\n' % ('all_install_targets', '$(ALL_INSTALL_TARGETS)'))
+            fp.write('%s: %s\n\n' % ('all_release_targets', '$(ALL_RELEASE_TARGETS)'))
             fp.write('%s: %s\n' % ('all_clean_targets', '$(ALL_CLEAN_TARGETS)'))
 
 

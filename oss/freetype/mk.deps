@@ -1,0 +1,27 @@
+
+#DEPS(mk.deps) freetype-native(cache psysroot): unselect libpng-native zlib-native bzip2-native harfbuzz-without-freetype-native
+#DEPS(mk.deps) freetype(cache psysroot release): unselect libpng zlib bzip2 harfbuzz-without-freetype
+
+PACKAGE_NAME     = freetype
+PACKAGE_DEPS     = zlib libpng16 bzip2 harfbuzz
+
+EXPORT_PC_ENV    = y
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 2.11.1
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.xz
+SRC_URL          = http://download.savannah.gnu.org/releases/freetype/$(SRC_NAME)
+
+CACHE_DEPENDS    =
+COMPILE_TOOL     = configure
+CONFIGURE_FLAGS  = --with-zlib=yes --with-bzip2=yes --with-png=yes --with-bzip2=yes --with-harfbuzz=yes
+CONFIGURE_FLAGS  = PKG_CONFIG=pkg-config BZIP2_CFLAGS="-I$(DEP_PREFIX)/usr/include" BZIP2_LIBS="-L$(DEP_PREFIX)/usr/lib -lbz2"
+PC_FILES         = freetype2.pc
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs

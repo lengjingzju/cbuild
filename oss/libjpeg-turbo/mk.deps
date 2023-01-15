@@ -1,0 +1,25 @@
+
+#DEPS(mk.deps) libjpeg-turbo-native(cache psysroot): unselect
+#DEPS(mk.deps) libjpeg-turbo(cache psysroot release): unselect
+
+PACKAGE_NAME     = libjpeg-turbo
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 2.1.4
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.gz
+SRC_URL          = http://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/$(VERSION).tar.gz
+
+CACHE_DEPENDS    = none
+COMPILE_TOOL     = cmake
+CMAKE_FLAGS      = -DWITH_SIMD=OFF
+PC_FILES         = libjpeg.pc libturbojpeg.pc
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
+INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs install_bins

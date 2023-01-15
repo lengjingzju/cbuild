@@ -1,5 +1,6 @@
-#DEPS(mk.deps) zlib-native(cache): unselect
-#DEPS(mk.deps) zlib(cache release): unselect
+
+#DEPS(mk.deps) zlib-native(cache psysroot): unselect
+#DEPS(mk.deps) zlib(cache psysroot release): unselect
 
 PACKAGE_NAME     = zlib
 
@@ -16,7 +17,7 @@ PC_FILES         = zlib.pc
 
 define do_prepend
 cd $(OBJ_PATH) && \
-	$(SRC_PATH)/configure --prefix=$(INS_PATH)$(INS_SUBDIR) 1>/dev/null
+	$(SRC_PATH)/configure --prefix=$(INS_PATH)$(INS_SUBDIR) $(LOGOUTPUT)
 endef
 
 include $(ENV_MAKE_DIR)/inc.cache.mk

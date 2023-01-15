@@ -1,0 +1,26 @@
+
+#DEPS(mk.deps) libpng-native(cache psysroot): unselect zlib-native
+#DEPS(mk.deps) libpng(cache psysroot release): unselect zlib
+
+PACKAGE_NAME     = libpng
+PACKAGE_DEPS     = zlib
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 1.6.39
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.xz
+SRC_URL          = http://nchc.dl.sourceforge.net/project/libpng/libpng16/$(VERSION)/$(SRC_NAME)
+
+CACHE_DEPENDS    =
+COMPILE_TOOL     = configure
+CONFIGURE_FLAGS  = CFLAGS="$(call link_hdrs)" CPPFLAGS="$(call link_hdrs)" LDFLAGS="$(call link_libs)"
+PC_FILES         = libpng16.pc
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
+INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs install_bins

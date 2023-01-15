@@ -1,0 +1,25 @@
+
+#DEPS(mk.deps) libcap-native(cache psysroot): unselect
+#DEPS(mk.deps) libcap(cache psysroot release): unselect
+
+PACKAGE_NAME     = libcap
+
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+VERSION          = 2.66
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.xz
+SRC_URL          = http://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/$(SRC_NAME)
+
+CACHE_DEPENDS    = none
+MAKES_FLAGS      = -C $(SRC_PATH) FAKEROOT=$(INS_PATH)$(INS_SUBDIR) lib=lib
+MAKES_FLAGS     += $(if $(CROSS_COMPILE),CC=$(CC) AR=$(AR) RANLIB=$(RANLIB) BUILD_CC=gcc)
+PC_FILES         = libcap.pc libpsx.pc
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES  = $(INS_PATH)/usr/lib/*.so*
+INSTALL_TODIR_sbin = $(INS_PATH)/usr/sbin/* /usr/sbin
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs install_todir_sbin
