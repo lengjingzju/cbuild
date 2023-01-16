@@ -84,7 +84,7 @@ define do_check
 	$(CACHE_SCRIPT) -m check -p $(PACKAGE_NAME) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
 		-o $(CACHE_OUTPATH) -i $(CACHE_INSPATH) -g $(CACHE_GRADE) -v $(CACHE_VERBOSE) \
 		$(if $(CACHE_SRCFILE),-s $(CACHE_SRCFILE)) $(if $(CACHE_CHECKSUM),-c '$(CACHE_CHECKSUM)') \
-		$(if $(CACHE_DEPENDS),-d '$(CACHE_DEPENDS)') $(if $(CACHE_APPENDS),-d '$(CACHE_APPENDS)') \
+		$(if $(CACHE_DEPENDS),-d '$(CACHE_DEPENDS)') $(if $(CACHE_APPENDS),-a '$(CACHE_APPENDS)') \
 		$(if $(CACHE_URL),-u '$(CACHE_URL)')
 endef
 
@@ -98,7 +98,7 @@ define do_push
 	$(CACHE_SCRIPT) -m push  -p $(PACKAGE_NAME) $(if $(filter y,$(BUILD_FOR_HOST)),-n) \
 		-o $(CACHE_OUTPATH) -i $(CACHE_INSPATH) -g $(CACHE_GRADE) -v $(CACHE_VERBOSE) \
 		$(if $(CACHE_SRCFILE),-s $(CACHE_SRCFILE)) $(if $(CACHE_CHECKSUM),-c '$(CACHE_CHECKSUM)') \
-		$(if $(CACHE_DEPENDS),-d '$(CACHE_DEPENDS)') $(if $(CACHE_APPENDS),-d '$(CACHE_APPENDS)') && \
+		$(if $(CACHE_DEPENDS),-d '$(CACHE_DEPENDS)') $(if $(CACHE_APPENDS),-a '$(CACHE_APPENDS)') && \
 	$(COLORECHO) "\033[33mPush $(PACKAGE_ID) Cache to $(ENV_CACHE_DIR).\033[0m"
 endef
 

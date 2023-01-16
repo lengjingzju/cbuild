@@ -66,7 +66,7 @@ while getopts "m:p:ns:o:i:g:c:d:a:u:v:h" opt; do
         g) grade=$OPTARG;;
         c) checksum=$OPTARG;;
         d) depends=$OPTARG;;
-        d) appends=$OPTARG;;
+        a) appends=$OPTARG;;
         u) url=$OPTARG;;
         v) verbose=$OPTARG;;
         h) usage; exit 0;;
