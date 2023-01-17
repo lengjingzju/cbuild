@@ -24,6 +24,15 @@ case $soc in
         cross_target=aarch64-linux-gnu
         gcc_arch_option="--with-arch=armv8-a --with-cpu=cortex-a53"
         ;;
+    'cortex-a9')
+        cpu=cortex-a9
+        arch=armv7-a
+        cpu_family=arm
+        endian=little
+        linux_arch=arm
+        cross_target=arm-linux-gnueabihf
+        gcc_arch_option="--with-arch=armv7-a --with-tune=cortex-a9"
+        ;;
     *)
         echo "ERROR: $0: Invalid soc $soc"
         exit 1;

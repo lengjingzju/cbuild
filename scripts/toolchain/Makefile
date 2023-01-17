@@ -2,7 +2,7 @@ ifeq ($(ENV_TOP_DIR), )
 $(error Please souce env first.)
 endif
 
-########## required host tools ##########
+########## Required host tools ##########
 # binutils: texinfo
 # glibc: gawk
 #########################################
@@ -21,6 +21,7 @@ LINUX_VER       ?= $(shell $(MACHINE_SCRIPT) linux_version)
 BINUTILS_VER    ?= 2.40
 GCC_VER         ?= $(shell $(MACHINE_SCRIPT) gcc_version)
 GLIBC_VER       ?= 2.36
+GDB_VER         ?= 12.1
 
 GMP_URL         := http://ftp.gnu.org/gnu/gmp/gmp-$(GMP_VER).tar.xz
 MPFR_URL        := http://ftp.gnu.org/gnu/mpfr/mpfr-$(MPFR_VER).tar.xz
@@ -30,6 +31,7 @@ LINUX_URL       := http://cdn.kernel.org/pub/linux/kernel/v$(shell echo $(LINUX_
 BINUTILS_URL    := http://ftp.gnu.org/gnu/binutils/binutils-$(BINUTILS_VER).tar.xz
 GCC_URL         := http://ftp.gnu.org/gnu/gcc/gcc-$(GCC_VER)/gcc-$(GCC_VER).tar.xz
 GLIBC_URL       := http://ftp.gnu.org/gnu/glibc/glibc-$(GLIBC_VER).tar.xz
+GDB_URL         := http://ftp.gnu.org/gnu/gdb/gdb-$(GDB_VER).tar.xz
 
 CROSS_TARGET     = $(shell $(MACHINE_SCRIPT) cross_target)
 CROSS_DIR        = $(shell $(MACHINE_SCRIPT) toolchain_dir)
@@ -48,19 +50,21 @@ CACHE_APPENDS    = \
 	$(CONFIG_ENABLE_LANGUAGES) \
 	$(GCC_COMMON_OPTIONS) $(GCC_EXTRA_OPTIONS) \
 	$(BINUTILS_COMMON_OPTIONS) $(BINUTILS_EXTRA_OPTIONS) \
-	$(GLIBC_COMMON_OPTIONS) $(GLIBC_EXTRA_OPTIONS)
+	$(GLIBC_COMMON_OPTIONS) $(GLIBC_EXTRA_OPTIONS) \
+	$(GDB_COMMON_OPTIONS) $(GDB_EXTRA_OPTIONS)
 
 define do_cache
 	$(CACHE_SCRIPT) -m $1 -p $(CROSS_DIR) -n -o $(CROSS_OUTPATH) -i $(CROSS_SYSROOT) -g 2 -v 0 -d none \
 		-c $(shell pwd)/Makefile -a '$(CACHE_APPENDS)'
 endef
 
-.PHONY: all clean build-all fetch-all \
+.PHONY: all clean build-all build-depends fetch-all \
 	fetch-gmp fetch-mpfr fetch-mpc fetch-isl \
-	fetch-linux fetch-binutils fetch-gcc fetch-glibc \
+	fetch-linux fetch-binutils fetch-gcc fetch-glibc fetch-gdb \
 	build-gmp build-mpfr build-mpc build-isl \
 	build-binutils-initial build-gcc-initial \
-	build-linux-headers build-glibc build-binutils build-gcc
+	build-linux-headers build-glibc \
+	build-binutils build-gcc build-gdb
 
 all:
 	@set -e
@@ -89,15 +93,15 @@ clean:
 	@rm -rf $(CROSS_SYSROOT) $(OUT_PATH)
 	@echo "Clean $(CROSS_DIR) Done."
 
-build-all: | fetch-all \
-	build-gmp build-mpfr build-mpc build-isl \
+build-all: | fetch-all build-depends \
 	build-binutils-initial build-gcc-initial \
-	build-linux-headers build-glibc build-binutils build-gcc
+	build-linux-headers build-glibc \
+	build-binutils build-gcc build-gdb
 
-########## fetch packages ##########
+########## Fetch packages ##########
 
 fetch-all: fetch-gmp fetch-mpfr fetch-mpc fetch-isl \
-	fetch-linux fetch-binutils fetch-gcc fetch-glibc
+	fetch-linux fetch-binutils fetch-gcc fetch-glibc fetch-gdb
 
 fetch-gmp:
 	$(FETCH_SCRIPT) tar "$(GMP_URL)" gmp-$(GMP_VER).tar.xz $(SRCS_PATH) gmp-$(GMP_VER)
@@ -126,7 +130,12 @@ fetch-gcc:
 fetch-glibc:
 	$(FETCH_SCRIPT) tar "$(GLIBC_URL)" glibc-$(GLIBC_VER).tar.xz $(SRCS_PATH) glibc-$(GLIBC_VER)
 
-########## build dependency libraries ##########
+fetch-gdb:
+	$(FETCH_SCRIPT) tar "$(GDB_URL)" gdb-$(GDB_VER).tar.xz $(SRCS_PATH) gdb-$(GDB_VER)
+
+########## Build dependency libraries ##########
+
+build-depends: | build-gmp build-mpfr build-mpc build-isl
 
 build-gmp:
 	mkdir -p $(OBJS_PATH)/gmp && cd $(OBJS_PATH)/gmp; \
@@ -151,7 +160,7 @@ build-isl:
 			--with-gmp-prefix=$(HOST_SYSROOT) && \
 		$(MAKES) && $(MAKES) install
 
-########## configure toolchain  ##########
+########## Configure toolchain  ##########
 
 TOOLCHAIN_COMMON_OPTIONS = \
 	--target=$(CROSS_TARGET) \
@@ -168,27 +177,33 @@ CONFIG_ENABLE_BOOTSTRAP ?= n
 ifeq ($(CONFIG_ENABLE_BOOTSTRAP), y)
 BINUTILS_COMMON_OPTIONS += --enable-bootstrap
 GCC_COMMON_OPTIONS      += --enable-bootstrap
+GDB_COMMON_OPTIONS      += --enable-bootstrap
 else
 BINUTILS_COMMON_OPTIONS += --disable-bootstrap
 GCC_COMMON_OPTIONS      += --disable-bootstrap
+GDB_COMMON_OPTIONS      += --disable-bootstrap
 endif
 
 CONFIG_ENABLE_MULTILIB ?= n
 ifeq ($(CONFIG_ENABLE_MULTILIB), y)
 BINUTILS_COMMON_OPTIONS += --enable-multilib
 GCC_COMMON_OPTIONS      += --enable-multilib
+GDB_COMMON_OPTIONS      += --enable-multilib
 else
 BINUTILS_COMMON_OPTIONS += --disable-multilib
 GCC_COMMON_OPTIONS      += --disable-multilib
+GDB_COMMON_OPTIONS      += --disable-multilib
 endif
 
 CONFIG_ENABLE_MULTIARCH ?= y
 ifeq ($(CONFIG_ENABLE_MULTIARCH), y)
 GCC_COMMON_OPTIONS      += --enable-multiarch
 GLIBC_COMMON_OPTIONS    += --enable-multi-arch
+GDB_COMMON_OPTIONS      += gl_cv_c_multiarch=yes
 else
 GCC_COMMON_OPTIONS      += --disable-multiarch
 GLIBC_COMMON_OPTIONS    += --disable-multi-arch
+GDB_COMMON_OPTIONS      += gl_cv_c_multiarch=no
 endif
 
 GCC_EXTRA_OPTIONS       ?= \
@@ -200,6 +215,9 @@ GCC_EXTRA_OPTIONS       ?= \
 	--enable-gnu-unique-object \
 	--enable-libstdcxx-debug \
 	--enable-libstdcxx-time=yes
+
+GDB_EXTRA_OPTIONS       ?= \
+	--enable-lto \
 
 ########## Build binutils / gcc without glibc  ##########
 
@@ -250,7 +268,7 @@ build-glibc:
 			&& \
 		$(MAKES) && $(MAKES) install_root=$(GLIBC_SYSROOT) install
 
-########## Build binutils / gcc with glibc  ##########
+########## Build binutils / gcc with glibc and gdb ##########
 
 build-binutils:
 	mkdir -p $(OBJS_PATH)/binutils && cd $(OBJS_PATH)/binutils; \
@@ -280,5 +298,17 @@ build-gcc:
 			--enable-checking=release \
 			$(GCC_COMMON_OPTIONS) \
 			$(GCC_EXTRA_OPTIONS) \
+			&& \
+		$(MAKES) && $(MAKES) install
+
+build-gdb:
+	mkdir -p $(OBJS_PATH)/gdb && cd $(OBJS_PATH)/gdb; \
+		export PATH=$(PATH):$(CROSS_SYSROOT)/bin; \
+		CC_FOR_BUILD=gcc \
+		$(SRCS_PATH)/gdb-$(GDB_VER)/configure \
+			$(TOOLCHAIN_COMMON_OPTIONS) \
+			--with-libgmp-prefix=$(HOST_SYSROOT) \
+			$(GDB_COMMON_OPTIONS) \
+			$(GDB_EXTRA_OPTIONS) \
 			&& \
 		$(MAKES) && $(MAKES) install
