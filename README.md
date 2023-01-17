@@ -20,6 +20,7 @@
 * 支持生成包的依赖关系的图片，并有颜色等属性查看包是否被选中等 `gen_depends_image.sh`
 * 支持自动拉取开源包编译，支持从 http git 或 svn 下载包，支持镜像下载 `fetch_package.sh`
 * 支持编译缓存镜像，再次编译不需要从代码编译，直接从本地缓存或网络镜像缓存拉取 `process_cache.sh` `inc.cache.mk`
+* 支持编译最新的交叉编译工具链 `process_machine.sh` `toolchain/Makefile`
 * 提供丰富的开源包 OSS 层，不断增加中
 
 ## 笔记
@@ -76,7 +77,7 @@
 * 初始化编译环境运行如下命令
 
     ```sh
-    lengjing@lengjing:~/data/cbuild$ source scripts/build.env 
+    lengjing@lengjing:~/data/cbuild$ source scripts/build.env
     ============================================================
     ENV_BUILD_MODE   : external
     ENV_BUILD_JOBS   : -j8
@@ -97,32 +98,33 @@
     ============================================================
     ```
 
-* 还可以指定 ARCH 和交叉编译器
+* 还可以通过 soc 名字导出交叉编译环境
 
     ```sh
+    lengjing@lengjing:~/data/cbuild$ source scripts/build.env cortex-a53
     ============================================================
     ENV_BUILD_MODE   : external
-    ENV_BUILD_SOC    : cortex-a76
+    ENV_BUILD_SOC    : cortex-a53
     ENV_BUILD_ARCH   : arm64
-    ENV_BUILD_TOOL   : /home/lengjing/data/cbuild/output/toolchain/cortex-a76-toolchain-gcc12.2.0-linux5.15.88/bin/aarch64-linux-gnu-
+    ENV_BUILD_TOOL   : /output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/bin/aarch64-linux-gnu-
     ENV_BUILD_JOBS   : -j8
     KERNEL_VER       : 5.15.88
     KERNEL_SRC       : /home/lengjing/data/cbuild/output/kernel/linux-5.15.88
-    KERNEL_OUT       : /home/lengjing/data/cbuild/output/cortex-a76/objects/linux-5.15.88
+    KERNEL_OUT       : /home/lengjing/data/cbuild/output/cortex-a53/objects/linux-5.15.88
     ENV_TOP_DIR      : /home/lengjing/data/cbuild
     ENV_MAKE_DIR     : /home/lengjing/data/cbuild/scripts/core
     ENV_TOOL_DIR     : /home/lengjing/data/cbuild/scripts/bin
     ENV_DOWN_DIR     : /home/lengjing/data/cbuild/output/mirror-cache/downloads
     ENV_CACHE_DIR    : /home/lengjing/data/cbuild/output/mirror-cache/build-cache
     ENV_MIRROR_URL   : http://127.0.0.1:8888
-    ENV_TOP_OUT      : /home/lengjing/data/cbuild/output/cortex-a76
-    ENV_CFG_ROOT     : /home/lengjing/data/cbuild/output/cortex-a76/config
-    ENV_OUT_ROOT     : /home/lengjing/data/cbuild/output/cortex-a76/objects
-    ENV_INS_ROOT     : /home/lengjing/data/cbuild/output/cortex-a76/sysroot
-    ENV_DEP_ROOT     : /home/lengjing/data/cbuild/output/cortex-a76/sysroot
-    ENV_OUT_HOST     : /home/lengjing/data/cbuild/output/cortex-a76/objects-native
-    ENV_INS_HOST     : /home/lengjing/data/cbuild/output/cortex-a76/sysroot-native
-    ENV_DEP_HOST     : /home/lengjing/data/cbuild/output/cortex-a76/sysroot-native
+    ENV_TOP_OUT      : /home/lengjing/data/cbuild/output/cortex-a53
+    ENV_CFG_ROOT     : /home/lengjing/data/cbuild/output/cortex-a53/config
+    ENV_OUT_ROOT     : /home/lengjing/data/cbuild/output/cortex-a53/objects
+    ENV_INS_ROOT     : /home/lengjing/data/cbuild/output/cortex-a53/sysroot
+    ENV_DEP_ROOT     : /home/lengjing/data/cbuild/output/cortex-a53/sysroot
+    ENV_OUT_HOST     : /home/lengjing/data/cbuild/output/cortex-a53/objects-native
+    ENV_INS_HOST     : /home/lengjing/data/cbuild/output/cortex-a53/sysroot-native
+    ENV_DEP_HOST     : /home/lengjing/data/cbuild/output/cortex-a53/sysroot-native
     ============================================================
     ```
 

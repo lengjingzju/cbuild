@@ -26,11 +26,25 @@ ifneq ($(ENV_BUILD_TOOL), )
 GLIBC_SYSROOT = $(shell $(ENV_BUILD_TOOL)gcc -print-sysroot)
 glibc_install:
 	@echo "Install Glibc target from $(GLIBC_SYSROOT)"
+	@mkdir -p $(OUT_PATH)/libc/lib
+	@mkdir -p $(OUT_PATH)/libc/usr/lib
+	@cp -dpRf $(GLIBC_SYSROOT)/lib/* $(OUT_PATH)/libc/lib
+	@cp -dpRf $(GLIBC_SYSROOT)/usr/lib/* $(OUT_PATH)/libc/usr/lib
+	@libs=$$(find $(OUT_PATH)/libc -name "*.a" | xargs); \
+	if [ ! -z "$${libs}" ]; then \
+		rm -f $${libs}; \
+	fi
+	@libs=$$(find $(OUT_PATH)/libc -name "*.la" | xargs); \
+	if [ ! -z "$${libs}" ]; then \
+		rm -f $${libs}; \
+	fi
 	@mkdir -p $(FAKEROOT_DIR)
-	@cp -dpRf $(GLIBC_SYSROOT)/lib/*.so* $(FAKEROOT_DIR)
+	@cp -dpRf $(OUT_PATH)/libc/* $(FAKEROOT_DIR)
+
 else
 glibc_install:
 	@
+
 endif
 
 image_install: package_install glibc_install

@@ -9,7 +9,7 @@ KEYWORDS       := none
 MAXLEVEL       := 3
 TIME_FORMAT    := /usr/bin/time -a -o $(OUT_PATH)/time_statistics -f \"%e\\t\\t%U\\t\\t%S\\t\\t\$$@\"
 
-.PHONY: all clean insclean distclean deps all-deps total_time time_statistics
+.PHONY: all clean insclean distclean toolchain deps all-deps total_time time_statistics
 
 all: loadconfig
 	@make $(ENV_BUILD_JOBS) -s MAKEFLAGS= all_targets
@@ -36,6 +36,9 @@ deps:
 	@$(PRECMD)python3 $(ENV_TOOL_DIR)/gen_build_chain.py -m $(OUT_PATH)/auto.mk -k $(OUT_PATH)/Kconfig \
 		-t $(OUT_PATH)/Target -a $(OUT_PATH)/DEPS -d mk.deps -v mk.vdeps -c mk.kconf \
 		-s $(ENV_TOP_DIR) -i $(IGNORE_DIRS) -l $(MAXLEVEL) -w $(KEYWORDS)
+
+toolchain:
+	@$(PRECMD)make -C $(ENV_TOP_DIR)/scripts/toolchain
 
 buildkconfig: deps
 
