@@ -56,7 +56,7 @@ class Deps:
 
     def get_env_vars(self, local_config):
         with open(local_config, 'r') as fp:
-            for per_line in fp:
+            for per_line in fp.readlines():
                 ret = re.match(r'([\w\-\./]+)\s*=\s*"(.*)"', per_line)
                 if ret:
                     self.VarDict[ret.groups()[0]] = ret.groups()[1]
@@ -66,7 +66,7 @@ class Deps:
         dirs = []
         flag = False
         with open(layer_config, 'r') as fp:
-            for per_line in fp:
+            for per_line in fp.readlines():
                 if not flag:
                     if 'BBLAYERS ?=' in per_line:
                         flag = True
@@ -157,7 +157,7 @@ class Deps:
         target_list = []
         vir_path = os.path.join(root, vir_name)
         with open(vir_path, 'r') as fp:
-            for per_line in fp:
+            for per_line in fp.readlines():
                 ret = re.match(r'#VDEPS\s*\(\s*(\w+)\s*\)\s*([\w\-]+)\s*\(([\s\w\-\./]*)\)\s*:([\s\w\|\-\.\?\*&!=,]*)', per_line)
                 if not ret:
                     continue
@@ -342,7 +342,7 @@ class Deps:
             dep_flag = False
             ItemDict = {}
 
-            for per_line in fp:
+            for per_line in fp.readlines():
                 # e.g. "#DEPS(mk.ext) a(clean install): b c"
                 ret = re.match(r'#DEPS\s*\(\s*([\w\-\./]*)\s*\)\s*([\w\-\.]+)\s*\(([\s\w\-\.%:]*)\)\s*:([\s\w\|\-\.\?\*&!=,]*)', per_line)
                 if ret:
@@ -445,7 +445,7 @@ class Deps:
 
         fullname = os.path.join(pathpair[0], pathpair[3])
         with open(fullname, 'r') as fp:
-            for per_line in fp:
+            for per_line in fp.readlines():
                 ret = re.match(r'DEPENDS\s*\+?=\s*"(.*)"', per_line)
                 if ret:
                     item['asdeps'] += [dep for dep in ret.groups()[0].strip().split() if '-native' not in dep]
@@ -456,7 +456,7 @@ class Deps:
         bbappend_path = '%sappend' % (fullname)
         if os.path.exists(bbappend_path):
             with open(bbappend_path, 'r') as fp:
-                for per_line in fp:
+                for per_line in fp.readlines():
                     ret = re.match(r'EXTERNALSRC_BUILD\s*=\s*"(.*)"', per_line)
                     if ret:
                         src = ret.groups()[0]
@@ -1301,14 +1301,14 @@ def do_image_analysis(args):
 
     recipe_list = []
     with open(target_out, 'r') as rfp:
-        for per_line in rfp:
+        for per_line in rfp.readlines():
             recipe = per_line.split(':')[1].strip()
             recipe_list.append(recipe)
 
     with open(image_out, 'w') as wfp:
         wfp.write('IMAGE_INSTALL:append = " \\\n')
         with open(conf_name, 'r') as rfp:
-            for per_line in rfp:
+            for per_line in rfp.readlines():
                 ret = re.match(r'CONFIG_(.*)=y', per_line)
                 if ret:
                     item = escape_tolower(ret.groups()[0])
@@ -1321,7 +1321,7 @@ def do_image_analysis(args):
         with open(patch_out, 'w') as wfp:
             wfp.write('DEPENDS += " \\\n')
             with open(conf_name, 'r') as rfp:
-                for per_line in rfp:
+                for per_line in rfp.readlines():
                     ret = re.match(r'CONFIG_(.*)=y', per_line)
                     if ret:
                         item = escape_tolower(ret.groups()[0])
