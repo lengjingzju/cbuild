@@ -150,7 +150,7 @@ psysroot:
 	fi
 endif
 
-.PHONY: srcbuild cachebuild setforce unsetforce
+.PHONY: srcbuild cachebuild setforce set1force unsetforce
 
 srcbuild:
 	@$(call do_compile)

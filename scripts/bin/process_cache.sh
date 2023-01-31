@@ -74,20 +74,22 @@ while getopts "m:p:ns:o:i:g:c:d:a:u:v:h" opt; do
     esac
 done
 
-if [ -z "${native}" ]; then
-    packname=${package}
-    if [ ! -z "${ENV_BUILD_SOC}" ]; then
-        cache_grades=$(${machinetool} cache_grades)
+if [ ! -z "${grade}" ]; then
+    if [ -z "${native}" ]; then
+        packname=${package}
+        if [ ! -z "${ENV_BUILD_SOC}" ]; then
+            cache_grades=$(${machinetool} cache_grades)
+        fi
+        grade_num=$(echo ${cache_grades} | wc -w)
+        grade_sel=${grade}
+        if [ ${grade_sel} -gt ${grade_num} ]; then
+            grade_sel=${grade_num}
+        fi
+        cache_prefix=$(echo ${cache_grades} | cut -d ' ' -f ${grade_sel})
+    else
+        packname=${package}-native
+        cache_prefix=${native}
     fi
-    grade_num=$(echo ${cache_grades} | wc -w)
-    grade_sel=${grade}
-    if [ ${grade_sel} -gt ${grade_num} ]; then
-        grade_sel=${grade_num}
-    fi
-    cache_prefix=$(echo ${cache_grades} | cut -d ' ' -f ${grade_sel})
-else
-    packname=${package}-native
-    cache_prefix=${native}
 fi
 
 checktool=md5sum
