@@ -10,6 +10,7 @@ VERSION          = 4.1.1
 SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.xz
 SRC_URL          = http://ftp.gnu.org/gnu/mpfr/$(SRC_NAME)
+SRC_MD5          = d182b62e811f744d149b14540d8e922b
 
 CACHE_DEPENDS    =
 COMPILE_TOOL     = configure

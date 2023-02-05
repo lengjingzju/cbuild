@@ -12,6 +12,7 @@ VERSION          = 72.1
 SRC_DIR          = $(PACKAGE_NAME)-release-$(subst .,-,$(VERSION))
 SRC_NAME         = $(SRC_DIR).tar.gz
 SRC_URL          = http://github.com/unicode-org/icu/archive/refs/tags/release-$(subst .,-,$(VERSION)).tar.gz
+SRC_MD5          = cbfd3e149b3afbae7c992dad3e704a0d
 SRC_PATH         = $(OUT_PATH)/$(SRC_DIR)/icu4c/source
 CFG_PATH         = $(OBJ_PATH)/icu-cfg
 

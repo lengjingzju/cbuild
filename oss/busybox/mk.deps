@@ -9,6 +9,7 @@ VERSION          = 1.35.0
 SRC_DIR          = busybox-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.bz2
 SRC_URL          = http://www.busybox.net/downloads/$(SRC_NAME)
+SRC_MD5          = 585949b1dd4292b604b7d199866e9913
 
 CACHE_CHECKSUM  += $(shell pwd)/config/$(CFG_NAME)
 CACHE_DEPENDS    = none

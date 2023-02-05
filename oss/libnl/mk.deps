@@ -10,6 +10,7 @@ VERSION          = 3.7.0
 SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.gz
 SRC_URL          = http://github.com/thom311/libnl/releases/download/libnl$(subst .,_,$(VERSION))/$(SRC_NAME)
+SRC_MD5          = b381405afd14e466e35d29a112480333
 
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = configure

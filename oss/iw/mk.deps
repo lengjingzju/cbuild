@@ -12,6 +12,7 @@ VERSION          = 5.19
 SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.xz
 SRC_URL          = http://cdn.kernel.org/pub/software/network/iw/$(SRC_NAME)
+SRC_MD5          = fd17ca2dd5f160a5d9e5fd3f8a69f416
 
 CACHE_DEPENDS    =
 MAKES_FLAGS      = PREFIX=$(INS_PATH) -C $(SRC_PATH)

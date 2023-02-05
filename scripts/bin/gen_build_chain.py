@@ -56,7 +56,7 @@ class Deps:
 
     def get_env_vars(self, local_config):
         with open(local_config, 'r') as fp:
-            for per_line in fp.readlines():
+            for per_line in fp.read().splitlines():
                 ret = re.match(r'([\w\-\./]+)\s*=\s*"(.*)"', per_line)
                 if ret:
                     self.VarDict[ret.groups()[0]] = ret.groups()[1]
@@ -66,7 +66,7 @@ class Deps:
         dirs = []
         flag = False
         with open(layer_config, 'r') as fp:
-            for per_line in fp.readlines():
+            for per_line in fp.read().splitlines():
                 if not flag:
                     if 'BBLAYERS ?=' in per_line:
                         flag = True
@@ -157,7 +157,7 @@ class Deps:
         target_list = []
         vir_path = os.path.join(root, vir_name)
         with open(vir_path, 'r') as fp:
-            for per_line in fp.readlines():
+            for per_line in fp.read().splitlines():
                 ret = re.match(r'#VDEPS\s*\(\s*(\w+)\s*\)\s*([\w\-]+)\s*\(([\s\w\-\./]*)\)\s*:([\s\w\|\-\.\?\*&!=,]*)', per_line)
                 if not ret:
                     continue
@@ -342,7 +342,7 @@ class Deps:
             dep_flag = False
             ItemDict = {}
 
-            for per_line in fp.readlines():
+            for per_line in fp.read().splitlines():
                 # e.g. "#DEPS(mk.ext) a(clean install): b c"
                 ret = re.match(r'#DEPS\s*\(\s*([\w\-\./]*)\s*\)\s*([\w\-\.]+)\s*\(([\s\w\-\.%:]*)\)\s*:([\s\w\|\-\.\?\*&!=,]*)', per_line)
                 if ret:
@@ -445,7 +445,7 @@ class Deps:
 
         fullname = os.path.join(pathpair[0], pathpair[3])
         with open(fullname, 'r') as fp:
-            for per_line in fp.readlines():
+            for per_line in fp.read().splitlines():
                 ret = re.match(r'DEPENDS\s*\+?=\s*"(.*)"', per_line)
                 if ret:
                     item['asdeps'] += [dep for dep in ret.groups()[0].strip().split() if '-native' not in dep]
@@ -456,7 +456,7 @@ class Deps:
         bbappend_path = '%sappend' % (fullname)
         if os.path.exists(bbappend_path):
             with open(bbappend_path, 'r') as fp:
-                for per_line in fp.readlines():
+                for per_line in fp.read().splitlines():
                     ret = re.match(r'EXTERNALSRC_BUILD\s*=\s*"(.*)"', per_line)
                     if ret:
                         src = ret.groups()[0]
@@ -963,10 +963,12 @@ class Deps:
                     fp.write('\t%s clean\n\n' % (make))
 
                 if item['targets'] and 'cache' in item['targets']:
+                    phony.append(item['target'] + '_dofetch')
                     phony.append(item['target'] + '_setforce')
                     phony.append(item['target'] + '_set1force')
                     phony.append(item['target'] + '_unsetforce')
-                    fp.write('%s_setforce %s_set1force %s_unsetforce:\n' % (item['target'], item['target'], item['target']))
+                    fp.write('%s_dofetch %s_setforce %s_set1force %s_unsetforce:\n' % \
+                            (item['target'], item['target'], item['target'], item['target']))
                     fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, item['target']))
 
                 targets_exact = [t for t in real_targets if ':' in t]
@@ -983,6 +985,9 @@ class Deps:
                     phony += self.__write_sub_target_make(fp, make, item['target'], targets_auto, depstr)
 
                 fp.write('ALL_TARGETS += %s\n' % (item['target']))
+                if item['targets'] and 'cache' in item['targets']:
+                    fp.write('ALL_CACHE_TARGETS += %s\n' % (item['target']))
+                    fp.write('ALL_DOFETCH_TARGETS += %s_dofetch\n' % (item['target']))
                 if release_flag:
                     fp.write('ALL_RELEASE_TARGETS += %s_release\n' % (item['target']))
                 fp.write('ALL_CLEAN_TARGETS += %s_clean\n' % (item['target']))
@@ -990,8 +995,11 @@ class Deps:
                 fp.write('endif\n\n')
 
             fp.write('%s: %s\n\n' % ('all_targets', '$(ALL_TARGETS)'))
+            fp.write('%s: %s\n\n' % ('all_caches', '$(ALL_CACHE_TARGETS)'))
+            fp.write('%s: %s\n\n' % ('all_fetchs', '$(ALL_DOFETCH_TARGETS)'))
             fp.write('%s: %s\n\n' % ('all_release_targets', '$(ALL_RELEASE_TARGETS)'))
             fp.write('%s: %s\n' % ('all_clean_targets', '$(ALL_CLEAN_TARGETS)'))
+            fp.write('.PHONY: all_targets all_caches all_fetchs all_release_targets all_clean_targets\n\n')
 
 
     def __replace_list(self, rlist, ori, rep):
@@ -1330,6 +1338,7 @@ def do_image_analysis(args):
                             wfp.write('\t\t\t%s \\\n' % item)
             wfp.write('\t\t\t"')
         print('\033[32mGenerate %s OK.\033[0m' % patch_out)
+
 
 if __name__ == '__main__':
     args, analysis_choice = parse_options()

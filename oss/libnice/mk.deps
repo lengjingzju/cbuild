@@ -12,6 +12,7 @@ VERSION          = 0.1.21
 SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.gz
 SRC_URL          = http://libnice.freedesktop.org/releases/$(SRC_NAME)
+SRC_MD5          = fe43ff9ed4db2ecbb2d480c670bee855
 
 CACHE_DEPENDS    =
 COMPILE_TOOL     = meson

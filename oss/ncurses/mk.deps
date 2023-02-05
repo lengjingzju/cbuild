@@ -10,6 +10,7 @@ VERSION          = 6.3
 SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.gz
 SRC_URL          = http://ftp.gnu.org/pub/gnu/ncurses/$(SRC_NAME)
+SRC_MD5          = a2736befde5fee7d2b7eb45eb281cdbe
 
 COMPILE_TOOL     = configure
 CONFIGURE_FLAGS  = --disable-stripping --with-shared

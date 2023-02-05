@@ -1,0 +1,28 @@
+
+#DEPS(mk.deps) uvc-gadget(cache psysroot release): unselect
+
+PACKAGE_NAME     = uvc-gadget
+
+EXPORT_PC_ENV    = y
+include $(ENV_MAKE_DIR)/inc.env.mk
+
+FETCH_METHOD     = git
+VERSION          = 0.3.0
+SRC_DIR          = $(PACKAGE_NAME)
+SRC_NAME         = $(PACKAGE_NAME)
+SRC_URL          = git://git.ideasonboard.org/$(SRC_NAME).git
+SRC_TAG          = v$(VERSION)
+
+PATCH_FOLDER     = $(shell pwd)/patch
+CACHE_CHECKSUM  += $(PATCH_FOLDER)
+CACHE_DEPENDS    = none
+COMPILE_TOOL     = meson
+PC_FILES         = uvcgadget.pc
+
+include $(ENV_MAKE_DIR)/inc.cache.mk
+
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
+INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
+include $(ENV_MAKE_DIR)/inc.ins.mk
+
+release: install_libs install_bins

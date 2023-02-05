@@ -10,6 +10,7 @@ VERSION          = 2.1.4
 SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.gz
 SRC_URL          = http://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/$(VERSION).tar.gz
+SRC_MD5          = 3241b54016c445e5d8f0ebb0ad9294ed
 
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = cmake

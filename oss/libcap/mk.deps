@@ -10,6 +10,7 @@ VERSION          = 2.66
 SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.xz
 SRC_URL          = http://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/$(SRC_NAME)
+SRC_MD5          = 00afd6e13bc94b2543b1a70770bdb41f
 
 CACHE_DEPENDS    = none
 MAKES_FLAGS      = -C $(SRC_PATH) FAKEROOT=$(INS_PATH)$(INS_SUBDIR) lib=lib

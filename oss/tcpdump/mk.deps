@@ -11,6 +11,7 @@ VERSION          = 4.99.1
 SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.gz
 SRC_URL          = http://www.tcpdump.org/release/$(SRC_NAME)
+SRC_MD5          = 929a255c71a9933608bd7c31927760f7
 
 CACHE_DEPENDS    =
 COMPILE_TOOL     = configure

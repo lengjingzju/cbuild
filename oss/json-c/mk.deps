@@ -10,6 +10,7 @@ VERSION          = 0.16-20220414
 SRC_DIR          = $(PACKAGE_NAME)-$(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(PACKAGE_NAME)-$(VERSION).tar.gz
 SRC_URL          = http://github.com/json-c/json-c/archive/refs/tags/$(SRC_NAME)
+SRC_MD5          = 4f3288a5f14e0e6abe914213f41234e0
 
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = cmake

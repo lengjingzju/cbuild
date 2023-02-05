@@ -9,6 +9,7 @@ VERSION          = 12.1
 SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.xz
 SRC_URL          = http://ftp.gnu.org/gnu/gdb/$(SRC_NAME)
+SRC_MD5          = 759a1b8d2b4d403367dd0e14fa04643d
 
 CACHE_DEPENDS    =
 COMPILE_TOOL     = configure

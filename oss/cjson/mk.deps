@@ -10,6 +10,7 @@ VERSION          = 1.7.15
 SRC_DIR          = cJSON-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.gz
 SRC_URL          = http://github.com/DaveGamble/cJSON/archive/refs/tags/v$(VERSION).tar.gz
+SRC_MD5          = 921b4bcb401aa604dc632fdb1c8dbdea
 
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = cmake

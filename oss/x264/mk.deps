@@ -7,11 +7,11 @@ PACKAGE_NAME     = x264
 include $(ENV_MAKE_DIR)/inc.env.mk
 
 FETCH_METHOD     = git
-VERSION          = git
+VERSION          = eaa68fad9e5d201d42fde51665f2d137ae96baf0
 SRC_DIR          = $(PACKAGE_NAME)
 SRC_NAME         = $(PACKAGE_NAME)
 SRC_URL          = https://code.videolan.org/videolan/$(PACKAGE_NAME).git
-
+SRC_REV          = $(VERSION)
 
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = configure

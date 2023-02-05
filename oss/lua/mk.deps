@@ -1,6 +1,7 @@
 
 #DEPS(mk.deps) lua-native(cache psysroot): unselect
 #DEPS(mk.deps) lua(cache psysroot release): unselect
+SRC_MD5          = bd8ce7069ff99a400efd14cf339a727b
 
 PACKAGE_NAME     = lua
 

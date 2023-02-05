@@ -12,6 +12,7 @@ VERSION          = 2.10
 SRC_DIR          = $(subst -,_,$(PACKAGE_NAME))-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.gz
 SRC_URL          = http://w1.fi/releases/$(SRC_NAME)
+SRC_MD5          = d26797fcb002898d4ee989179346e1cc
 
 CACHE_DEPENDS    =
 MAKES_FLAGS      = EXTRA_CFLAGS="$(call link_hdrs)" LDFLAGS="$(call link_libs)"

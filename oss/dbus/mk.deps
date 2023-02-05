@@ -12,6 +12,7 @@ VERSION          = 1.15.2
 SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.xz
 SRC_URL          = http://dbus.freedesktop.org/releases/dbus/$(SRC_NAME)
+SRC_MD5          = c56de960ea9031b92ee71aaa0e8e72c2
 
 CACHE_DEPENDS    =
 COMPILE_TOOL     = configure

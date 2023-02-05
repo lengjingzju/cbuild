@@ -219,10 +219,10 @@ get_source_checksum() {
             ${checktool} ${ENV_DOWN_DIR}/${srcname} >> $checktmp1
         elif [ -d ${ENV_DOWN_DIR}/${srcname} ]; then
             if [ -e ${ENV_DOWN_DIR}/${srcname}/.git ]; then
-                echo "$(cd ${ENV_DOWN_DIR}/${srcname} && git log | head -1 | cut -d ' ' -f 2)" >> $checktmp1
+                echo "$(cd ${ENV_DOWN_DIR}/${srcname} && git log -1 --pretty=format:%H)" >> $checktmp1
             elif [ -e ${ENV_DOWN_DIR}/${srcname}/.svn ]; then
                 do_sync svn ${ENV_DOWN_DIR}/${srcname}
-                echo "$(cd ${ENV_DOWN_DIR}/${srcname} && svn log | sed -n '2p' | cut -d '|' -f 1 | sed 's/\s//g')"  >> $checktmp1
+                echo "$(cd ${ENV_DOWN_DIR}/${srcname} && svn log -l 1 | sed -n '2p' | sed -E 's/^r([0-9]+)\s.*/\1/g')"  >> $checktmp1
             else
                 wlog "ERROR: ${package}: only support git or svn in download source dir."
                 exit 1

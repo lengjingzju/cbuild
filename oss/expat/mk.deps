@@ -10,6 +10,7 @@ VERSION          = 2.5.0
 SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.xz
 SRC_URL          = http://github.com/libexpat/libexpat/releases/download/R_$(subst .,_,$(VERSION))/$(SRC_NAME)
+SRC_MD5          = ac6677b6d1b95d209ab697ce8b688704
 
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = configure

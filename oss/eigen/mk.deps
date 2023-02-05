@@ -10,6 +10,7 @@ VERSION          = 3.4.0
 SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.bz2
 SRC_URL          = http://gitlab.com/libeigen/eigen/-/archive/$(VERSION)/$(SRC_NAME)
+SRC_MD5          = 132dde48fe2b563211675626d29f1707
 
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = cmake

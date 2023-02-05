@@ -10,6 +10,7 @@ VERSION          = 2.9.12
 SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.gz
 SRC_URL          = http://xmlsoft.org/sources/$(SRC_NAME)
+SRC_MD5          = f433a39be087a9f0b197eb2307ad9f75
 
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = configure

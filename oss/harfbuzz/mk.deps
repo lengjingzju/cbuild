@@ -14,6 +14,7 @@ VERSION          = 6.0.0
 SRC_DIR          = harfbuzz-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.xz
 SRC_URL          = http://github.com/harfbuzz/harfbuzz/releases/download/$(VERSION)/$(SRC_NAME)
+SRC_MD5          = a3f9e51043a5a14b409c52fe4ab1e29e
 
 CACHE_DEPENDS    =
 COMPILE_TOOL     = configure

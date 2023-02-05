@@ -7,10 +7,11 @@ PACKAGE_NAME     = ljson
 include $(ENV_MAKE_DIR)/inc.env.mk
 
 FETCH_METHOD     = git
-VERSION          = 1.7.15
+VERSION          = 7b2f6ae6cf7011e94682b073669f5ff8f69095cc
 SRC_DIR          = $(PACKAGE_NAME)
 SRC_NAME         = $(SRC_DIR)
 SRC_URL          = https://github.com/lengjingzju/json.git
+SRC_REV          = $(VERSION)
 
 MAKE_FILE        = $(shell pwd)/patch/Makefile
 CACHE_CHECKSUM  += $(MAKE_FILE)

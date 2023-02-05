@@ -11,6 +11,7 @@ VERSION          = 1.2.13
 SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).zip
 SRC_URL          = http://www.zlib.net/zlib1213.zip
+SRC_MD5          = 9cb22b7d2aa208b61f5850c04bebda58
 
 CACHE_DEPENDS    = none
 PC_FILES         = zlib.pc

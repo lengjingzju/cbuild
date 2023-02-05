@@ -18,7 +18,7 @@
         * 支持强依赖(depends on)、弱依赖(if...endif)、强选择(select)、弱选择(imply)、或规则(||) 等自动生成
 * 提供方便的打补丁和去补丁切换的机制，例如动态决定是否打补丁 `exec_patch.sh` `externalpatch.bbclass`
 * 支持生成包的依赖关系的图片，并有颜色等属性查看包是否被选中等 `gen_depends_image.sh`
-* 支持自动拉取开源包编译，支持从 http git 或 svn 下载包，支持镜像下载 `fetch_package.sh`
+* 支持自动拉取开源包编译，支持从 http(支持 md5) git(支持 branch tag revision) 或 svn(支持 revision) 下载包，支持镜像下载 `fetch_package.sh`
 * 支持编译缓存镜像，再次编译不需要从代码编译，直接从本地缓存或网络镜像缓存拉取 `process_cache.sh` `inc.cache.mk`
 * 支持编译最新的交叉编译工具链 `process_machine.sh` `toolchain/Makefile`
 * 提供丰富的开源包 OSS 层，不断增加中
@@ -883,10 +883,16 @@ copy /home/lengjing/cbuild/downloads/mem to /home/lengjing/cbuild/output/oss
         * 注: 使用 curl 下载包优先尝试 `ENV_MIRROR_URL` 指定的镜像 URL
         * 注: outdir outname 不指定时只下载包，不复制或解压到输出
     * url: 下载链接
+        * tar/zip: 最好同时设置 MD5, 例如: `https://xxx/xxx.tar.xz;md5=yyy`
+        * git: 最好同时设置 branch / tag / revision, tag 和 revision 不要同时设置，例如: 
+            * `https://xxx/xxx.git;branch=xxx;tag=yyy`
+            * `https://xxx/xxx.git;branch=xxx;rev=yyy`
+            * `https://xxx/xxx.git;tag=yyy`
+            * `https://xxx/xxx.git;rev=yyy`
+        * svn: 最好同时设置 revision, 例如: `https://xxx/xxx;rev=yyy`
     * package: tar zip 是保存的文件名，git svn 是保存的文件夹名，保存的目录是 `ENV_DOWN_DIR`
     * outdir: 解压或复制到的目录，用于编译
     * outname: outdir 中包的文件夹名称
-* 用法 `fetch_package.sh sync` 更新 ENV_DOWN_DIR 下的所有 git 和 svn 包
 
 ### 普通编译打补丁 exec_patch.sh
 
@@ -966,256 +972,24 @@ $(PATCH_PACKAGE)-unpatch-%-all:
         * 源码目录只有补丁的修改，无临时文件或文件夹
         * 补丁可以放在任意目录
 
-## 测试 Yocto 编译
-
-### Yocto 快速开始
-
-* 安装编译环境
-
-    ```sh
-    lengjing@lengjing:~/cbuild$ sudo apt install gawk wget git diffstat unzip \
-        texinfo gcc build-essential chrpath socat cpio \
-        python3 python3-pip python3-pexpect xz-utils \
-        debianutils iputils-ping python3-git python3-jinja2 \
-        libegl1-mesa libsdl1.2-dev pylint3 xterm \
-        python3-subunit mesa-common-dev zstd liblz4-tool qemu
-    ```
-
-* 拉取 Poky 工程
-
-    ```sh
-    lengjing@lengjing:~/cbuild$ git clone git://git.yoctoproject.org/poky
-    lengjing@lengjing:~/cbuild$ cd poky
-    lengjing@lengjing:~/cbuild/poky$ git branch -a
-    lengjing@lengjing:~/cbuild/poky$ git checkout -t origin/kirkstone -b my-kirkstone
-    lengjing@lengjing:~/cbuild/poky$ cd ..
-    ```
-
-注：通过 [Yocto Releases Wiki](https://wiki.yoctoproject.org/wiki/Releases) 界面获取版本代号，上述命令拉取了4.0版本。
-
-* 构建镜像
-
-    ```shell
-    lengjing@lengjing:~/cbuild$ source poky/oe-init-build-env               # 初始化环境
-    lengjing@lengjing:~/cbuild/build$ bitbake core-image-minimal            # 构建最小镜像
-    lengjing@lengjing:~/cbuild/build$ ls -al tmp/deploy/images/qemux86-64/  # 输出目录
-    lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行仿真器
-    ```
-
-注: `source oe-init-build-env <dirname>`功能: 初始化环境，并将工具目录(`bitbake/bin/` 和 `scripts/`)加入到环境变量; 在当前目录自动创建并切换到工作目录(不指定时默认为 build)。
-
-### Yocto 配方模板
-
-* 编写类文件 (xxx.bbclass)
-    * 可以在类文件中 `meta-xxx/classes/xxx.bbclass` 定义环境变量，在配方文件中继承 `inherit xxx`
-    * 例如 testenv.bbclass
-
-        ```sh
-        export CONF_PATH = "${STAGING_BINDIR_NATIVE}"
-        export OUT_PATH = "${WORKDIR}/build"
-        export ENV_INS_ROOT = "${WORKDIR}/image"
-        export ENV_DEP_ROOT = "${WORKDIR}/recipe-sysroot"
-        export ENV_BUILD_MODE
-        ```
-
-    * 例如 kconfig.bbclass
-
-        ```py
-        inherit terminal
-        KCONFIG_CONFIG_COMMAND ??= "menuconfig"
-        KCONFIG_CONFIG_PATH ??= "${B}/.config"
-
-        python do_setrecompile () {
-            if hasattr(bb.build, 'write_taint'):
-                bb.build.write_taint('do_compile', d)
-        }
-
-        do_setrecompile[nostamp] = "1"
-        addtask setrecompile
-
-        python do_menuconfig() {
-            config = d.getVar('KCONFIG_CONFIG_PATH')
-
-            try:
-                mtime = os.path.getmtime(config)
-            except OSError:
-                mtime = 0
-
-            oe_terminal("sh -c \"make %s; if [ \\$? -ne 0 ]; then echo 'Command failed.'; printf 'Press any key to continue... '; read r; fi\"" % d.getVar('KCONFIG_CONFIG_COMMAND'),
-                d.getVar('PN') + ' Configuration', d)
-
-            if hasattr(bb.build, 'write_taint'):
-                try:
-                    newmtime = os.path.getmtime(config)
-                except OSError:
-                    newmtime = 0
-
-                if newmtime != mtime:
-                    bb.build.write_taint('do_compile', d)
-        }
-
-        do_menuconfig[depends] += "kconfig-native:do_populate_sysroot"
-        do_menuconfig[nostamp] = "1"
-        do_menuconfig[dirs] = "${B}"
-        addtask menuconfig after do_configure
-        ```
-
-* 编写配方文件 (xxx.bb)
-    * `recipetool create -o <xxx.bb> <package_src_dir>` 创建一个基本配方，例子中手动增加的条目说明如下
-    * 包依赖
-        * 包依赖其他包时需要使用 `DEPENDS += "package1 package2"` 说明
-        * 链接其它包时 (`LDFLAGS += -lname1 -lname2`) 需要增加 `RDEPENDS:${PN} += "package1 package2"` 说明
-    * 编译继承类
-        * 使用 menuconfig 需要继承 `inherit kconfig`
-            * 如果是 `make -f wrapper.mk menuconfig`，需要设置 `KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"`
-            * 如果 .config 输出目录是编译输出目录，需要设置 `KCONFIG_CONFIG_PATH = "${OUT_PATH}/.config"`
-        * 使用 Makefile 编译应用继承 `inherit sanity`，使用 cmake 编译应用继承 `inherit cmake`
-        * 编译外部内核模块继承 `inherit module`
-        * 编译主机本地工具继承 `inherit native`
-    * 安装和打包
-        * 设置的变量
-            * includedir 指 xxx/usr/include
-            * base_libdir 指 xxx/lib;  libdir指 xxx/usr/lib;  bindir指 xxx/usr/bin; datadir 指 xxx/usr/share
-            * 有时候需要精确指定打包的文件而不是目录，防止多个打包的目录有重合导致打包出错
-            * 更多目录信息参考poky工程的 `meta/conf/bitbake.conf` 文件
-            ```
-            FILES:${PN}-dev = "${includedir}"
-            FILES:${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
-            ```
-        * 继承 `inherit sanity` 或 `inherit cmake` 时需要按实际情况指定打包的目录，否则 do_package 任务出错
-        * 继承 `inherit module` 不需要指定头文件和模块文件的打包的目录，但如果安装其它文件时，需要指定这个文件的打包目录
-        * 忽略某些警告和错误
-            * `ALLOW_EMPTY:${PN} = "1"` 忽略包安装的文件只有头文件或为空，生成镜像时 do_rootfs 错误
-            * `INSANE_SKIP:${PN} += "dev-so"` 忽略安装的文件是符号链接的错误
-                * 更多信息参考 [insane.bbclass](https://docs.yoctoproject.org/ref-manual/classes.html?highlight=sanity#insane-bbclass)
-
-    ```
-    LICENSE = "CLOSED"
-    LIC_FILES_CHKSUM = ""
-
-    # No information for SRC_URI yet (only an external source tree was specified)
-    SRC_URI = ""
-
-    #DEPENDS += "package1 package2"
-    #RDEPENDS:${PN} += "package1 package2"
-
-    inherit testenv
-    #KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"
-    #KCONFIG_CONFIG_PATH = "${OUT_PATH}/.config"
-    #inherit kconfig
-    inherit sanity
-    #inherit cmake
-    #inherit module
-    #inherit native
-
-
-    # NOTE: this is a Makefile-only piece of software, so we cannot generate much of the
-    # recipe automatically - you will need to examine the Makefile yourself and ensure
-    # that the appropriate arguments are passed in.
-
-    do_configure () {
-     # Specify any needed configure commands here
-     :
-    }
-
-    do_compile () {
-     # You will almost certainly need to add additional arguments here
-     oe_runmake
-    }
-
-    do_install () {
-     # NOTE: unable to determine what to put here - there is a Makefile but no
-     # target named "install", so you will need to define this yourself
-     oe_runmake install
-    }
-
-    ALLOW_EMPTY:${PN} = "1"
-    INSANE_SKIP:${PN} += "dev-so"
-    FILES:${PN}-dev = "${includedir}"
-    FILES:${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
-    ```
-
-* 编写配方附加文件 (xxx.bbappend)
-    * 配方附加文件在 cbuild 的实现中，主要作用是指示包的源码路径和 Makefile 路径，一般这两个路径一样
-    * EXTERNALSRC: 源码目录，编译会对这个目录做校验决定是否重新编译
-        * 如果源码不全在 EXTERNALSRC 目录内，我们需要追加文件或目录做校验，追加任务的 `file-checksums` 标记，否则源码修改后没有重新编译
-        * 用户可以继承类 `extrasrc.bbclass` 来做追加，可设置的变量
-            * EXTRASRC_CONFIGURE: 追加做 do_configure 任务校验的文件或目录
-            * EXTRASRC_COMPILE: 追加做 do_compile 任务校验的文件或目录
-            * EXTRASRC_INSTALL: 追加做 do_install 任务校验的文件或目录
-
-            ```py
-            python () {
-                tasks = ['configure', 'compile', 'install']
-
-                for task in tasks:
-                    task_name = 'do_%s' % (task)
-                    src_name = 'EXTRASRC_%s' % (task.upper())
-                    src_str = d.getVar(src_name)
-
-                    if src_str:
-                        srcs = src_str.split()
-                        for src in srcs:
-                            if os.path.exists(src):
-                                if os.path.isdir(src):
-                                    d.appendVarFlag(task_name, 'file-checksums', ' %s/*:True' % (src))
-                                else:
-                                    d.appendVarFlag(task_name, 'file-checksums', ' %s:True' % (src))
-                                #bb.warn('%s is appended in %s of %s\n' % (d.getVarFlag(task_name, 'file-checksums'), task_name, d.getVar('PN')))
-                            else:
-                                bb.warn('%s is not existed in %s of %s\n' % (src, task_name, d.getVar('PN')))
-            }
-            ```
-
-    * EXTERNALSRC_BUILD: 运行 make 命令的目录，可以和 EXTERNALSRC 不同
-
-    ```
-    inherit externalsrc
-    EXTERNALSRC = "${ENV_TOP_DIR}/<package_src>"
-    EXTERNALSRC_BUILD = "${ENV_TOP_DIR}/<package_src>"
-    ```
-
-注: [从3.4版本开始，对变量的覆盖样式语法由下滑线 `_` 变成了冒号 `:`](https://docs.yoctoproject.org/migration-guides/migration-3.4.html#override-syntax-changes)
-
-### 测试 Yocto 编译
-
-* `build/conf/local.conf` 配置文件中增加如下变量定义
-
-    ```
-    ENV_TOP_DIR = "/home/lengjing/cbuild"
-    ENV_BUILD_MODE = "yocto"
-    ```
-
-* 增加测试的层
-
-    ```sh
-    lengjing@lengjing:~/cbuild/build$ bitbake-layers add-layer ../examples/meta-cbuild
-    ```
-
-* bitbake 编译
-
-    ```sh
-    lengjing@lengjing:~/cbuild/build$ bitbake test-app2  # 编译应用
-    lengjing@lengjing:~/cbuild/build$ bitbake test-app3  # 编译应用
-    lengjing@lengjing:~/cbuild/build$ bitbake test-hello # 编译内核模块
-    lengjing@lengjing:~/cbuild/build$ bitbake test-mod2  # 编译内核模块
-    lengjing@lengjing:~/cbuild/build$ bitbake test-conf  # 编译 kconfig 测试程序
-    lengjing@lengjing:~/cbuild/build$ bitbake test-conf -c menuconfig # 修改配置
-    ```
-
-常见 Yocto 问题可以查看 [Yocto 笔记](./notes/yoctoqa.md)
 
 ## OSS 层和编译缓存 process_cache.sh
 
 ### 测试 OSS 层和编译缓存
 
-OSS 层正在开发中，目前仅有几个包，需要大家的贡献完善<br>
+OSS 层正在开发中，目前有五十多个个包，需要大家的贡献完善<br>
 
 编译缓冲演示demo [cache_demo](https://www.bilibili.com/video/BV15R4y1C7e6)
 
 * 第一次编译，并统计各个包的编译时间
     * `make time_statistics` 是一个一个包编译过去(包内可能是多线程编译)，获取每个包的编译时间
     * `make` 是不仅是包内可能是多线程编译，多个包也是同时编译，不统计编译时间
+    * 其他命令
+        * `make all_fetchs` 只下载所有选中的支持缓存的包的源码
+        * `make all_caches` 下载并编译所有选中的支持缓存的包的源码
+
+注: 第一次编译前最好选中支持缓存的包后下载所有的源码 `make all_fetchs`，防止源码无法下载导致问题
+
 
 ```sh
 lengjing@lengjing:~/cbuild$ make time_statistics
@@ -1492,6 +1266,12 @@ Build busybox Done.
 
 * 用户可能要设置的变量
     * FETCH_METHOD    : 下载包的方式，可选择 `tar zip git svn`，默认值为 tar
+    * SRC_URLS        : 下载包的 URL，包含 branch / revision / tag / md5 等信息，默认值根据下面变量的设置生成
+        * SRC_URL     : 裸的 URL
+        * SRC_BRANCH  : git 的 branch
+        * SRC_TAG     : git 的 tag
+        * SRC_REV     : git 或 svn 的 revision
+        * SRC_MD5     : tar 或 zip 的 MD5 
     * SRC_PATH        : 包的源码路径，默认取变量 `$(OUT_PATH)/$(SRC_DIR)` 设置的值
     * OBJ_PATH        : 包的编译输出路径，默认取变量 `$(OUT_PATH)/build` 设置的值
     * INS_PATH        : 包的安装根目录，默认取变量 `$(OUT_PATH)/image` 设置的值
@@ -1550,10 +1330,252 @@ Build busybox Done.
     * psysroot: 在 OUT_PATH 目录准备 sysroot
     * srcbuild: 没有缓存机制的编译
     * cachebuild: 有缓存机制的编译
-    * do_setforce: 设置强制编译
-    * do_set1force: 设置强制编译一次
-    * do_unsetforce: 取消强制编译
-    
+    * dofetch: 仅下载源码
+    * setforce: 设置强制编译
+    * set1force: 设置强制编译一次
+    * unsetforce: 取消强制编译
+
 
 注: 我们从源码编译 OSS 包时，一般会在 DEPS 语句的其它目标加上 cache psysroot，表示使用缓存机制加快再次编译和在 OUT_PATH 准备 sysroot 防止 OSS 自动加上依赖未声明的包导致编译出错
+
+注: 运行 `export LOG_OUTPUT=` 命令将显示编译信息
+
+## 测试 Yocto 编译
+
+### Yocto 快速开始
+
+* 安装编译环境
+
+    ```sh
+    lengjing@lengjing:~/cbuild$ sudo apt install gawk wget git diffstat unzip \
+        texinfo gcc build-essential chrpath socat cpio \
+        python3 python3-pip python3-pexpect xz-utils \
+        debianutils iputils-ping python3-git python3-jinja2 \
+        libegl1-mesa libsdl1.2-dev pylint3 xterm \
+        python3-subunit mesa-common-dev zstd liblz4-tool qemu
+    ```
+
+* 拉取 Poky 工程
+
+    ```sh
+    lengjing@lengjing:~/cbuild$ git clone git://git.yoctoproject.org/poky
+    lengjing@lengjing:~/cbuild$ cd poky
+    lengjing@lengjing:~/cbuild/poky$ git branch -a
+    lengjing@lengjing:~/cbuild/poky$ git checkout -t origin/kirkstone -b my-kirkstone
+    lengjing@lengjing:~/cbuild/poky$ cd ..
+    ```
+
+注：通过 [Yocto Releases Wiki](https://wiki.yoctoproject.org/wiki/Releases) 界面获取版本代号，上述命令拉取了4.0版本。
+
+* 构建镜像
+
+    ```shell
+    lengjing@lengjing:~/cbuild$ source poky/oe-init-build-env               # 初始化环境
+    lengjing@lengjing:~/cbuild/build$ bitbake core-image-minimal            # 构建最小镜像
+    lengjing@lengjing:~/cbuild/build$ ls -al tmp/deploy/images/qemux86-64/  # 输出目录
+    lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行仿真器
+    ```
+
+注: `source oe-init-build-env <dirname>`功能: 初始化环境，并将工具目录(`bitbake/bin/` 和 `scripts/`)加入到环境变量; 在当前目录自动创建并切换到工作目录(不指定时默认为 build)。
+
+### Yocto 配方模板
+
+* 编写类文件 (xxx.bbclass)
+    * 可以在类文件中 `meta-xxx/classes/xxx.bbclass` 定义环境变量，在配方文件中继承 `inherit xxx`
+    * 例如 testenv.bbclass
+
+        ```sh
+        export CONF_PATH = "${STAGING_BINDIR_NATIVE}"
+        export OUT_PATH = "${WORKDIR}/build"
+        export ENV_INS_ROOT = "${WORKDIR}/image"
+        export ENV_DEP_ROOT = "${WORKDIR}/recipe-sysroot"
+        export ENV_BUILD_MODE
+        ```
+
+    * 例如 kconfig.bbclass
+
+        ```py
+        inherit terminal
+        KCONFIG_CONFIG_COMMAND ??= "menuconfig"
+        KCONFIG_CONFIG_PATH ??= "${B}/.config"
+
+        python do_setrecompile () {
+            if hasattr(bb.build, 'write_taint'):
+                bb.build.write_taint('do_compile', d)
+        }
+
+        do_setrecompile[nostamp] = "1"
+        addtask setrecompile
+
+        python do_menuconfig() {
+            config = d.getVar('KCONFIG_CONFIG_PATH')
+
+            try:
+                mtime = os.path.getmtime(config)
+            except OSError:
+                mtime = 0
+
+            oe_terminal("sh -c \"make %s; if [ \\$? -ne 0 ]; then echo 'Command failed.'; printf 'Press any key to continue... '; read r; fi\"" % d.getVar('KCONFIG_CONFIG_COMMAND'),
+                d.getVar('PN') + ' Configuration', d)
+
+            if hasattr(bb.build, 'write_taint'):
+                try:
+                    newmtime = os.path.getmtime(config)
+                except OSError:
+                    newmtime = 0
+
+                if newmtime != mtime:
+                    bb.build.write_taint('do_compile', d)
+        }
+
+        do_menuconfig[depends] += "kconfig-native:do_populate_sysroot"
+        do_menuconfig[nostamp] = "1"
+        do_menuconfig[dirs] = "${B}"
+        addtask menuconfig after do_configure
+        ```
+
+* 编写配方文件 (xxx.bb)
+    * `recipetool create -o <xxx.bb> <package_src_dir>` 创建一个基本配方，例子中手动增加的条目说明如下
+    * 包依赖
+        * 包依赖其他包时需要使用 `DEPENDS += "package1 package2"` 说明
+        * 链接其它包时 (`LDFLAGS += -lname1 -lname2`) 需要增加 `RDEPENDS:${PN} += "package1 package2"` 说明
+    * 编译继承类
+        * 使用 menuconfig 需要继承 `inherit kconfig`
+            * 如果是 `make -f wrapper.mk menuconfig`，需要设置 `KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"`
+            * 如果 .config 输出目录是编译输出目录，需要设置 `KCONFIG_CONFIG_PATH = "${OUT_PATH}/.config"`
+        * 使用 Makefile 编译应用继承 `inherit sanity`，使用 cmake 编译应用继承 `inherit cmake`
+        * 编译外部内核模块继承 `inherit module`
+        * 编译主机本地工具继承 `inherit native`
+    * 安装和打包
+        * 设置的变量
+            * includedir 指 xxx/usr/include
+            * base_libdir 指 xxx/lib;  libdir指 xxx/usr/lib;  bindir指 xxx/usr/bin; datadir 指 xxx/usr/share
+            * 有时候需要精确指定打包的文件而不是目录，防止多个打包的目录有重合导致打包出错
+            * 更多目录信息参考poky工程的 `meta/conf/bitbake.conf` 文件
+            ```
+            FILES:${PN}-dev = "${includedir}"
+            FILES:${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
+            ```
+        * 继承 `inherit sanity` 或 `inherit cmake` 时需要按实际情况指定打包的目录，否则 do_package 任务出错
+        * 继承 `inherit module` 不需要指定头文件和模块文件的打包的目录，但如果安装其它文件时，需要指定这个文件的打包目录
+        * 忽略某些警告和错误
+            * `ALLOW_EMPTY:${PN} = "1"` 忽略包安装的文件只有头文件或为空，生成镜像时 do_rootfs 错误
+            * `INSANE_SKIP:${PN} += "dev-so"` 忽略安装的文件是符号链接的错误
+                * 更多信息参考 [insane.bbclass](https://docs.yoctoproject.org/ref-manual/classes.html?highlight=sanity#insane-bbclass)
+
+    ```
+    LICENSE = "CLOSED"
+    LIC_FILES_CHKSUM = ""
+
+    # No information for SRC_URI yet (only an external source tree was specified)
+    SRC_URI = ""
+
+    #DEPENDS += "package1 package2"
+    #RDEPENDS:${PN} += "package1 package2"
+
+    inherit testenv
+    #KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"
+    #KCONFIG_CONFIG_PATH = "${OUT_PATH}/.config"
+    #inherit kconfig
+    inherit sanity
+    #inherit cmake
+    #inherit module
+    #inherit native
+
+
+    # NOTE: this is a Makefile-only piece of software, so we cannot generate much of the
+    # recipe automatically - you will need to examine the Makefile yourself and ensure
+    # that the appropriate arguments are passed in.
+
+    do_configure () {
+     # Specify any needed configure commands here
+     :
+    }
+
+    do_compile () {
+     # You will almost certainly need to add additional arguments here
+     oe_runmake
+    }
+
+    do_install () {
+     # NOTE: unable to determine what to put here - there is a Makefile but no
+     # target named "install", so you will need to define this yourself
+     oe_runmake install
+    }
+
+    ALLOW_EMPTY:${PN} = "1"
+    INSANE_SKIP:${PN} += "dev-so"
+    FILES:${PN}-dev = "${includedir}"
+    FILES:${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
+    ```
+
+* 编写配方附加文件 (xxx.bbappend)
+    * 配方附加文件在 cbuild 的实现中，主要作用是指示包的源码路径和 Makefile 路径，一般这两个路径一样
+    * EXTERNALSRC: 源码目录，编译会对这个目录做校验决定是否重新编译
+        * 如果源码不全在 EXTERNALSRC 目录内，我们需要追加文件或目录做校验，追加任务的 `file-checksums` 标记，否则源码修改后没有重新编译
+        * 用户可以继承类 `extrasrc.bbclass` 来做追加，可设置的变量
+            * EXTRASRC_CONFIGURE: 追加做 do_configure 任务校验的文件或目录
+            * EXTRASRC_COMPILE: 追加做 do_compile 任务校验的文件或目录
+            * EXTRASRC_INSTALL: 追加做 do_install 任务校验的文件或目录
+
+            ```py
+            python () {
+                tasks = ['configure', 'compile', 'install']
+
+                for task in tasks:
+                    task_name = 'do_%s' % (task)
+                    src_name = 'EXTRASRC_%s' % (task.upper())
+                    src_str = d.getVar(src_name)
+
+                    if src_str:
+                        srcs = src_str.split()
+                        for src in srcs:
+                            if os.path.exists(src):
+                                if os.path.isdir(src):
+                                    d.appendVarFlag(task_name, 'file-checksums', ' %s/*:True' % (src))
+                                else:
+                                    d.appendVarFlag(task_name, 'file-checksums', ' %s:True' % (src))
+                                #bb.warn('%s is appended in %s of %s\n' % (d.getVarFlag(task_name, 'file-checksums'), task_name, d.getVar('PN')))
+                            else:
+                                bb.warn('%s is not existed in %s of %s\n' % (src, task_name, d.getVar('PN')))
+            }
+            ```
+
+    * EXTERNALSRC_BUILD: 运行 make 命令的目录，可以和 EXTERNALSRC 不同
+
+    ```
+    inherit externalsrc
+    EXTERNALSRC = "${ENV_TOP_DIR}/<package_src>"
+    EXTERNALSRC_BUILD = "${ENV_TOP_DIR}/<package_src>"
+    ```
+
+注: [从3.4版本开始，对变量的覆盖样式语法由下滑线 `_` 变成了冒号 `:`](https://docs.yoctoproject.org/migration-guides/migration-3.4.html#override-syntax-changes)
+
+### 测试 Yocto 编译
+
+* `build/conf/local.conf` 配置文件中增加如下变量定义
+
+    ```
+    ENV_TOP_DIR = "/home/lengjing/cbuild"
+    ENV_BUILD_MODE = "yocto"
+    ```
+
+* 增加测试的层
+
+    ```sh
+    lengjing@lengjing:~/cbuild/build$ bitbake-layers add-layer ../examples/meta-cbuild
+    ```
+
+* bitbake 编译
+
+    ```sh
+    lengjing@lengjing:~/cbuild/build$ bitbake test-app2  # 编译应用
+    lengjing@lengjing:~/cbuild/build$ bitbake test-app3  # 编译应用
+    lengjing@lengjing:~/cbuild/build$ bitbake test-hello # 编译内核模块
+    lengjing@lengjing:~/cbuild/build$ bitbake test-mod2  # 编译内核模块
+    lengjing@lengjing:~/cbuild/build$ bitbake test-conf  # 编译 kconfig 测试程序
+    lengjing@lengjing:~/cbuild/build$ bitbake test-conf -c menuconfig # 修改配置
+    ```
+
+常见 Yocto 问题可以查看 [Yocto 笔记](./notes/yoctoqa.md)
 

@@ -8,6 +8,7 @@ MESON_SCRIPT    := $(ENV_TOOL_DIR)/meson_cross.sh
 
 FETCH_METHOD    ?= tar
 SRC_PATH        ?= $(OUT_PATH)/$(SRC_DIR)
+SRC_URLS        ?= $(if $(SRC_URL),$(SRC_URL)$(if $(SRC_MD5),;md5=$(SRC_MD5))$(if $(SRC_BRANCH),;branch=$(SRC_BRANCH))$(if $(SRC_TAG),;tag=$(SRC_TAG))$(if $(SRC_REV),;rev=$(SRC_REV)))
 OBJ_PATH        ?= $(OUT_PATH)/build
 INS_PATH        ?= $(OUT_PATH)/image
 INS_SUBDIR      ?= /usr
@@ -23,14 +24,20 @@ endif
 CROSS_CONFIGURE ?= $(shell $(MACHINE_SCRIPT) cross_configure)
 CROSS_CMAKE     ?= $(shell $(MACHINE_SCRIPT) cross_cmake)
 
-CACHE_SRCFILE   ?= $(SRC_NAME)
 CACHE_OUTPATH   ?= $(OUT_PATH)
 CACHE_INSPATH   ?= $(INS_PATH)
 CACHE_GRADE     ?= 2
 CACHE_CHECKSUM  += $(wildcard $(shell pwd)/mk.deps)
 CACHE_DEPENDS   ?=
+ifneq ($(SRC_MD5)$(SRC_TAG)$(SRC_REV), )
+CACHE_APPENDS   += $(SRC_MD5)$(SRC_TAG)$(SRC_REV)
+CACHE_SRCFILE    =
+CACHE_URL        =
+else
 CACHE_APPENDS   ?=
-CACHE_URL       ?= $(if $(SRC_URL),[$(FETCH_METHOD)]$(SRC_URL))
+CACHE_SRCFILE   ?= $(SRC_NAME)
+CACHE_URL       ?= $(if $(SRC_URLS),[$(FETCH_METHOD)]$(SRC_URLS))
+endif
 CACHE_VERBOSE   ?= 1
 
 ifneq ($(PC_FILES), )
@@ -45,7 +52,7 @@ endif
 
 define do_fetch
 	mkdir -p $(ENV_DOWN_DIR)/lock && echo > $(ENV_DOWN_DIR)/lock/$(SRC_NAME).lock && \
-	flock $(ENV_DOWN_DIR)/lock/$(SRC_NAME).lock -c "bash $(FETCH_SCRIPT) $(FETCH_METHOD) \"$(SRC_URL)\" $(SRC_NAME) $(OUT_PATH) $(SRC_DIR)"
+	flock $(ENV_DOWN_DIR)/lock/$(SRC_NAME).lock -c "bash $(FETCH_SCRIPT) $(FETCH_METHOD) \"$(SRC_URLS)\" $(SRC_NAME) $(OUT_PATH) $(SRC_DIR)"
 endef
 
 define do_patch
@@ -55,7 +62,7 @@ endef
 ifeq ($(do_compile), )
 define do_compile
 	set -e; \
-	$(if $(SRC_URL),$(call do_fetch),true); \
+	$(if $(SRC_URLS),$(call do_fetch),true); \
 	$(if $(PATCH_FOLDER),$(call do_patch),true); \
 	mkdir -p $(OBJ_PATH); \
 	$(if $(do_prepend),$(call do_prepend),true); \
@@ -150,7 +157,7 @@ psysroot:
 	fi
 endif
 
-.PHONY: srcbuild cachebuild setforce set1force unsetforce
+.PHONY: srcbuild cachebuild dofetch setforce set1force unsetforce
 
 srcbuild:
 	@$(call do_compile)
@@ -173,6 +180,14 @@ cachebuild:
 		$(call do_push); \
 	fi
 	@echo "Build $(PACKAGE_ID) Done."
+
+dofetch:
+ifneq ($(SRC_URLS), )
+	@mkdir -p $(ENV_DOWN_DIR)/lock && echo > $(ENV_DOWN_DIR)/lock/$(SRC_NAME).lock
+	@flock $(ENV_DOWN_DIR)/lock/$(SRC_NAME).lock -c "bash $(FETCH_SCRIPT) $(FETCH_METHOD) \"$(SRC_URLS)\" $(SRC_NAME)"
+else
+	@
+endif
 
 setforce:
 	@$(call do_setforce)
