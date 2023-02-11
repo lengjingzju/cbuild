@@ -1,37 +1,54 @@
-# CBuild 编译系统
+# CBuild Compilation System
 
-## 特点
+[中文版](./README_zh-cn.md)
 
-* Linux 下纯粹的 Makefile 编译，支持 Makefile 封装包已有的 `Makefile` `CMake` `Autotools` `Meson` 以实现对它们的支持
-* 支持本地编译和交叉编译，支持自动分析头文件和编译脚本文件作为编译依赖，支持分别指定源文件的 CFLAGS
-* 一个 Makefile 同时支持 Yocto 编译方式、源码和编译输出分离模式和不分离模式，一个 Makefile 支持生成多个库、可执行文件或外部内核模块
-* 提供编译静态库、共享库和可执行文件的模板 `inc.app.mk`，支持 C(`*.c`) C++(`*.cc *.cp *.cxx *.cpp *.CPP *.c++ *.C`) 和 汇编(`*.S *.s *.asm`) 混合编译
-* 提供编译外部内核模块的模板 `inc.mod.mk`，支持 C(`*.c`) 和 汇编(`*.S`) 混合编译
-* 提供安装编译输出的模板 `inc.ins.mk`
-* 提供 Kconfig 配置参数的模板 `inc.conf.mk`
-* 提供根据依赖关系自动生成总系统编译链和配置链的脚本 `gen_build_chain.py`
-    * 支持通过 make menuconfig 选择是否编译包
-    * 支持收集包下的 Kconfig 配置放在包编译开关项目的 menuconfig 菜单下，编译开关和编译参数统一设置
-    * 支持非常多的依赖规则
-        * 支持自动生成参与编译的实包和不参与编译的虚包的规则，虚包可用于控制管理一组实包
-        * 支持普通结构(config)、层次结构(menuconfig)、选择结构(choice) 等自动生成
-        * 支持强依赖(depends on)、弱依赖(if...endif)、强选择(select)、弱选择(imply)、或规则(||) 等自动生成
-* 提供方便的打补丁和去补丁切换的机制，例如动态决定是否打补丁 `exec_patch.sh` `externalpatch.bbclass`
-* 支持生成包的依赖关系的图片，并有颜色等属性查看包是否被选中等 `gen_depends_image.sh`
-* 支持自动拉取开源包编译，支持从 http(支持 md5) git(支持 branch tag revision) 或 svn(支持 revision) 下载包，支持镜像下载 `fetch_package.sh`
-* 支持编译缓存镜像，再次编译不需要从代码编译，直接从本地缓存或网络镜像缓存拉取 `process_cache.sh` `inc.cache.mk`
-* 支持编译最新的交叉编译工具链 `process_machine.sh` `toolchain/Makefile`
-* 提供丰富的开源包 OSS 层，不断增加中
+## Overview
 
-## 笔记
+The CBuild compilation system is a more powerful and flexible build system than Buildroot, and faster and succincter than Yocto. It doesn't have a steep learning curve and doesn't re-define a new language, the total code line of the system core is less than 4000 composed of Python / Shell / Makefile scripts. It is easier to understand and use than Buildroot and Yocto.
+<br>
 
-* 如果对 Shell 语法不了解，可以查看 [Shell 笔记](./notes/shell.md)
-* 如果对 Makefile 语法不了解，可以查看 [Makefile 笔记](./notes/makefile.md)
-* 如果对 Kconfig 语法不了解，可以查看 [Kconfig 笔记](./notes/kconfig.md)
+The CBuild compilation system is mainly composed of three parts: task analysis and processing tools, Makefile compilation templates, and network and cache processing tools.
+<br>
 
-## 开源贡献
+* Task Analysis Processing Tools: Analyzes all tasks and automatically generates system Kconfig and Makefile
+    * All tasks are analyzed and assembled by Python script `gen_build_chain.py`
+        * Automatically collects rules and parameters for all tasks, selects which tasks to run and configures task parameters through `make menuconfig`
+    * Each task rule is declared by a dependency statement, which supports a large number of dependent rules
+        * Supports automatic generation of real package rules for task execution and virtual package rules for managing tasks
+        * Supports automatic generation of ordinary structure (config), hierarchy structure (menuconfig), choice structure (choice), etc
+        * Supports automatic generation of strong dependence (depends on), weak dependence (if... endif), strong selection (select), weak selection (imply), selection (condA||condB), etc
+    * The task file is a Makefile script executed by `make`, which supports encapsulating raw scripts of `Makefile, CMake, Autotools, Meson, ...` to support these compilation methods
+    * Supports automatic generation of task dependency picture with some useful properties such as color to see whether the task is selected, etc (`gen_depends_image.sh`)
+<br>
 
-本工程目前已向 Linux 内核社区贡献了2次提交，已合并到 Linux 内核主线
+* Makefile compilation Templates: Provides compilation templates of driver, library and application; users only need to fill in a few variables to complete the compiled script of a project
+    * Supports the generation of latest cross-compilation toolchain (`process_machine.sh` `toolchain/Makefile`)
+    * Supports both native-compilation and cross-compilation in one Makefile (`inc.env.mk`)
+    * Supports the generation of multiple libraries, executables or drivers in one Makefile
+    * Supports both Normal Build mode (source code and compilation output separation mode and non-separation mode) and Yocto Build mode
+    * Supports automatic analysis of header files as compilation dependencies, and specifies CFLAGS for source files separately
+    * Provides a template for compiling static libraries, shared libraries, and executables, and supports mixed compilation of C (`*.c`), C++ (`*.cc *.cp *.cxx *.cpp *.CPP *.c++ *.C`) and assembly (`*.S *.s *.asm`) (`inc.app.mk`)
+    * Provides a template for compiling drivers, and supports mixed compilation of C (`*.c`) and assembly (`*.S`) (`inc.mod.mk`)
+    * Provides a template for installation (`inc.ins.mk`)
+    * Provides a template for configuring parameters with Kbuild (`inc.conf.mk`)
+<br>
+
+* Network and Cache Processing Tools: Handles the download, patching, compilation, and installation of network packages, and supports source mirror and cache mirror
+    * Provides a convenient and reliable patching mechanism (`exec_patch.sh`)
+    * Provides a automatic pull network package tool (`fetch_package.sh`)
+        * Supports downloading packages from http (attributes: md5), git (attributes: branch tag rev) and svn (attributes: rev)
+        * Supports downloading packages from the mirror server
+    * Provides a compilation cache tool, re-compile doesn't need to compile from code, directly fetch the result from the local area or the mirror server  (`process_cache.sh`)
+    * Provides a convenient template for caching compilation (`inc.cache.mk`)
+    * Provides a rich open source software (OSS) layer, and OSS packages are increasing
+<br>
+
+* Test cases can be viewed in [examples.md](./examples/examples.md)
+
+
+## Open Source Contributions
+
+This project has contributed 2 commits to the Linux Kernel Community so far, which have been merged into the Linux kernel mainline.
 
 * [kconfig: fix failing to generate auto.conf](https://git.kernel.org/pub/scm/linux/kernel/git/masahiroy/linux-kbuild.git/commit/?h=fixes&id=1b9e740a81f91ae338b29ed70455719804957b80)
 
@@ -70,17 +87,284 @@
         So the kernel should change the included path to avoid the copy operation.
     ```
 
-## 设置编译环境 build.env
 
-### 设置编译环境命令
+## Task Analysis Processing gen_build_chain.py
 
-* 初始化编译环境运行如下命令
+### System Framework
+
+* Normal Build Framework:
+    * The compilation scripts of the applications and drivers are composed of `Makefile + DEPS-statement`
+    * The build chain is assembled through dependencies defined by DEPS-statement (package-level dependency)
+    * DEPS-statement basically only needs to define dependencies, following the assembly rules defined by CBuild
+    * The script analyzes the DEPS-statement of all packages and automatically generates the compilation chain of all packages
+        * All packages are compiled individually, and users can enter the package folder and enter `make` to compile
+    * Supports managed Kconfig or managing Kconfig by itself.
+        * The managed Kconfig must be placed in the same directory as the DEPS-statement file.
+        * There is no need to manually specify the parent-child inclusion relationship, the script automatically analyzes and assembles it
+* Yocto Build Framework:
+    * The compilation scripts of the applications and drivers are composed of `Makefile + Recipe`
+    * The build chain is assembled through dependencies defined by DEPENDS and RDEPENDS in the recipe (package-level dependency)
+    * The custom's recipes basically only need to define dependencies, following the assembly rules defined by Yocto
+    * Extends Yocto: the script analyzes the recipe's name of all packages and the DEPENDS variable in the recipe of custom package to automatically generate the compilation chain of all packages
+    * Extends Yocto: Supports weak dependencies, and can modify rootfs (add packages, delete packages, modify configuration, etc.) through `make menuconfig`
+
+
+### Command Options of Build Chain
+
+* Command Description
+    * Parentheses indicate that it is optional, otherwise it is required
+    * Normal Build automatically generates Kconfig and Makefile in one step
+    * Yocto Build requires two steps to automatically generate Kconfig and Image recipes respectively
+
+    ```sh
+    # Normal Build
+    gen_build_chain.py -m MAKEFILE_OUT -k KCONFIG_OUT [-t TARGET_OUT] [-a DEPENDS_OUT] -d DEP_NAME [-v VIR_NAME] [-c CONF_NAME] -s SEARCH_DIRS [-i IGNORE_DIRS] [-g GO_ON_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG]
+
+    # Yocto Build Step1
+    gen_build_chain.py -k KCONFIG_OUT -t TARGET_OUT [-v VIR_NAME] [-c CONF_NAME] [-i IGNORE_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG] [-u USER_METAS]
+
+    # Yocto Build Step2
+    gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-p $PATCH_PKG_PATH] [-i IGNORE_RECIPES]
+    ```
+
+* Command Options of Normal Build
+    * `-m <Makefile Path>`: Specifies the auto-generated Makefile pathname
+        * Users can use a top-level Makefile to contain the auto-generated Makefile, and set all target call `make $(ENV_BUILD_JOBS) $(ENV_MAKE_FLAGS) MAKEFLAGS= all_targets`   to multi-threaded compilation of all packages
+        * If a package requires multi-threaded compilation to be enabled internally, `jobserver` needs to be specified in the OTHER_TARGETS of DEPS-statement
+        * The compilation time of each package can be counted, and the Makefile example is as follows:
+            ```makefile
+            TIME_FORMAT    := /usr/bin/time -a -o $(OUT_PATH)/time_statistics -f \"%e\\t\\t%U\\t\\t%S\\t\\t\$$@\"
+
+            total_time: loadconfig
+            	@$(PRECMD)make -s all_targets
+            	@echo "Build done!"
+
+            time_statistics:
+            	@mkdir -p $(OUT_PATH)
+            	@$(if $(findstring dash,$(shell readlink /bin/sh)),echo,echo -e) "real\t\tuser\t\tsys\t\tpackage" > $(OUT_PATH)/$@
+            	@make -s PRECMD="$(TIME_FORMAT) " total_time
+            ```
+    * `-k <Kconfig Path>`: Specifies the auto-generated Kconfig pathname
+    * `-t <Target Path>`: Specifies the auto-generated target pathname which stores package name and source path list
+    * `-a <Depends Path>`: Specifies the auto-generated target pathname which stores package name and dependency list
+    * `-d <Search Depend Name>`: Specifies the dependency filename (containing DEPS-statement) to search, the dependency file can contain multiple DEPS-statement
+    * `-c <Search Kconfig Name>`: Specifies the Kconfig filename (containing configuration) to search
+        * The order to search (in the same directory as the dependency file):
+            * The file with the same filename as the package name and the same suffix as the Kconfig file in the same directory as the dependency file
+            * The Kconfig filename in the same directory as the dependency file
+    * `-v <Search Virtual Depend Name>`: Specifies the virtual dependency filename (containing VDEPS-statement) to search
+    * `-s <Search Directories>`: Specifies the searched directory pathnames (containing VDEPS-statement) to search, and multiple directories are separated by colon
+    * `-i <Ignore Directories>`: Specifies the ignored directory names, and multiple directories are separated by colon
+    * `-g <Go On Directories>`: Specifies the continued directory pathnames, and multiple directories are separated by colon
+        * If the current directory contains the dependency filename, and `Go On Directories` is not specified or the current directory is not in it, the script will not continue to search sub-directories of the current directory
+    * `-l <Max Layer Depth>`: Sets the maximum number of levels of the menuconfig, 0 for tile, 1 for 2-levels, ...
+    * `-w <Keyword Directories>`: Sets the ignored level names of the menuconfig, and the multiple names set are separated by colon
+        * If the directory name in the path matches the set value, the levels of this path is subtracted by one
+    * `-p <prepend Flag>`: Set the prefix of the configuration item in the auto-generated Kconfig
+        * If users run `conf` / `mconf` without prefix (`CONFIG_=""`), this flag needs to be set to 1
+<br>
+
+* Command Options of Yocto Build Step1
+    * `-k <Kconfig Path>`: Specifies the auto-generated Kconfig pathname
+    * `-t <Target Path>`: Specifies the auto-generated target pathname which stores package name and source path list
+    * `-c <Search Kconfig Name>`: Specifies the Kconfig filename (containing configuration) to search
+        * The order to search:
+            * The file with the same filename as the package name and the suffix of `.bbconfig` in the same directory as the recipe file
+            * The file with the same filename as the package name and the same suffix as the Kconfig file in the directory specified by the `EXTERNALSRC` in the recipe append file
+            * The Kconfig filename in the directory specified by the `EXTERNALSRC` in the recipe append file
+    * `-v <Search Virtual Depend Name>`: Specifies the virtual dependency filename (containing VDEPS-statement) to search
+    * `-i <Ignore Directories>`: Specifies the ignored directory names, and multiple directories are separated by colon
+    * `-l <Max Layer Depth>`: Sets the maximum number of levels of the menuconfig, 0 for tile, 1 for 2-levels, ...
+    * `-w <Keyword Directories>`: Sets the ignored level names of the menuconfig, and the multiple names set are separated by colon
+        * If the directory name in the path matches the set value, the levels of this path is subtracted by one
+    * `-p <prepend Flag>`: Set the prefix of the configuration item in the auto-generated Kconfig
+        * If users run `conf` / `mconf` without prefix (option: `CONFIG_=""`), this flag needs to be set to 1
+    * `-u <User Metas>`: Specifies the user layers, and the multiple layers set are separated by colon
+        *  Only analyze package dependencies,  packages in the user layers will analyze dependencies, be selected by default, support special dependencies and virtual dependencies
+<br>
+
+* Command Options of Yocto Build Step2
+    * `-t <Target Path>`: Specifies the auto-generated target pathname generated by step1
+    * `-c <Search Kconfig Path>`: Specifies the `.config` pathname generated by `make xxx_config`
+    * `-o <Output Recipe Path>`: Specifies the recipe inc pathname which stores packages installed to rootfs
+    * `-p <Output patch/unpatch Path>`: Specifies the patch inc pathname which stores patch/unpatch packages
+    * `-i <Ignore Recipes>`: Specifies the ignored recipes, and multiple recipes are separated by colon
+
+
+### Dependency of Normal Build
+
+* Dependency Rule: `#DEPS(Makefile_Name) Target_Name(Other_Target_Names): Depend_Names`
+
+    ![Regex of Dependency](./scripts/bin/regex_deps.svg)
+
+* Included Dependency Rule: `#INCDEPS: Subdir_Names`
+
+    ![Regex of Included Dependency](./scripts/bin/regex_incdeps.svg)
+
+* Rule Description
+    * Makefile_Name: The Makefile script to compile (can be empty), if it's not empty, make runs the specified makefile (`make -f Makefile_Name`)
+        * The Makefile must contain three targets of `all` `clean` and `install`
+        * The Makefile name can include a path (i.e. a slash `/`), which supports directly finding subpackages under subfolders
+            * For example: `test1/` `test2/wrapper.mk`
+        * Users can also use INCDEPS-statement to continue to find dependency files under sub-folders
+            * For example: `#INCDEPS: test1 test2/test22`
+            * Sub-dirs supports environment variable substitution, for example, `${ENV_BUILD_SOC}` will be replaced with the value of the environment variable `ENV_BUILD_SOC`
+    * Target_Name: The package name ID
+        * The keyword of `ignore` is a special ID that indicates no package, which is used to ignore the search of the current directory (` #DEPS() ignore():`)
+    * Other_Target_Names: Other targets of the current package, multiple targets are separated by space (can be empty)
+        * Ignores the targets of `all` `install` `clean` in the Other_Target_Names
+        * The keyword of `prepare` is a special real target that indicates running `make prepare` before `make`
+            * It is generally used to load the default configuration to .config when .config does not exist
+        * The keyword of `psysroot` is a special real target that indicates running `make psysroot` before `make`
+            * It will use sysroot under OUT_PATH instead of ENV_TOP_OUT
+        * The keyword of `release` is a special real target that indicates running `make release` when installing fakeroot rootfs
+            * This target doesn't need to install headers and static libraries
+            * When the release target is not present, It will run `make install` when installing to fakeroot rootfs
+        * The keyword of `union` is a special virtual target that indicates multiple packages sharing one Makefile
+            * At this point, the targets of `prepare` `all` `install` `clean` `release` shound renamed as `package_name-xxx`
+        * The keyword of `cache` is a special virtual target that indicates package with caching mechanism
+        *  The keyword of `jobserver` is a special virtual target that indicates multi-threaded compilation (`ENV_BUILD_JOBS`)
+            * Makefile which contains `make` command shouldn't add the target, such as driver Makefile
+        * `subtarget1:subtarget2:...::dep1:dep2:...` is a special syntax format that explicitly specifies dependencies for child targets
+            * Double colons separate the list of child targets and the list of dependencies
+            * Single colon separates the child internal targets and the internal dependencies, and the dependencies list can be empty
+    * Depend_Names: The dependency package name ID, and multiple dependencies are separated by space (can be empty)
+        * If there are circular dependencies or undefined dependencies, parsing will fail
+
+Note: The IDs (Target_Name / Depend_Names) only can consist of lowercase letters, numbers, dashes; Other_Target_Names doesn't have such requirement, wildcard symbol is accepted (`%`)
+
+* Commands of Normal Build
+    * `make <package>`: Compiles the given package with dependency packages compiled first
+    * `make <package>_single`: Only compiles the given package without dependency packages compiled
+    * `make <package>_<target>`: Compiles the target of the given package with dependency packages compiled first
+    * `make <package>_<target>_single`: Only compiles the target of the given package without dependency packages compiled
+
+Note: The single type commands only exist in the packages with dependencies
+
+
+### Dependency of Yocto Build
+
+* The dependencies of Yocto Build are defined in the recipe (DEPENDS / RDEPENDS / PACKAGECONFIG / ...)
+* `DEPENDS`: compilation dependencies
+    * Note: Yocto uses some host commands and may also need to specify native dependency (`<package>-native`), for example: `bash-native`
+* `RDEPENDS:${PN}`: compilation dependencies
+    * The dependency packages which install shared libraries should be set to RDEPENDS, otherwise the compilation will fail or the dependency packages will not added to rootfs
+* `PACKAGECONFIG`: Dynamically sets dependency packages which install pkg-config (`xxx/usr/lib/pkgconfig/xxx.pc`)
+
+
+### Virtual Dependency of Normal/Yocto Build
+
+* Virtual Dependency Rule: `#VDEPS(Virtual_Type) Target_Name(Other_Infos): Depend_Names`
+
+    ![Regex of Virtual Dependency Rule](./scripts/bin/regex_vdeps.svg)
+
+* Virtual_Type : Required, the type of thevirtual package, there are 4 types so far
+    * `menuconfig`  : Indicates that a virtual `menuconfig` package is generated, all packages in the current directory (including sub-directories) strongly depend on this package
+    * `config`      : Indicates that a virtual `config` package is generated
+    * `menuchoice`  : Indicates that a virtual `choice` package is generated, all packages in the current directory (including subdirectories) will become sub-options under this package
+    * `choice`      : Indicates that a virtual `choice` package is generated, all packages packages listed in the Other_Infos will become sub-options under this package
+* Virtual_Name      : Required, the name ID of the virtual package
+* Other_Infos       : Optional
+    * For all types, an optional pathname which begins with `/` indicates that it acts on the specified sub-directory instead of the current directory
+        * The pathname entry can be a virtual path, for example: `/virtual` (virtual can be any word), in this case, the virtual item appears in the current directory  instead of the upper directory
+    * For the `choice` type, a space-separated list of packages becomes a sub-options under the choice, and the first package is selected by default
+    * For the `menuchoice` type, the specified package is selected by default
+* Depend_Names      : Optional, the list of dependencies with the same as the Depend_Names in the DEPS-statement
+    * For example, users can set `unselect` for `menuconfig` and `config` types
+
+Note: The virtual packages will not participate in compilation, but is used to organize and manage the actual packages, Normal Build and Yocto Build has the same virtual dependency rules
+
+
+### Special Dependency
+
+* Virtual Package
+    * `*depname`    : Indicates that this dependent package is a virtual package
+        * After removing `*`, the remaining depname can also have special characters and will continue to be resolved, for example: `*&&depname`
+<br>
+
+* Keyword
+    * `finally`     : Indicates that this package compilation is after all other packages, it is generally used to generate rootfs (Normal Build)
+    * `unselect`    : Indicates that this package is not compiled by default (`default n`), otherwise it is compiled by default (`default y`)
+    * `nokconfig`   : Indicates that this package doesn't contain Kconfig
+        * When there are multiple packages in the same directory, and only one package has Kconfig, then this package doesn't need to set `nokconfig`, and other packages should set it
+<br>
+
+* Special Character
+    * `!depname`                    : Indicates that this package and the depname package are conflict, they cann't be enabled at the same time (`depends on !depname`)
+    * `&depname` or `&&depname`     : Indicates that this package weakly / strongly selects the depname package (`imply depname` / `select depname`)
+        * `&` indicate that when this package is selected, depname is also automatically selected, and depname can be manually unselected
+        * `&&` indicate that when this package is selected, depname is also automatically selected, and depname cann't be manually unselected
+    * `?depname` or `??depname`     : Indicates that this package weakly depends on the depname package (`if .. endif`)
+        * `?` indicates that the depname package doesn't install shared libraries (compile-time dependencies)
+        * `??` indicates that the depname package installs shared libraries or ... (compile-time and run-time dependencies)
+        * Weak dependency means that even if the depname package isn’t selected or doesn't exist, current package also can be selected and compiled
+    * `depa|depb` or `depa||depb`   : Indicates that this package weakly depends on the depa package or depb packageor ... (`depA||depB`)
+        * Weak dependency means that there should be at least one depx package to be enabled, current package can be selected and compiled
+        * Omitting the preceding word of `|` is implicitly deduced using either a prebuild package or a source package
+            * For example: `||libtest` is implicitly deduced as `prebuild-libtest||libtest`
+        * The difference between `|` and `||` refers to `?`
+
+    *  `& ?`                        : `&` can be used in combination with `?` , it doesn't require a combination order, and indicates selection and weak dependency
+        * For example: `&&??depname` or `??&&depname` indicates weak dependency and strong selection, `??&depname` or `&??depname` indicates weak dependency and weak selection
+    *  `& |`                        : `&` can be used in combination with `|` , it indicates or-selection and weak dependency
+        * It is suitable for selecting one of the prebuild package or the source package with weak dependency
+        * Omitting the preceding word of last `|` is implicitly deduced using either a prebuild package or a source package
+        * For example: `&&||libtest` is implicitly deduced as `&&*build-libtest||prebuild-libtest||libtest`
+            * It means that the first virtual packages is strongly selected, and the next two actual packages are weakly dependencies
+    * Additional Notes              :
+        * For Normal Build, there is no difference between `?` and `??`, there is no difference between `|` and `||`
+        * For Yocto Build, `?` and `|` only set `DEPENDS`, `??` and `||` only set both `DEPENDS` and `RDEPENDS:${PN}`
+<br>
+
+* Environment Variable
+    * ENVNAME=val1,val2             : Indicates that this package depends on the environment variable ENVNAME whose value is equal to val1 or equal to val2
+    * ENVNAME!=val1,val2            : Indicates that this package depends on the environment variable ENVNAME whose value is not equal to val1 and not equal to val2
+<br>
+
+
+Note: Special dependencies are set to the `Depend_Names` of DEPS-statement in Normal Build, the variable `EXTRADEPS` in the recipe in Yocto Build, and
+if EXTRADEPS contains weak dependencies, the recipe should `inherit weakdep` class, and handling weak dependencies depends on `.config` in ENV_CFG_ROOT
+
+
+### Dependency Diagram gen_depends_image.sh
+
+* Usage
+    * Script Parameters: `gen_depends_image.sh <package> <store_path> <package_list_file> <config_file>`
+        * package                   : Package name
+        * store_path                : The folder path where the generated pictures are stored
+        * package_list_file         : Package list file generated by gen_build_chain.py (`-a` of Normal Build, `-t` of Yocto Build)
+        * config_file               : The path of `.config`
+    * Command: `make <package>-deps`
+<br>
+
+* Generated Picture Description
+    * Normal Build
+        * Solid Line                : Strong dependency
+        * Dashed Line               : Weak dependency
+        * Double Line               : Prebuild and srcbuild either, or patch and unpatch either
+        * Green Line                : The package is selected in .config
+        * Red Line                  : The package is not selected in .config
+        * The top-level package box color
+            * Green Box             : The package is selected in .config
+            * Red Box               : The package is not selected in .config
+    * Yocto Build
+        * Green Box                 : User package, which is selected in .config
+        * Red Box                   : User package, which is not selected in .config
+        * Basket Box                : Community package (layers not specified in the `-u` option of gen_build_chain.py)
+
+
+## Environment Configuration
+
+### Initialize Compilation Environment
+
+* Initialize the compilation environment
 
     ```sh
     lengjing@lengjing:~/data/cbuild$ source scripts/build.env
     ============================================================
     ENV_BUILD_MODE   : external
     ENV_BUILD_JOBS   : -j8
+    ENV_MAKE_FLAGS   : -s
     ENV_TOP_DIR      : /home/lengjing/data/cbuild
     ENV_MAKE_DIR     : /home/lengjing/data/cbuild/scripts/core
     ENV_TOOL_DIR     : /home/lengjing/data/cbuild/scripts/bin
@@ -98,7 +382,7 @@
     ============================================================
     ```
 
-* 还可以通过 soc 名字导出交叉编译环境
+* Initialize the cross-compilation environment with SOC
 
     ```sh
     lengjing@lengjing:~/data/cbuild$ source scripts/build.env cortex-a53
@@ -108,6 +392,7 @@
     ENV_BUILD_ARCH   : arm64
     ENV_BUILD_TOOL   : /output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/bin/aarch64-linux-gnu-
     ENV_BUILD_JOBS   : -j8
+    ENV_MAKE_FLAGS   : -s
     KERNEL_VER       : 5.15.88
     KERNEL_SRC       : /home/lengjing/data/cbuild/output/kernel/linux-5.15.88
     KERNEL_OUT       : /home/lengjing/data/cbuild/output/cortex-a53/objects/linux-5.15.88
@@ -128,111 +413,130 @@
     ============================================================
     ```
 
-### 环境变量说明
+* Build cross-compilation toolchain
 
-* ENV_BUILD_MODE: 设置编译模式: external, 源码和编译输出分离; internal, 编译输出到源码; yocto, Yocto 编译方式
-    * external 时，编译输出目录是把包的源码目录的 ENV_TOP_DIR 部分换成了 ENV_OUT_ROOT / ENV_OUT_HOST
-* ENV_BUILD_ARCH: 指定交叉编译的 SOC，根据 SOC 和 process_machine.sh 脚本得到和 SOC 相关的一系列参数
-* ENV_BUILD_ARCH: 指定交叉编译 linux 模块的 ARCH
-* ENV_BUILD_TOOL: 指定交叉编译器前缀
-* ENV_BUILD_JOBS: 指定编译线程数
+    ```sh
+    lengjing@lengjing:~/data/cbuild$ source scripts/build.env cortex-a53
+    lengjing@lengjing:~/data/cbuild$ make -C scripts/toolchain
+    ```
+
+Note: Users need to fill in the SOC-related parameters in the `process_machine.sh`. At present, only `cortex-a53` and `cortex-a9` are exemplified in this file.
+
+
+### Environment Variables Description
+
+* ENV_BUILD_MODE    : Specifies the build mode: external, separate source code and compilation output; internal, compile output to source code; yocto, Yocto Build method
+    * When the mode is external, the compilation output directory is to replace the ENV_TOP_DIR part of the package's source directory with ENV_OUT_ROOT / ENV_OUT_HOST
+* ENV_BUILD_SOC     : Specifies the cross-compilation SOC, build system obtains a series of parameters related to the SOC through the `process_machine.sh` script
+* ENV_BUILD_ARCH    : Specifies the ARCH for cross-compilation of linux modules
+* ENV_BUILD_TOOL    : Specifies the cross-compiler prefix
+* ENV_BUILD_JOBS    : Specifies the number of compilation threads
+* ENV_MAKE_FLAGS    : Global flags for `make` command，its default value is `-s`
+    * `export ENV_MAKE_FLAGS=`: When it is set to space, the compilation will output more detailed information
 <br>
 
-* KERNEL_VER: Linux 内核版本
-* KERNEL_SRC: Linux 内核解压后的目录
-* KERNEL_OUT: Linux 内核编译输出目录
+* KERNEL_VER        : Linux kernel version
+* KERNEL_SRC        : Linux kernel source code path
+* KERNEL_OUT        : Linux kernel compilation output path
 <br>
 
-* ENV_TOP_DIR: 工程的根目录
-* ENV_MAKE_DIR: 工程的编译模板目录
-* ENV_TOOL_DIR: 工程的脚本工具目录
-* ENV_DOWN_DIR: 下载包的保存路径
-* ENV_CACHE_DIR: 包的编译缓存保存路径
-* ENV_MIRROR_URL: 下载包的 http 镜像，可用命令 `python -m http.server 端口号` 快速创建 http 服务器
+* ENV_TOP_DIR       : The root directory
+* ENV_MAKE_DIR      : The compilation templates directory
+* ENV_TOOL_DIR      : The script tools directory
+* ENV_DOWN_DIR      : The path where the download package is saved
+* ENV_CACHE_DIR     : The path where the compilation cache is saved
+* ENV_MIRROR_URL    : The mirror URL for source code and build cache
+    * Users can use the command `python -m http.server <port>` to quickly create an HTTP server
 <br>
 
-* ENV_TOP_OUT: 工程的输出根目录，编译输出、安装文件、生成镜像等都在此目录下定义
-* ENV_CFG_ROOT: 工程自动生成文件的保存路径，例如全局 Kconfig 和 Makefile，各种统计文件等
-* ENV_OUT_ROOT: 源码和编译输出分离时的编译输出根目录
-* ENV_INS_ROOT: 工程安装文件的根目录
-* ENV_DEP_ROOT: 工程搜索库和头文件的根目录
+* ENV_TOP_OUT       : The root output directory
+* ENV_CFG_ROOT      : The auto-generated files directory, such as global Kconfig and Makefile, various statistical files, etc are saved in it
+* ENV_OUT_ROOT      : The root compilation output directory
+* ENV_INS_ROOT      : The root global installation directory
+* ENV_DEP_ROOT      : The root global dependency directory
+* ENV_OUT_HOST      : The root compilation output directory for native package
+* ENV_INS_HOST      : The root global installation directory for native package
+* ENV_DEP_HOST      : The root global dependency directory for native package
+
+Note: bitbake cann't directly use the environment variables of the current shell in Yocto Build, so the custom environment variables should be exported from the recipe
+
+
+## Compilation Template
+
+### Environment Template inc.env.mk
+
+* `inc.env.mk` is shared by application compilation and driver compilation
+* In Normal Build, it is used to set the compilation output directory, set and export the cross-compilation environment or the local compilation environment
+* In Yocto Build, the compilation output directory and cross-compilation environment are set and exported by recipes
+
+
+#### Functions of Environment Template
+
+* `$(call safe_copy,<options of cp>,<srcs and dst>)` : Uses `cp` with file lock to prevent errors when multiple target processes installation at the same time in Normal Build
+* `$(call link_hdrs)`       : Automatically sets CFLAGS that looks for header files based on variable `SEARCH_HDRS`
+* `$(call link_libs)`       : Automatically sets CFLAGS that looks for libraries
+* `$(call prepare_sysroot)` : Prepare dependency sysroot in the `OUT_PATH` directory in Normal Build
+
+
+#### Variables of Environment Template
+
+* PACKAGE_NAME              : Package name (consistent with `Target_Name` in the DEPS-statement, without `-native`)
+* PACKAGE_ID                : Read-only, the actual package name, its value is equal to `PACKAGE_NAME` of cross-compilation package or `$(PACKAGE_NAME)-native` of native-compilation package
+* INSTALL_HDR               : Headers installation sub-folder, its default value is equal to `PACKAGE_NAME`
+* PACKAGE_DEPS              : The package's dependency list, which may be removed in the future
+* SEARCH_HDRS               : Sub-folders to search headers, its default value is equal to `PACKAGE_DEPS`
 <br>
 
-* ENV_OUT_HOST: 本地编译源码和编译输出分离时的编译输出根目录
-* ENV_INS_HOST: 本地编译工程安装文件的根目录
-* ENV_DEP_HOST: 本地编译工程搜索库和头文件的根目录
-
-注: Yocto 编译时，由于 BitBake 任务无法直接使用当前 shell 的环境变量，所以自定义环境变量应由配方文件导出，不需要 source 这个环境脚本
-
-## 编译环境模板 inc.env.mk
-
-* 编译环境被应用编译和内核模块编译共用
-* 普通编译时此模板作用是设置编译输出目录 `OUT_PATH`，设置并导出交叉编译环境或本地编译环境
-* Yocto 编译时编译输出目录和交叉编译环境由 `bitbake` 设置并导出
-
-### 编译环境模板的函数说明
-
-* `$(call safe_copy,cp选项,源和目标)`: 非 yocto 编译时使用加文件锁的 cp，防止多个目标多进程同时安装目录时报错
-* `$(call link_hdrs)`: 根据 SEARCH_HDRS 变量的值自动生成查找头文件的 CFLAGS
-* `$(call link_libs)`: 自动生成查找库文件的 LDFLAGS
-* `$(call prepare_sysroot)`: 普通编译时在 OUT_PATH 目录准备 sysroot
-
-### 编译环境模板变量说明
-
-* PACKAGE_NAME: 包的名称，要和 DEPS语句的包名()一致，本地编译 的 PACKAGE_NAME 不需要加后缀 `-native`)
-* PACKAGE_ID: 只读，包的实际名称，交叉编译时等于 PACKAGE_NAME 的值，本地编译时会加上后缀 `-native`
-* INSTALL_HDR: 头文件安装的子文件夹，默认值等于 PACKAGE_NAME 的值
-* PACKAGE_DEPS: 包的依赖列表，未来可能会删除
-* SEARCH_HDRS: 查找头文件子目录列表，默认值等于 PACKAGE_DEPS 的值
+* OUT_PREFIX                : Top-level compilation output directory, its default value is equal to `ENV_OUT_HOST` in the native-compilation or `ENV_OUT_ROOT` in the cross-compilation
+* INS_PREFIX                : Top-level installation directory, its default value is equal to `ENV_INS_HOST` in the native-compilation or `ENV_INS_ROOT` in the cross-compilation
+* DEP_PREFIX                : Top-level dependency lookup directory, its default value is equal to `ENV_DEP_HOST` in the native-compilation or `ENV_DEP_ROOT` in the cross-compilation
+* OUT_PATH                  : Output directory
 <br>
 
-* OUT_PREFIX : 顶层编译输出目录，本地编译取值 ENV_OUT_HOST，交叉编译取值 ENV_OUT_ROOT
-* INS_PREFIX : 顶层编译安装目录，本地编译取值 ENV_INS_HOST，交叉编译取值 ENV_INS_ROOT
-* DEP_PREFIX : 顶层依赖查找目录，本地编译取值 ENV_DEP_HOST，交叉编译取值 ENV_DEP_ROOT
-* PATH_PREFIX: 顶层主机工具查找目录
-* OUT_PATH   : 输出目录
-<br>
+* EXPORT_HOST_ENV           : Sets it to y when cross-compilation package depends on native-compilation packages
+* EXPORT_PC_ENV             : Sets it to y to export the pkg-config environment variables
+* BUILD_FOR_HOST            : When set to y, indicates native-compilation
+* PREPARE_SYSROOT           : When set to y, indicates preparing dependency sysroot in `OUT_PATH` instead of `ENV_TOP_OUT`
+* LOGOUTPUT                 : When set to empty, more compilation messages will be displayed, its default value is `1>/dev/null`
 
-* EXPORT_HOST_ENV: 交叉编译包依赖自己编译的本地包时需要设置为 y
-* EXPORT_PC_ENV: 设置为 y 时导出 pkg-config 的搜索路径
-* BUILD_FOR_HOST: 设置为 y 时表示本地编译(native-compile)
-* PREPARE_SYSROOT: 设置为 y 时普通编译使用 OUT_PATH 下的 sysroot 而不是 ENV_TOP_OUT 下的 sysroot / sysroot-native
-* LOGOUTPUT: 默认值为 1>/dev/null，置为空时编译 应用(include inc.app.mk) 和 oss 源码时 (include inc.cache.mk) 时输出更多信息
 
-## 安装模板 inc.ins.mk
+### Installation Template inc.ins.mk
 
-安装模板被应用编译和内核模块编译共用
+* `inc.ins.mk` is shared by application compilation and driver compilation
 
-### 安装模板的目标和变量说明
+#### Targets of Installation Template
 
-* install_libs: 安装库文件集
-    * 用户需要设置被安装的库文件集变量 INSTALL_LIBRARIES
-    * 编译应用时 `inc.app.mk`，编译生成的库文件会加入到 `LIB_TARGETS` 变量，INSTALL_LIBRARIES 已默认赋值为 `$(LIB_TARGETS)`
-    * 安装目录是 `$(ENV_INS_ROOT)/usr/lib`
-* install_base_libs: 安装库文件集
-    * 用户需要设置被安装的库文件集变量 INSTALL_BASE_LIBRARIES，该变量默认取 INSTALL_LIBRARIES 的值
-    * 安装目录是 `$(ENV_INS_ROOT)/lib`
-* install_bins: 安装可执行文件集
-    * 用户需要设置被安装的可执行文件集变量 INSTALL_BINARIES
-    * 编译应用时 `inc.app.mk`，编译生成的可执行文件会加入到 `BIN_TARGETS` 变量，INSTALL_BINARIES 已默认赋值为 `$(BIN_TARGETS)`
-    * 安装目录是 `$(ENV_INS_ROOT)/usr/bin`
-* install_base_bins: 安装可执行文件集
-    * 用户需要设置被安装的可执行文件集变量 INSTALL_BASE_BINARIES，该变量默认取 INSTALL_BINARIES 的值
-    * 安装目录是 `$(ENV_INS_ROOT)/bin`
-* install_hdrs: 安装头文件集
-    * 用户需要设置被安装的头文件集变量 INSTALL_HEADERS
-    * 安装目录是 `$(ENV_INS_ROOT)/usr/include/$(INSTALL_HDR)`
-* install_datas: 安装数据文件集
-    * 用户需要设置被安装的数据文件集变量 INSTALL_DATAS
-    * 安装目录是 `$(ENV_INS_ROOT)/usr/share`
-* install_datas_xxx / install_todir_xxx / install_tofile_xxx: 安装文件集到特定文件夹
-    * 要安装的文件集分别由 INSTALL_DATAS_xxx / INSTALL_TODIR_xxx / INSTALL_TOFILE_xxx 定义
-    * 定义的值前面部分是要安装的文件集，最后一项是以斜杆 `/` 开头的安装目标路径
-    * install_datas_xxx 安装到目录 `$(ENV_INS_ROOT)/usr/share$(INSTALL_DATAS_xxx最后一项)`
-    * install_todir_xxx 安装到目录`$(ENV_INS_ROOT)$(INSTALL_TODIR_xxx最后一项)`
-    * install_tofile_xxx 安装到文件`$(ENV_INS_ROOT)$(INSTALL_TOFILE_xxx最后一项)` ，INSTALL_TOFILE_xxx 的值有且只有两项
-    * 例子:
-        * 创建2个空白文件 testa 和 testb，Makefile 内容如下:
+* install_libs: Install the libraries
+    * Users need to set the value of the variable `INSTALL_LIBRARIES` to the installed libraries
+    * When compiling applications, the compilation-generated libraries are added to the variable `LIB_TARGETS`, the default value of `INSTALL_LIBRARIES` has been assigned to `$(LIB_TARGETS)`
+    * The installation destination directory is `$(INS_PREFIX)/usr/lib`
+* install_base_libs: Install the libraries
+    * Users need to set the value of the variable `INSTALL_BASE_LIBRARIES` to the installed libraries
+    * The default value of `INSTALL_BASE_LIBRARIES` has been assigned to `$(INSTALL_LIBRARIES)`
+    * The installation destination directory is `$(INS_PREFIX)/lib`
+* install_bins: Install the executables
+    * Users need to set the value of the variable `INSTALL_BINARIES` to the installed executables
+    * When compiling applications, the compilation-generated executables are added to the variable `BIN_TARGETS`, the default value of `INSTALL_BINARIES` has been assigned to `$(BIN_TARGETS)`
+    * The installation destination directory is `$(INS_PREFIX)/usr/bin`
+* install_base_bins: Install the executables
+    * Users need to set the value of the variable `INSTALL_BASE_BINARIES` to the installed executables
+    * The default value of `INSTALL_BASE_BINARIES` has been assigned to `$(INSTALL_BINARIES)`
+    * The installation destination directory is `$(INS_PREFIX)/bin`
+* install_hdrs: Install the headers
+    * Users need to set the value of the variable `INSTALL_HEADERS` to the installed headers
+    * The installation destination directory is `$(INS_PREFIX)/usr/include/$(INSTALL_HDR)`
+* install_hdrs: Install the datas
+    * Users need to set the value of the variable `INSTALL_DATAS` to the installed datas
+    * The installation destination directory is `$(INS_PREFIX)/usr/share`
+* install_datas_xxx / install_todir_xxx / install_tofile_xxx: Install files to the special directory
+    * Users need to set the value of the variable `INSTALL_DATAS_xxx` `INSTALL_TODIR_xxx` `INSTALL_TOFILE_xxx` to the installed datas
+    * The installation destination directory is `$(INS_PREFIX)/usr/share`
+    * The preceded items are the files to install, and the last item (must begins with a slash `/`) is the installation destination
+    * The installation destination directory of `install_datas_xxx` is `$(INS_PREFIX)/usr/share$(lastword $(INSTALL_DATAS_xxx))`
+    * The installation destination directory of `install_todir_xxx` is `$(INS_PREFIX)$(lastword $(INSTALL_TODIR_xxx))`
+    * The installation destination file of `install_tofile_xxx` is `$(INS_PREFIX)$(lastword $(INSTALL_TOFILE_xxx))`
+    * For example:
+        * Create 2 blank files testa and testb, and the content of Makefile is as follows:
 
             ```makefile
             INSTALL_DATAS_test = testa testb /testa/testb
@@ -244,320 +548,133 @@
             include $(ENV_MAKE_DIR)/inc.ins.mk
             ```
 
-        * 运行 make 安装后的文件树
+        *  The installation file tree after `make`
 
             ```
-            output/
-            └── sysroot
-                ├── etc
-                │   ├── a.conf
-                │   └── b.conf
-                └── usr
-                    ├── local
-                    │   └── bin
-                    │       ├── testa
-                    │       └── testb
-                    └── share
-                        └── testa
+            sysroot
+            ├── etc
+            │   ├── a.conf
+            │   └── b.conf
+            └── usr
+                ├── local
+                │   └── bin
+                │       ├── testa
+                │       └── testb
+                └── share
+                    └── testa
+                        └── testb
+                            ├── testa
                             └── testb
-                                ├── testa
-                                └── testb
             ```
 
-## 应用模板 inc.app.mk
 
-### 测试编译应用
+### Application Template inc.app.mk
 
-* 测试用例1位于 `test-app`
-* 测试用例2位于 `test-app2` (`test-app2` 依赖 `test-app`)，
-* 测试用例3位于 `test-app3` (`test-app3` 一个 Makefile 生成多个库)，如下测试
+* `inc.app.mk` is used to compile shared libraries, static libraries, and executables
 
-```sh
-lengjing@lengjing:~/cbuild$ cd examples/test-app
-lengjing@lengjing:~/cbuild/examples/test-app$ make
-gcc	add.c
-gcc	sub.c
-gcc	main.c
-lib:	/home/lengjing/cbuild/output/objects/examples/test-app/libtest.a
-lib:	/home/lengjing/cbuild/output/objects/examples/test-app/libtest.so
-bin:	/home/lengjing/cbuild/output/objects/examples/test-app/test
-Build test-app Done.
-lengjing@lengjing:~/cbuild/examples/test-app$ vi include/sub.h  # 在此文件加上一个空行保存
-lengjing@lengjing:~/cbuild/examples/test-app$ make  # 此时依赖此头文件的 C 源码会重新编译
-gcc	sub.c
-gcc	main.c
-lib:	/home/lengjing/cbuild/output/objects/examples/test-app/libtest.a
-lib:	/home/lengjing/cbuild/output/objects/examples/test-app/libtest.so.1.2.3
-bin:	/home/lengjing/cbuild/output/objects/examples/test-app/test
-Build test-app Done.
-lengjing@lengjing:~/cbuild/examples/test-app$ make install  # 安装文件
-lengjing@lengjing:~/cbuild/examples/test-app$ cd ../test-app2
-lengjing@lengjing:~/cbuild/examples/test-app2$ make
-gcc	main.c
-bin:	/home/lengjing/cbuild/output/objects/examples/test-app2/test2
-Build test-app2  Done.
-lengjing@lengjing:~/cbuild/examples/test-app2$ make install
-lengjing@lengjing:~/cbuild/examples/test-app2$ cd ../test-app3/
-lengjing@lengjing:~/cbuild/examples/test-app3$ make
-gcc	add.c
-lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libadd.a
-lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libadd.so.1.2.3
-gcc	sub.c
-lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libsub.a
-lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libsub.so.1.2
-gcc	mul.c
-lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libmul.a
-lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libmul.so.1
-gcc	div.c
-lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libdiv.a
-lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libdiv.so
-lib:	/home/lengjing/cbuild/output/objects/examples/test-app3/libadd2.so.1.2.3
-Build test-app3 Done.
-lengjing@lengjing:~/cbuild/examples/test-app3$ make install
-```
+#### Targets of Application Template
 
-### 应用模板的目标说明
+* LIBA_NAME: library name when compiling a single static library
+    * The compilation-generated library will be added to the variable `LIB_TARGETS`
+* LIBSO_NAME: library name when compiling a single shared library
+    * `LIBSO_NAME` can be set to the format of  `<library name> <major version> <minor version> <patch version>, for example:
+        * `LIBSO_NAME = libtest.so 1 2 3` : the compilation-generated library is `libtest.so.1.2.3`, and the symbolic links are `libtest.so` and `libtest.so.1`
+        * `LIBSO_NAME = libtest.so 1 2`   : the compilation-generated library is `libtest.so.1.2`  , and the symbolic links are `libtest.so` and `libtest.so.1`
+        * `LIBSO_NAME = libtest.so 1`     : the compilation-generated library is `libtest.so.1`    , and the symbolic link is `libtest.so`
+        * `LIBSO_NAME = libtest.so`       : the compilation-generated library is `libtest.so`      , and there is no symbolic link
+    * If the `LIBSO_NAME` contains the version numbers, the default soname is `<library name>.<major version>`, 可以通过 LDFLAGS 覆盖默认值
+        * The soname can be overridden by LDFLAGS, for example: `LDFLAGS += -Wl,-soname=libxxxx.so`
+    * The compilation-generated library will be added to the variable `LIB_TARGETS`
+* BIN_NAME: executable name when compiling a single executable
+    * The compilation-generated executable will be added to the variable `BIN_TARGETS`
 
-* LIBA_NAME: 编译静态库时需要设置静态库名
-    * 编译生成的静态库文件路径会加入到 `LIB_TARGETS` 变量
-* LIBSO_NAME: 编译动态库时需要设置动态库名
-    * LIBSO_NAME 可以设置为 `库名 主版本号 次版本号 补丁版本号` 格式，例如
-        * `LIBSO_NAME = libtest.so 1 2 3` 编译生成动态库 libtest.so.1.2.3，并创建符号链接 libtest.so 和 libtest.so.1
-        * `LIBSO_NAME = libtest.so 1 2`   编译生成动态库 libtest.so.1.2  ，并创建符号链接 libtest.so 和 libtest.so.1
-        * `LIBSO_NAME = libtest.so 1`     编译生成动态库 libtest.so.1    ，并创建符号链接 libtest.so
-        * `LIBSO_NAME = libtest.so`       编译生成动态库 libtest.so
-    * 如果 LIBSO_NAME 带版本号，默认指定的 soname 是 `libxxxx.so.x`，可以通过 LDFLAGS 覆盖默认值
-        * 例如 `LDFLAGS += -Wl,-soname=libxxxx.so`
-    * 编译生成的动态库文件路径和符号链接路径会加入到 `LIB_TARGETS` 变量
-* BIN_NAME: 编译可执行文件时需要设置可执行文件名
-    * 编译生成的可执行文件会加入到 `BIN_TARGETS` 变量
 
-### 应用模板的函数说明
+#### Functions of Application Template
 
-* `$(eval $(call add-liba-build,静态库名,源文件列表))`: 创建编译静态库规则
-* `$(eval $(call add-libso-build,动态库名,源文件列表))`: 创建编译动态库规则
-    * 动态库名可以设置为 `库名 主版本号 次版本号 补丁版本号` 格式，参考 LIBSO_NAME 的说明
-* `$(eval $(call add-libso-build,动态库名,源文件列表,链接参数))`: 创建编译动态库规则
-    * 注意函数中有逗号要用变量覆盖: `$(eval $(call add-libso-build,动态库名,源文件列表,-Wl$(comma)-soname=libxxxx.so))`
-* `$(eval $(call add-bin-build,可执行文件名,源文件列表))`: 创建编译可执行文件规则
-* `$(eval $(call add-bin-build,可执行文件名,源文件列表,链接参数))`: 创建编译可执行文件规则
-* `$(call set_flags,标记名称,源文件列表,标记值)`: 单独为指定源码集设置编译标记
-    * 例如 `$(call set_flags,CFLAGS,main.c src/read.c src/write.c,-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE)`
+* `$(eval $(call add-liba-build,<static library name>,<source files>))`: Creates a rule for compiling static library
+* `$(eval $(call add-libso-build,<shared library name>,<source files>))`: Creates a rule for compiling shared library
+    * `<shared library name>` can be set to the format of `<library name> <major version> <minor version> <patch version>, refer to `LIBSO_NAME`
+* `$(eval $(call add-libso-build,<shared library name>,<source files>,<link parameters>))`: Creates a rule for compiling shared library
+    * Note that the commas in the function should be overridden with the comma variable, for example: `$(eval $(call add-libso-build,<shared library name>,<source files>,-Wl$(comma)-soname=libxxxx.so))`
+* `$(eval $(call add-bin-build,<executable name>,<source files>))`: Creates a rule for compiling executable
+* `$(eval $(call add-bin-build,<executable name>,<source files>,<link parameters>))`: Creates a rule for compiling executable
+* `$(call set_flags,<Flag Type>,<source files>,<value>)`: Sets the compilation flags for the specified source codes
+    * For example: `$(call set_flags,CFLAGS,main.c src/read.c src/write.c,-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE)`
 
-注: 提供上述函数的原因是可以在一个 Makefile 中编译出多个库或可执行文件
+Note: The reason for providing the above functions is that multiple libraries or executables can be compiled in a single Makefile
 
-### 应用模板的可设置变量说明
 
-* SRC_PATH: 包中源码所在的目录，默认是包的根目录，也有的包将源码放在 src 下
-    * 也可以指定包下多个(不交叉)目录的源码，例如 `SRC_PATH = src1 src2 src3`
-* IGNORE_PATH: 查找源码文件时，忽略搜索的目录名集合，默认已忽略 `.git scripts output` 文件夹
-* REG_SUFFIX: 支持查找的源码文件的后缀名，默认查找以 `c cpp S` 为后缀的源码文件
-    * 可以修改为其它类型的文件，从 c 和 CPP_SUFFIX / ASM_SUFFIX 定义的类型中选择
-    * 如果支持非 CPP_SUFFIX / ASM_SUFFIX 默认定义类型的文件，只需要修改 REG_SUFFIX 和 CPP_SUFFIX / ASM_SUFFIX ，并定义函数
-        * CPP_SUFFIX: C++类型的文件后缀名，默认定义为 `cc cp cxx cpp CPP c++ C`
-        * ASM_SUFFIX: 汇编类型的文件后缀名，默认定义为 `S s asm`
-    * 例如增加 cxx 类型的支持(CPP_SUFFIX 已有定义 cxx)：
-        ```makefile
-        REG_SUFFIX = c cpp S cxx
-        include $(ENV_MAKE_DIR)/inc.app.mk
-        ```
-    * 例如增加 CXX 类型的支持(CPP_SUFFIX 还未定义 CXX)：
-        ```makefile
-        REG_SUFFIX = c cpp S CXX
-        CPP_SUFFIX = cc cp cxx cpp CPP c++ C CXX
-        include $(ENV_MAKE_DIR)/inc.app.mk
-        $(eval $(call compile_obj,CXX,$$(CXX)))
-        ```
-* USING_CXX_BUILD_C: 设置为 y 时 `*.c` 文件也用 CXX 编译
-* SRCS: 所有的 C 源码文件，默认是 SRC_PATH 下的所有的 `*.c *.cpp *.S` 文件
-    * 如果用户指定了 SRCS，也可以设置 SRC_PATH 将 SRC_PATH 和 SRC_PATH 下的 include 加入到头文件搜索的目录
-    * 如果用户指定了 SRCS，忽略 IGNORE_PATH 的值
-* CFLAGS: 用户可以设置包自己的一些全局编译标记(用于 `gcc g++` 命令)
-* AFLAGS: 用户可以设置包自己的一些全局汇编标记(用于 `as` 命令)
-* LDFLAGS: 用户可以设置包自己的一些全局链接标记
-* CFLAGS_xxx.o: 用户可以单独为指定源码 `xxx.c / xxx.cpp / ... / xxx.S` 设置编译标记
-* AFLAGS_xxx.o: 用户可以单独为指定源码 `xxx.s / xxx.asm` 设置编译标记
-* DEBUG: 设置为y时使用 `-O0 -g -ggdb` 编译
+#### Variables of Application Template
 
-## Kconfig 模板 inc.conf.mk
+* SRC_PATH: The directory where the source codes are located in the package, its default value is `.`
+    * Users can also specify multiple (non-cross) source code directories in the package, for example: `SRC_PATH = src1 src2 src3`
+    * $(SRC_PATH) and $(SRC_PATH)/include are also header folders to search
+* IGNORE_PATH: The ignored directory names when searching, its default value is `.git scripts output`
+* REG_SUFFIX: The source code suffixes to search, its default value is `c cpp S`
+    * The value can be choosen from `c`, `$(CPP_SUFFIX)` and `$(ASM_SUFFIX)`
+        * CPP_SUFFIX: File suffixes C++ of type, its default value is `cc cp cxx cpp CPP c++ C`
+        * ASM_SUFFIX: File suffixes of assembly type, its default value is `S s asm`
+    * Users can add support for other suffixes, for example:
+        * Add support for cxx (cxx has been added to CPP_SUFFIX)
+            ```makefile
+            REG_SUFFIX = c cpp S cxx
+            include $(ENV_MAKE_DIR)/inc.app.mk
+            ```
+        * Add support for CXX (CXX has not been added to CPP_SUFFIX)
+            ```makefile
+            REG_SUFFIX = c cpp S CXX
+            CPP_SUFFIX = cc cp cxx cpp CPP c++ C CXX
+            include $(ENV_MAKE_DIR)/inc.app.mk
+            $(eval $(call compile_obj,CXX,$$(CXX)))
+            ```
+* USING_CXX_BUILD_C: When set to y, indicates compiling `*.c` files with CXX compiler
+* SRCS: All source code files, its default value is all files with suffix of `REG_SUFFIX` in the `SRC_PATH`
+    * If users specifies `SRCS`, they can also set `SRC_PATH`, and `IGNORE_PATH` is ignored
+* CFLAGS: Sets global compilation flags for `gcc g++`
+* AFLAGS: Sets global assembly flags for `as`
+* LDFLAGS: Sets global link flags for `gcc g++`
+* DEBUG: When set to y, `-O0 -g -ggdb` are enabled
 
-### 测试 Kconfig 使用
 
-* 测试用例位于 `test-conf`，如下测试
+### Driver Template inc.mod.mk
 
-```sh
-lengjing@lengjing:~/cbuild/examples/test-app3$ cd ../test-conf/
-lengjing@lengjing:~/cbuild/examples/test-conf$ ls config/
-def_config
-lengjing@lengjing:~/cbuild/examples/test-conf$ make def_config  # 加载配置
-bison	/home/lengjing/cbuild/output/objects-native/scripts/kconfig/autogen/parser.tab.c
-gcc	/home/lengjing/cbuild/output/objects-native/scripts/kconfig/autogen/parser.tab.c
-flex	/home/lengjing/cbuild/output/objects-native/scripts/kconfig/autogen/lexer.lex.c
-gcc	/home/lengjing/cbuild/output/objects-native/scripts/kconfig/autogen/lexer.lex.c
-gcc	parser/confdata.c
-gcc	parser/menu.c
-gcc	parser/util.c
-gcc	parser/preprocess.c
-gcc	parser/expr.c
-gcc	parser/symbol.c
-gcc	conf.c
-gcc	/home/lengjing/cbuild/output/objects-native/scripts/kconfig/conf
-gcc	lxdialog/checklist.c
-gcc	lxdialog/inputbox.c
-gcc	lxdialog/util.c
-gcc	lxdialog/textbox.c
-gcc	lxdialog/yesno.c
-gcc	lxdialog/menubox.c
-gcc	mconf.c
-gcc	/home/lengjing/cbuild/output/objects-native/scripts/kconfig/mconf
-#
-# No change to /home/lengjing/cbuild/output/objects/examples/test-conf/.config
-#
-lengjing@lengjing:~/cbuild/examples/test-conf$ ls -a ${ENV_OUT_ROOT}/examples/test-conf
-.  ..  .config  autoconfig  config.h
-lengjing@lengjing:~/cbuild/examples/test-conf$ make menuconfig # 图形化界面修改配置
-configuration written to /home/lengjing/cbuild/output/objects/examples/test-conf/.config
+* `inc.app.mk` is used to compile drivers (external linux modules)
 
-*** End of the configuration.
-*** Execute 'make' to start the build or try 'make help'.
+#### Makefile Part of Driver Template (when KERNELRELEASE is empty)
 
-lengjing@lengjing:~/cbuild/examples/test-conf$ make def2_saveconfig  # 保存新配置
-Save .config to config/def2_config
-lengjing@lengjing:~/cbuild/examples/test-conf$ ls config/
-def2_config  def_config
-```
+* Targets of Makefile Part
+    * modules: Compiles the driver
+    * modules_clean: Cleans the compilation output
+    * modules_install: Installs the kernel modules (`*.ko`)
+        * The installation destination directory is `$(INS_PREFIX)/lib/modules/<kernel_release>/extra/`
+    * symvers_install: Installs `Module.symvers` symbol file, this target is set as a dependency of `install_hdrs`
+<br>
 
-### Kconfig 模板的目标说明
+* Variables of Makefile Part
+    * MOD_MAKES: Users can specify some information to compile the module
+    * KERNEL_SRC        : Linux kernel source code path (required)
+    * KERNEL_OUT        : Linux kernel compilation output path (required when compiling linux kernel with `make -O $(KERNEL_OUT)`)
 
-* loadconfig: 加载默认配置
-    * 如果 .config 不存在，加载 DEF_CONFIG 指定的配置
-* menuconfig: 图形化配置工具
-* syncconfig: 手动更改 .config 后更新 config.h
-* cleanconfig: 清理配置文件
-* xxx_config: 将 CONF_SAVE_PATH 下的 xxx_config 作为当前配置
-* xxx_saveconfig: 将当前配置保存到 CONF_SAVE_PATH 下的 xxx_config
-* xxx_defonfig: 将 CONF_SAVE_PATH 下的 xxx_defconfig 作为当前配置
-* xxx_savedefconfig: 将当前配置保存到 CONF_SAVE_PATH 下的 xxx_defconfig
 
-### Kconfig 模板的可设置变量说明
+#### Kbuild Part of Driver Template (when KERNELRELEASE has value)
 
-* OUT_PATH: 编译输出目录，保持默认即可
-* CONF_SRC: kconfig 工具的源码目录，目前是在 `scripts/kconfig`，和实际一致即可
-* CONF_PATH: kconfig 工具的编译输出目录，和实际一致即可
-* CONF_PREFIX: 设置 conf 运行的变量，主要是下面两个设置
-    * `srctree=path_name`: Kconfig 文件中 source 其它配置参数文件的相对的目录是 srctree 指定的目录，如果不指定，默认是运行 `conf/mconf` 命令的目录
-    * `CONFIG_=""` : 设置生成的 .config 和 config.h 文件中的选项名称(对比 Kconfig 对应的选项名称)的前缀，不设置时，默认值是 `CONFIG_`，本例的设置是无前缀
-* CONF_HEADER: 设置生成的 config.h 中使用的包含宏，默认值是 `__大写包名_CONFIG_H__`
-    * kconfig 生成的头文件默认不包含宏 `#ifndef xxx ... #define xxx ... #endif`，本模板使用 sed 命令添加了宏
-* KCONFIG: 配置参数文件，默认是包下的 Kconfig 文件
-* CONF_SAVE_PATH: 配置文件的获取和保存目录，默认是包下的 config 目录
-* CONF_APPEND_CMD: config 改变时追加运行的命令
+* Targets of Kbuild Part
+    * MOD_NAME: Module names, which can be multiple module names separated by space
+<br>
 
-注: 目录下的 [Kconfig](./examples/test-conf/Kconfig) 文件也说明了如何写配置参数
+* Variables of Kbuild Part
+    * IGNORE_PATH: The ignored directory names when searching, its default value is `.git scripts output`
+    * SRCS: All source code files, its default value is all files with suffix of `REG_SUFFIX` (`*.c` `*.S`) in the `$(src)`
+    * `ccflags-y` `asflags-y` `ldflags-y`: The parameters for kernel module compilation, assembly and linking
+<br>
 
-### scripts/kconfig 工程说明
+* Functions of Kbuild Part
+    * `$(call translate_obj,<source files>)`: Converts the source code fileset name to the format required by KBUILD, regardless of whether the source code starts with *.o$(src)/
+    * `$(call set_flags,<Flag Type>,<source files>,<value>)`: Sets the compilation flags for the specified source codes
+<br>
 
-* 源码完全来自 linux-5.18 内核的 `scripts/kconfig`
-* 在原始代码的基础上增加了命令传入参数 `CONFIG_PATH` `AUTOCONFIG_PATH` `AUTOHEADER_PATH`，原先这些参数要作为环境变量传入
-* Makefile 是完全重新编写的
-
-## 内核模块模板 inc.mod.mk
-
-### 测试编译内核模块
-
-* 测试用例1位于 `test-mod` (其中 test_hello 依赖于 test_hello_add 和 test_hello_sub)，其中 test_hello_sub 采用 Makefile 和 Kbuild 分离的模式
-* 测试用例2位于 `test-mod2` (一个 Makefile 同时编译出两个模块 hello_op 和 hello)，如下测试
-
-```sh
-lengjing@lengjing:~/cbuild/examples/test-conf$ cd ../test-mod
-lengjing@lengjing:~/cbuild/examples/test-mod$ make deps
-Generate Kconfig OK.
-Generate auto.mk OK.
-lengjing@lengjing:~/cbuild/examples/test-mod$ make menuconfig
-configuration written to /home/lengjing/cbuild/output/objects/examples/test-mod/.config
-
-*** End of the configuration.
-*** Execute 'make' to start the build or try 'make help'.
-
-lengjing@lengjing:~/cbuild/examples/test-mod$ make all
-KERNELRELEASE= pwd=/home/lengjing/cbuild/examples/test-mod/test-hello-add PWD=/home/lengjing/cbuild/examples/test-mod
-KERNELRELEASE=5.13.0-44-generic pwd=/usr/src/linux-headers-5.13.0-44-generic PWD=/home/lengjing/cbuild/examples/test-mod
-KERNELRELEASE=5.13.0-44-generic pwd=/usr/src/linux-headers-5.13.0-44-generic PWD=/home/lengjing/cbuild/examples/test-mod
-Skipping BTF generation for /home/lengjing/cbuild/output/objects/examples/test-mod/test-hello-add/hello_add.ko due to unavailability of vmlinux
-Build test-hello-add Done.
-KERNELRELEASE= pwd=/home/lengjing/cbuild/examples/test-mod/test-hello-add PWD=/home/lengjing/cbuild/examples/test-mod
-arch/x86/Makefile:148: CONFIG_X86_X32 enabled but no binutils support
-At main.c:160:
-- SSL error:02001002:system library:fopen:No such file or directory: ../crypto/bio/bss_file.c:69
-- SSL error:2006D080:BIO routines:BIO_new_file:no such file: ../crypto/bio/bss_file.c:76
-sign-file: certs/signing_key.pem: No such file or directory
-Warning: modules_install: missing 'System.map' file. Skipping depmod.
-KERNELRELEASE= pwd=/home/lengjing/cbuild/examples/test-mod/test-hello-sub PWD=/home/lengjing/cbuild/examples/test-mod
-KERNELRELEASE=5.13.0-44-generic pwd=/usr/src/linux-headers-5.13.0-44-generic PWD=/home/lengjing/cbuild/examples/test-mod
-KERNELRELEASE=5.13.0-44-generic pwd=/usr/src/linux-headers-5.13.0-44-generic PWD=/home/lengjing/cbuild/examples/test-mod
-Skipping BTF generation for /home/lengjing/cbuild/output/objects/examples/test-mod/test-hello-sub/hello_sub.ko due to unavailability of vmlinux
-Build test-hello-sub Done.
-KERNELRELEASE= pwd=/home/lengjing/cbuild/examples/test-mod/test-hello-sub PWD=/home/lengjing/cbuild/examples/test-mod
-arch/x86/Makefile:148: CONFIG_X86_X32 enabled but no binutils support
-At main.c:160:
-- SSL error:02001002:system library:fopen:No such file or directory: ../crypto/bio/bss_file.c:69
-- SSL error:2006D080:BIO routines:BIO_new_file:no such file: ../crypto/bio/bss_file.c:76
-sign-file: certs/signing_key.pem: No such file or directory
-Warning: modules_install: missing 'System.map' file. Skipping depmod.
-KERNELRELEASE= pwd=/home/lengjing/cbuild/examples/test-mod/test-hello PWD=/home/lengjing/cbuild/examples/test-mod
-KERNELRELEASE=5.13.0-44-generic pwd=/usr/src/linux-headers-5.13.0-44-generic PWD=/home/lengjing/cbuild/examples/test-mod/test-hello
-KERNELRELEASE=5.13.0-44-generic pwd=/usr/src/linux-headers-5.13.0-44-generic PWD=/home/lengjing/cbuild/examples/test-mod/test-hello
-Skipping BTF generation for /home/lengjing/cbuild/output/objects/examples/test-mod/test-hello/hello_dep.ko due to unavailability of vmlinux
-Build test-hello Done.
-KERNELRELEASE= pwd=/home/lengjing/cbuild/examples/test-mod/test-hello PWD=/home/lengjing/cbuild/examples/test-mod
-arch/x86/Makefile:148: CONFIG_X86_X32 enabled but no binutils support
-At main.c:160:
-- SSL error:02001002:system library:fopen:No such file or directory: ../crypto/bio/bss_file.c:69
-- SSL error:2006D080:BIO routines:BIO_new_file:no such file: ../crypto/bio/bss_file.c:76
-sign-file: certs/signing_key.pem: No such file or directory
-Warning: modules_install: missing 'System.map' file. Skipping depmod.
-lengjing@lengjing:~/cbuild/examples/test-mod$
-lengjing@lengjing:~/cbuild/examples/test-mod$
-lengjing@lengjing:~/cbuild/examples/test-mod$ cd ../test-mod2
-lengjing@lengjing:~/cbuild/examples/test-mod2$ make
-KERNELRELEASE= pwd=/home/lengjing/cbuild/examples/test-mod2 PWD=/home/lengjing/cbuild/examples/test-mod2
-KERNELRELEASE=5.13.0-44-generic pwd=/usr/src/linux-headers-5.13.0-44-generic PWD=/home/lengjing/cbuild/examples/test-mod2
-KERNELRELEASE=5.13.0-44-generic pwd=/usr/src/linux-headers-5.13.0-44-generic PWD=/home/lengjing/cbuild/examples/test-mod2
-Skipping BTF generation for /home/lengjing/cbuild/output/objects/examples/test-mod2/hello_op.ko due to unavailability of vmlinux
-Skipping BTF generation for /home/lengjing/cbuild/output/objects/examples/test-mod2/hello_sec.ko due to unavailability of vmlinux
-Build test-mod2 Done.
-```
-
-### 内核模块模板的 Makefile 部分说明 (KERNELRELEASE 为空时)
-
-* 支持的目标
-    * modules: 编译外部内核模块
-    * modules_clean: 清理内核模块的编译输出
-    * modules_install: 安装内核模块
-        * 外部内核模块默认的安装路径为 `$(ENV_INS_ROOT)/lib/modules/<kernel_release>/extra/`
-    * symvers_install: 安装 Module.symvers 符号文件到指定位置(已设置此目标为 `install_hdrs` 目标的依赖)
-
-* 可设置的变量
-    * MOD_MAKES: 用户指定一些模块自己的信息，例如 XXXX=xxxx
-    * KERNEL_SRC: Linux 内核源码目录 (必须）
-    * KERNEL_OUT: Linux 内核编译输出目录 （`make -O $(KERNEL_OUT)` 编译内核的情况下必须）
-
-### 内核模块模板的 Kbuild 部分说明 (KERNELRELEASE 有值时)
-
-* 支持的目标
-    * MOD_NAME: 模块名称，可以是多个模块名称使用空格隔开
-
-* 可设置的变量
-    * IGNORE_PATH: 查找源码文件时，忽略搜索的目录名集合，默认已忽略 `.git scripts output` 文件夹
-    * SRCS: 所有的 C 和汇编源码文件，默认是当前目录下的所有的 `*.c *.S` 文件
-    * `ccflags-y` `asflags-y` `ldflags-y`: 分别对应内核模块编译、汇编、链接时的参数
-
-* 提供的函数
-    * `$(call translate_obj,源码文件集)`: 将源码文件集名字转换为KBUILD需要的 `*.o` 格式，不管源码是不是以 `$(src)/` 开头
-    * `$(call set_flags,标记名称,源文件列表,标记值)`: 单独为指定源码集设置编译标记，参考 inc.app.mk 的说明
-
-* 其它说明
-    * 如果 MOD_NAME 含有多个模块名称，需要用户自己填写各个模块下的对象，例如
+* Other Notes
+    * If `MOD_NAME` contains multiple module names, users need to fill in the objects for each module, for example:
 
         ```makefile
         MOD_NAME = mod1 mod2
@@ -565,1017 +682,745 @@ Build test-mod2 Done.
         mod2-y = a2.o b2.o c2.o
         ```
 
-    * 使用源码和编译输出分离时， 需要先将 Kbuild 或 Makefile 复制到 OUT_PATH 目录下，如果不想复制，需要修改内核源码的 `scripts/Makefile.modpost`，linux-5.19 内核和最新版本的 LTS 内核已合并此补丁
-
-    ```makefile
-    -include $(if $(wildcard $(KBUILD_EXTMOD)/Kbuild), \
-    -             $(KBUILD_EXTMOD)/Kbuild, $(KBUILD_EXTMOD)/Makefile)
-    +include $(if $(wildcard $(src)/Kbuild), $(src)/Kbuild, $(src)/Makefile)
-    ```
-
-## 系统编译链和配置链工具 gen_build_chain.py
-
-### 测试生成总系统编译链和配置链
-
-* 测试用例位于 `test-deps`，如下测试
-
-```sh
-lengjing@lengjing:~/cbuild/examples/test-mod2$ cd ../test-deps
-lengjing@lengjing:~/cbuild/examples/test-deps$ make deps
-Generate Kconfig OK.
-Generate auto.mk OK.
-lengjing@lengjing:~/cbuild/examples/test-deps$ make menuconfig
-configuration written to /home/lengjing/cbuild/output/objects/examples/test-deps/.config
-
-*** End of the configuration.
-*** Execute 'make' to start the build or try 'make help'.
-
-engjing@lengjing:~/cbuild/examples/test-deps$ make d
-target=all path=/home/lengjing/cbuild/examples/test-deps/pe/pe
-target=install path=/home/lengjing/cbuild/examples/test-deps/pe/pe
-target=all path=/home/lengjing/cbuild/examples/test-deps/pd/pd
-target=install path=/home/lengjing/cbuild/examples/test-deps/pd/pd
-lengjing@lengjing:~/cbuild/examples/test-deps$ make d_single
-target=all path=/home/lengjing/cbuild/examples/test-deps/pd/pd
-target=install path=/home/lengjing/cbuild/examples/test-deps/pd/pd
-lengjing@lengjing:~/cbuild/examples/test-deps$ make
-ext.mk
-target=all path=/home/lengjing/cbuild/examples/test-deps/pe/pe
-target=all path=/home/lengjing/cbuild/examples/test-deps/pc/pc
-target=install path=/home/lengjing/cbuild/examples/test-deps/pe/pe
-ext.mk
-target=all path=/home/lengjing/cbuild/examples/test-deps/pd/pd
-target=install path=/home/lengjing/cbuild/examples/test-deps/pc/pc
-target=install path=/home/lengjing/cbuild/examples/test-deps/pd/pd
-target=all path=/home/lengjing/cbuild/examples/test-deps/pb/pb
-target=install path=/home/lengjing/cbuild/examples/test-deps/pb/pb
-target=all path=/home/lengjing/cbuild/examples/test-deps/pa/pa
-target=install path=/home/lengjing/cbuild/examples/test-deps/pa/pa
-target=all path=/home/lengjing/cbuild/examples/test-deps/pf/pf
-target=install path=/home/lengjing/cbuild/examples/test-deps/pf/pf
-target=all path=/home/lengjing/cbuild/examples/test-deps/pf/pf
-target=install path=/home/lengjing/cbuild/examples/test-deps/pf/pf
-lengjing@lengjing:~/cbuild/examples/test-deps$ make a-deps  # 生成包a的依赖关系图
-Note: a.dot a.svg and a.png are generated in the depends folder.
-lengjing@lengjing:~/cbuild/examples/test-deps$ make clean
-ext.mk
-target=clean path=/home/lengjing/cbuild/examples/test-deps/pc/pc
-target=clean path=/home/lengjing/cbuild/examples/test-deps/pe/pe
-target=clean path=/home/lengjing/cbuild/examples/test-deps/pd/pd
-target=clean path=/home/lengjing/cbuild/examples/test-deps/pb/pb
-target=clean path=/home/lengjing/cbuild/examples/test-deps/pa/pa
-target=clean path=/home/lengjing/cbuild/examples/test-deps/pf/pf
-target=clean path=/home/lengjing/cbuild/examples/test-deps/pf/pf
-rm -f auto.mk Kconfig Target
-```
-
-### gen_build_chain.py 工具参数说明
-
-```sh
-# 带中括号表示是可选项，否则是必选项
-# 普通编译只需要一步自动生成 Kconfig 和 Makefike
-
-gen_build_chain.py -m MAKEFILE_OUT -k KCONFIG_OUT [-t TARGET_OUT] [-a DEPENDS_OUT] -d DEP_NAME [-v VIR_NAME] [-c CONF_NAME] -s SEARCH_DIRS [-i IGNORE_DIRS] [-g GO_ON_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG]
-
-# Yocto 编译需要两步分别自动生成 Kconfig 和 Image 配方，会自动分析 `conf/local.conf` `conf/bblayers.conf` 和层下的配方文件和配方附加文件
-
-gen_build_chain.py -k KCONFIG_OUT -t TARGET_OUT [-v VIR_NAME] [-c CONF_NAME] [-i IGNORE_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG] [-u USER_METAS]
-
-gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-p $PATCH_PKG_PATH] [-i IGNORE_RECIPES]
-```
-
-* `-m <Makefile Path>`: 普通编译中自动生成的 Makefile 文件名
-    * 可以使用一个顶层 Makefile 包含自动生成的 Makefile，all 目标调用 `make $(ENV_BUILD_JOBS) -s MAKEFLAGS= all_targets` 多线程编译所有包
-    * 如果某个包的内部需要启用多线程编译，需要在此包的其它目标中指定 `jobserver`，见下面说明
-    * 普通编译时可以统计各个包的编译时间，Makefile 示例如下:
+    * When using source code and compilation output separation, `inc.mod.mk` needs to copy Kbuild or Makefile to the `OUT_PATH` directory first
+        * If the following patch in `scripts/Makefile.modpost` of linux kernel is applied,  copy operation can be skipped ()
+            * This patch has been merged with the linux-5.19  and the latest version of the LTS linux
         ```makefile
-        TIME_PATH := $(OUT_PATH)/time_statistics
-        TIME_FORMAT := /usr/bin/time -a -o $(TIME_PATH) -f \"%e\\t\\t%U\\t\\t%S\\t\\t\$$@\"
-        time_statistics:
-        	@mkdir -p $(shell dirname $(TIME_PATH))
-        	@$(if $(findstring dash,$(shell readlink /bin/sh)),echo,echo -e) "real\t\tuser\t\tsys\t\tpackage" > $(TIME_PATH)
-        	@/usr/bin/time -a -o $(TIME_PATH) -f "%e\\t\\t%U\\t\\t%S\\t\\ttotal_time" make -s all_targets PRECMD="$(TIME_FORMAT) "
+        -include $(if $(wildcard $(KBUILD_EXTMOD)/Kbuild), \
+        -             $(KBUILD_EXTMOD)/Kbuild, $(KBUILD_EXTMOD)/Makefile)
+        +include $(if $(wildcard $(src)/Kbuild), $(src)/Kbuild, $(src)/Makefile)
         ```
-* `-k <Kconfig Path>`: 指定存储 Kconfig 的所有项目的文件路径
-* `-t <Target Path>`: 指定存储所有包的文件路径、包名列表的文件路径
-* `-a <Depends Path>`: 指定存储所有包的包名和依赖的文件路径
-* `-o <Image Path>`: Yocto 编译中指定存储打包到 rootfs 的软件列表文件
-* `-d <Search Depend Name>`: 普通编译中要搜索的依赖文件名(含有依赖规则语句)，依赖文件中可以包含多条依赖信息
-* `-c <Search Kconfig Name>`: 要搜索的 Kconfig 配置文件名(含有配置信息)
-    * 在普通编译中，查找依赖文件同目录的配置文件，先查找配置文件同后缀的文件名为包名的文件，找不到才查找指定配置文件
-    * 在 Yocto 编译中， Kconfig 配置文件优先查找当前目录下的 `配方名.bbconfig` 文件，找不到才在 bbappend 文件中 EXTERNALSRC 变量指定的路径下查找配置文件，先查找和配置文件同后缀的文件名为包名的文件，找不到才查找指定配置文件
-    * 在 Yocto 编译生成 image 配方的命令中指定的是 .config 的路径名
-* `-v <Search Virtual Depend Name>`: 要搜索的虚拟依赖文件名(含有虚拟依赖规则语句)
-* `-s <Search Directories>`: 普通编译中搜索的目录文件路径名，多个目录使用冒号隔开，Yocto 编译从 `conf/bblayers.conf` 获取搜索路径
-* `-i <Ignore Directories or Recipes>`: 忽略的目录名，不会搜索指定目录名下的依赖文件，多个目录使用冒号隔开，在生成 image 配方的命令中指定的是忽略的配方名
-* `-g <Go On Directories>`: 继续搜索的的目录文件路径名，多个目录使用冒号隔开
-    * 如果在当前目录下搜索到 `<Search Depend Name>`，`<Go On Directories>` 没有指定或当前目录不在它里面，不会再继续搜索当前目录的子目录
-* `-l <Max Layer Depth>`: 设置 menuconfig 菜单的最大层数，0 表示菜单平铺，1表示2层菜单，...
-* `-w <Keyword Directories>`: 用于 menuconfig 菜单，如果路径中的目录匹配设置值，则这个路径的层数减1，设置的多个目录使用冒号隔开
-* `-p <Prepend Flag>`: 用于 menuconfig，如果用户运行 conf / mconf 时设置了无前缀 `CONFIG_=""`，则运行此脚本需要设置此 flag 为 1
-    * 在 Yocto 第2步时指定存储使能的 patch/unpatch 包的文件路径
-* `-u <User Metas>`: Yocto 编译中指定用户层，多个层使用冒号隔开，只有用户层的包才会: 分析依赖关系，默认选中，托管Kconfig，支持 `EXTRADEPS` 特殊依赖和虚拟依赖
-
-### 实依赖格式
-
-* 普通编译实依赖格式 `#DEPS(Makefile_Name) Target_Name(Other_Target_Names): Depend_Names`
-
-    ![实依赖正则表达式](./scripts/bin/regex_deps.svg)
-
-* 普通编译包含子路径格式 `#INCDEPS: Subdir_Names`
-
-    ![包含子路径正则表达式](./scripts/bin/regex_incdeps.svg)
-
-* 普通编译实依赖格式说明
-    * Makefile_Name: make 运行的 Makefile 的名称 (可以为空)，不为空时 make 会运行指定的 Makefile (`-f Makefile_Name`)
-        * Makefile 中必须包含 all clean install 三个目标，默认会加入 all install 和 clean 目标的规则
-        * Makefile 名称可以包含路径(即斜杠 `/`)，支持直接查找子文件夹下的子包，例如 `test1/` or `test2/wrapper.mk`
-        * 也可以用一行语句 `#INCDEPS` 继续查找子文件夹下的依赖文件，支持递归
-            * 例如 `#INCDEPS: test1 test2`，通过子文件夹下的依赖文件找到子包
-            * Subdir_Names 支持环境变量替换，例如 `${ARCH}` 会替换为环境变量 ARCH 的值
-    * Target_Name: 当前包的名称ID
-        * `ignore` 关键字是特殊的ID，表示此包不是一个包，用来屏蔽当前目录的搜索，一般写为 `#DEPS() ignore():`
-    * Other_Target_Names: 当前包的其它目标，多个目标使用空格隔开 (可以为空)
-        * 忽略 Other_Target_Names 中的 all install clean 目标
-        * `prepare` 关键字是特殊的实目标，表示 make 前运行 make prepare，一般用于当 .config 不存在时加载默认配置到 .config
-        * `psysroot` 关键字是特殊的实目标，表示使用 OUT_PATH 的 sysroot 而不是 ENV_TOP_OUT 下的 sysroot / sysroot-native
-        * `release` 关键字是特殊的实目标，表示安装进 rootfs 时运行 make release，此目标不需要安装头文件和静态库文件等
-            * release 目标不存在时，rootfs 安装到 fakeroot 时运行 make install
-        * `union` 关键字是特殊的虚拟目标，用于多个包共享一个 Makefile
-            * 此时 `prepare all install clean` 目标的名字变为 `Target_Name-prepare Target_Name-all Target_Name-install Target_Name-clean`
-        * `cache` 关键字是特殊的虚拟目标，表明该包支持缓存机制
-        * `jobserver` 关键字是特殊的虚拟目标，表示 make 后加上 `$(ENV_BUILD_JOBS)`，用户需要 `export ENV_BUILD_JOBS=-j8` 才会启动多线程编译
-            * 某些包的 Makefile 包含 make 指令时不要加上 jobserver 目标，例如编译外部内核模块
-        * `subtarget1:subtarget2:...::dep1:dep2:...` 是特殊语法格式，用来显示指定子目标的依赖
-            * 双冒号分开子目标列表和依赖列表，子目标之间和依赖之间使用单冒号分隔，依赖列表可以为空
-    * Depend_Names: 当前包依赖的其它包的名称ID，多个依赖使用空格隔开 (可以为空)
-        * 如果有循环依赖或未定义依赖，解析将会失败，会打印出未解析成功的条目
-            * 出现循环依赖，打印 "ERROR: circular deps!"
-            * 出现未定义依赖，打印 "ERROR: deps (%s) are not found!"
-
-注:  包的名称ID (Target_Name Depend_Names) 是由 **小写字母、数字、短划线** 组成；Other_Target_Names 无此要求，还可以使用 `%` 作为通配符
-<br>
-
-* 普通编译命令说明
-    * 可以 `make 包名` 先编译某个包的依赖包(有依赖时)再编译这个包
-    * 可以 `make 包名_single` 有依赖时才有这类目标，仅仅编译这个包
-    * 可以 `make 包名_目标名` 先编译某个包的依赖包(有依赖时)再编译这个包的特定目标(特定目标需要在 Other_Target_Names 中定义)
-    * 可以 `make 包名_目标名_single` 有依赖时才有这类目标，仅仅编译这个包的特定目标(特定目标需要在 Other_Target_Names 中定义)
-
-* Yocto 编译实依赖格式
-    * Yocto 编译实依赖格式按照 Yocto 要求填写 `DEPENDS` 和 `RDEPENDS:${PN}` 变量
-
-### 虚依赖格式
-
-* 虚依赖格式 `#VDEPS(Virtual_Type) Target_Name(Other_Infos): Depend_Names`
-
-    ![虚依赖正则表达式](./scripts/bin/regex_vdeps.svg)
-
-* Virtual_Type      : 必选，表示虚拟包的类型，目前有 4 种类型
-    * `menuconfig`  : 表示生成 `menuconfig` 虚拟包，当前目录(含子目录)下的所有的包强依赖此包，且处于该包的菜单目录下
-    * `config`      : 表示生成 `config` 虚拟包
-    * `menuchoice`  : 表示生成 `choice` 虚拟包，当前目录(含子目录)下的所有的包会成为 choice 下的子选项
-    * `choice`      : 表示生成 `choice` 虚拟包，Other_Infos 下的包列表会成为 choice 下的子选项
-* Virtual_Name      : 必选，虚拟包的名称
-* Other_Infos       : choice 类型必选，其它类型可选
-    * 对所有类型来说，可以出现一个以 `/` 开头的路径名项(可选)，表示作用于指定的子目录而不是当前目录
-        * 对 config choice 类型来说，路径名项可以指定一个虚拟路径，例如 `/virtual` (virtual 可以是任意单词)，此时虚拟项目在当前目录(而不是上层目录)下显示
-    * 对 choice 类型来说，空格分开的包列表会成为 choice 下的子选项，其中第一个包为默认选择的包
-    * 对 menuchoice 类型来说，可以指定默认选择的包
-* Depend_Names      : 可选，依赖项列表，和 `#DEPS` 语句用法基本相同，例如可以设置 `unselect`，choice 和 menuchoice 类型不支持 select 和 imply
-
-注: 虚依赖是指该包不是实际的包，不会参与编译，只是用来组织管理实际包，普通编译和 Yocto 编译虚拟包的写法和使用规则相同
-
-### 特殊依赖说明
-
-* 特殊依赖(虚拟包)
-    * `*depname`    : 表示此依赖包是虚拟包 depname，去掉 `*` 后 depname 还可以有特殊符，会继续解析，例如 `*&&depname`
-* 特殊依赖(关键字)
-    * `finally`     : 表示此包编译顺序在所有其它包之后，一般用于最后生成文件系统和系统镜像，只用在普通编译的强依赖中
-    * `unselect`    : 表示此包默认不编译，即 `default n`，否则此包默认编译，即 `default y`
-    * `nokconfig`   : 表示此包不含 Kconfig 配置。同一目录有多个包时，此包无需设置 `nokconfig`，而其它包也有配置可以将配置的文件名设为 **包名.配置的后缀** ，否则需要设置 nokconfig
-* 特殊依赖(特殊符)
-    * `!depname`                    : 表示此包和 depname 包冲突，无法同时开启，即 `depends on !depname`
-    * `&depname` or `&&depname`     : 表示此包弱/强选中 depname 包，即 `imply depname` / `select depname`
-        * 单与号表示此包选中后，imply 的 depname 也被自动选中，此时 depname 也可以手动取消选中
-        * 双与号表示此包选中后，select 的 depname 也被自动选中，此时 depname 不可以取消选中
-    * `?depname` or `??depname`     : 表示此包弱依赖 depname 包
-        * 弱依赖是指即使 depname 包未选中或不存在，依赖它的包也可以选中和编译成功
-        * 单问号表示编译时依赖(依赖包没有安装动态库等)
-        * 双问号表示编译时和运行时依赖(依赖包安装了动态库等)
-    * `depa|depb` or `depa||depb`   : 表示此包弱依赖 depa depb ...
-        * 弱依赖列表中的包至少需要一个 depx 包选中，依赖它的包才可以选中和编译成功
-        * 单竖线表示编译时依赖
-        * 双竖线表示编译时和运行时依赖
-        * 省略 `|` `||` 前面的单词会被隐式推导使用预编译包或源码包中选一，例如 `||libtest` 被隐式推导为 `prebuild-libtest||libtest`
-    * `& ?`                         : `&` 可以和 `?` 组合使用，不要求组合顺序，表示选中并弱依赖
-        * 例如： `&&??depname` 或 `??&&depname` 等表示强选中弱依赖，`??&depname` 或 `&??depname` 等表示弱依赖弱选中
-    * `& |`                         : `&` 可以和 `|` 组合使用，表示选中其中一个包并弱依赖所有实包
-        * 适合强选中并弱依赖预编译包和源码包选择其一
-        * 省略最后一个 `|` `||` 前面的字符直到 `&`被隐式推导为 `*build-包名 prebuild-包名 包名` 三元组
-        * 例如： `&&||libtest` 被隐式推导为 `&&*build-libtest||prebuild-libtest||libtest`
-        * 例如： `&&*build-libtest||prebuild-libtest||libtest` 表示强选中这三个包中第一个存在的包，并弱依赖后面两个实包
-    * 其它说明:
-        * 对普通编译来说，`?` `??` 没有区别，`|` `||` 没有区别
-        * 对 Yocto 编译来说，`?` `|` 中的弱依赖只会设置 `DEPENDS`，`??` `||` 中的弱依赖会同时设置 `DEPENDS` 和 `RDEPENDS:${PN}`
-* 特殊依赖(环境变量)
-    * ENVNAME=val1,val2 : 表示此包依赖环境变量 ENVNAME 的值等于 val1 或等于 val2
-    * ENVNAME!=val1,val2: 表示此包依赖环境变量 ENVNAME 的值不等于 val1 且不等于 val2
-
-* 注: 特殊依赖普通编译时设置的是 `#DEPS` 语句的 `Depend_Names` 元素，Yocto 中是赋值给配方文件的 `EXTRADEPS` 变量，且如果 EXTRADEPS 中含有弱依赖，需要继承类 `inherit weakdep`
-    * `weakdep` 类会解析输出根目录的 `config/.config` 文件，根据是否选中此项来设置 `DEPENDS` 和 `RDEPENDS:${PN}`
-    * 可以设置 `conf/bblayers.conf` 中的 `BBFILES` 变量，指定查找自动生成的 image 配方的路径，例如 `BBFILES ?= "${TOPDIR}/config/*.bb"`
-
-### 生成依赖关系图 gen_depends_image.sh
-
-* `scripts/bin/gen_depends_image.sh` 命令参数
-    * 参数1: 包名
-    * 参数2: 存储图片的文件夹路径
-    * 参数3: 包名列表等
-        * 普通编译是存储包名和依赖列表的文件路径(gen_build_chain.py 的 `-a` 指定的路径)
-        * Yocto 编译是存储包名和源码路径的文件路径(gen_build_chain.py 的 `-t` 指定的路径)
-    * 参数4: 配置文件 .config 的路径
-<br>
-
-* 生成图片说明
-    * 使用方法 `make 包名-deps`
-    * 普通编译
-        * 实线：强依赖
-        * 虚线：弱依赖
-        * 双线：prebuild 和 srcbuild 选其一，或 patch 和 unpatch 选其一
-        * 绿线：配置文件 .config 中该包已经被选中
-        * 红线：配置文件 .config 中该包没有被选中
-        * 顶层包框颜色
-            * 绿框：配置文件 .config 中该包已经被选中
-            * 红框：配置文件 .config 中该包没有被选中
-    * Yocto 编译
-        * 绿框：用户包，配置文件 .config 中该包已经被选中
-        * 红框：用户包，配置文件 .config 中该包没有被选中
-        * 篮框：Yocto 等社区的包 (没有在 gen_build_chain.py 的 `-u` 指定的层中)
 
 
-## 网络下载包并打补丁编译
+### Configuration Template inc.conf.mk
 
-### 测试网络下载包并打补丁编译
+* `inc.conf.mk` provides a configuration method with Konfig
 
-* 测试用例位于 `test-lua`，如下测试
+#### Targets of Configuration Template
 
-```sh
-# 测试下载 lua 并打补丁编译
-lengjing@lengjing:~/cbuild/examples/test-lua$ make
-curl http://www.lua.org/ftp/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/mirror-cache/downloads/lua-5.4.4.tar.gz
-untar /home/lengjing/cbuild/output/mirror-cache/downloads/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/objects/examples/test-lua
-patching file Makefile
-patching file src/Makefile
-Patch /home/lengjing/cbuild/examples/test-lua/patch/0001-lua-Support-dynamic-library-compilation.patch to /home/lengjing/cbuild/output/objects/examples/test-lua/lua-5.4.4 Done.
-patching file src/lparser.c
-Patch /home/lengjing/cbuild/examples/test-lua/patch/CVE-2022-28805.patch to /home/lengjing/cbuild/output/objects/examples/test-lua/lua-5.4.4 Done.
-Guessing Linux
-Build lua Done.
+* loadconfig: Loads the default configuration specified by `DEF_CONFIG` if `.config` does not exist
+* defconfig: Restores the default configuration specified by `DEF_CONFIG`
+* menuconfig: Opens graphical configuration
+* cleanconfig: Cleans the configuration and the kconfig output
+* xxx_config: Loads the special configuration `xxx_config` in `CONFIG_SAVE_PATH` as the current configuration
+* xxx_saveconfig: Saves the current configuration to `xxx_config` in `CONFIG_SAVE_PATH`
+* xxx_defonfig: Loads the special configuration `xxx_defconfig` in `CONFIG_SAVE_PATH` as the current configuration
+* xxx_savedefconfig: Saves the current configuration to `xxx_defconfig` in `CONFIG_SAVE_PATH`
 
-# 另起一个终端，将 ~/cbuild/downloads 重命名为 ~/cbuild/mirror 并启用 http 服务器
-lengjing@lengjing:~/cbuild/mirror$ python3 -m http.server 8888
 
-# 原先的终端继续运行命令
-lengjing@lengjing:~/cbuild/examples/test-lua$ export FETCH_SCRIPT=${ENV_TOOL_DIR}/fetch_package.sh
-lengjing@lengjing:~/cbuild/examples/test-lua$ export COPY_TO_PATH=${ENV_TOP_DIR}/output/oss
+#### Variables of Configuration Template
 
-# 测试 tar 类型的包
-lengjing@lengjing:~/cbuild/examples/test-lua$ ${FETCH_SCRIPT} tar http://www.lua.org/ftp/lua-5.4.3.tar.gz lua-5.4.3.tar.gz ${COPY_TO_PATH} lua-5.4.3
-curl http://www.lua.org/ftp/lua-5.4.3.tar.gz to /home/lengjing/cbuild/downloads/lua-5.4.3.tar.gz
-untar /home/lengjing/cbuild/downloads/lua-5.4.3.tar.gz to /home/lengjing/cbuild/output/oss
+* OUT_PATH: Configuration output path, keep it as default
+* CONF_SRC: The source directory of the kconfig project, its default value is `$(ENV_TOP_DIR)/scripts/kconfig`
+* CONF_PATH: The installation directory of the kconfig tools
+* CONF_PREFIX: Sets the variables that `conf`/`mconf` runs, mainly the following two settings:
+    * `srctree=<path_name>` : The relative directory of the `source` command in the Kconfig files, if `srctree` is not specified, the default relative directory is the directory where `conf`/`mconf` runs
+    * `CONFIG_="<prefix>"`  : The prefix of configuration items in the auto-generated `.config` and `config.h`, if `CONFIG_` is not specified, the default prefix is `CONFIG_`; if is set as `CONFIG_=""`, there is no prefix in the item name.
+* CONF_HEADER: Sets the include macro `#ifndef xxx ... #define xxx ... #endif` used in the auto-generated `config.h`, its default value is `__<upper of $(PACKAGE_NAME)>_CONFIG_H__`
+    * The `config.h` does not contains include macro by default, it is added by `sed` command
+* KCONFIG: The configuration parameter file, its default is `Kconfig`
+* CONF_SAVE_PATH: The directory where the configuration file is obtained and saved, its default is `config` directory in the package folder
+* CONF_APPEND_CMD:  Appends the commands to run when the configuration is changed
 
-# 测试 tar 类型的包，可以发现从镜像 http://127.0.0.1:8888 下载了
-lengjing@lengjing:~/cbuild/examples/test-lua$ ${FETCH_SCRIPT} tar http://www.lua.org/ftp/lua-5.4.4.tar.gz lua-5.4.4.tar.gz ${COPY_TO_PATH} lua-5.4.4
-curl http://127.0.0.1:8888/lua-5.4.4.tar.gz to /home/lengjing/cbuild/downloads/lua-5.4.4.tar.gz
-untar /home/lengjing/cbuild/downloads/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/oss
 
-# 测试 zip 类型的包
-lengjing@lengjing:~/cbuild/examples/test-lua$ ${FETCH_SCRIPT} zip https://github.com/curl/curl/releases/download/curl-7_86_0/curl-7.86.0.zip curl-7.86.0.zip ${COPY_TO_PATH} curl-7.86.0
-curl https://github.com/curl/curl/releases/download/curl-7_86_0/curl-7.86.0.zip to /home/lengjing/cbuild/downloads/curl-7.86.0.zip
-unzip /home/lengjing/cbuild/downloads/curl-7.86.0.zip to /home/lengjing/cbuild/output/oss
+#### scripts/kconfig Project
 
-# 测试 git 类型的包
-lengjing@lengjing:~/cbuild/examples/test-lua$ ${FETCH_SCRIPT} git https://github.com/lengjingzju/json.git json ${COPY_TO_PATH} json
-git clone https://github.com/lengjingzju/json.git to /home/lengjing/cbuild/downloads/json
-Cloning into '/home/lengjing/cbuild/downloads/json'...
-remote: Enumerating objects: 39, done.
-remote: Counting objects: 100% (2/2), done.
-remote: Compressing objects: 100% (2/2), done.
-remote: Total 39 (delta 1), reused 0 (delta 0), pack-reused 37
-Unpacking objects: 100% (39/39), 450.82 KiB | 891.00 KiB/s, done.
-copy /home/lengjing/cbuild/downloads/json to /home/lengjing/cbuild/output/oss
+* The source code comes entirely from the `scripts/kconfig` of linux-5.18
+* CBuild adds additional support  `CONFIG_PATH` `AUTOCONFIG_PATH` `AUTOHEADER_PATH` which are originally passed in as environment variables
 
-# 测试 svn 类型的包
-lengjing@lengjing:~/cbuild/examples/test-lua$ ${FETCH_SCRIPT} svn https://github.com/lengjingzju/mem mem ${COPY_TO_PATH} mem
-svn checkout https://github.com/lengjingzju/mem to /home/lengjing/cbuild/downloads/mem
-copy /home/lengjing/cbuild/downloads/mem to /home/lengjing/cbuild/output/oss
-```
 
-### 网络下载包 fetch_package.sh
+## Network Cache and OSS Layer
 
-* 用法 `fetch_package.sh method url package outdir outname`
-    * method:  包下载方式，目前支持 4 种方式
-        * tar: 可用 tar 命令解压的包，使用 curl 下载包，后缀名为 `tar.gz` `tar.bz2` `tar.xz` `tar` 等
-        * zip: 使用 unzip 命令解压的包，使用 curl 下载包，后缀名为 `gz` `zip` 等
-        * git: 优先从镜像使用 curl 下载包 `$package-git.tar.gz` 再运行 `git pull`，否则 `git clone`下载包
-        * svn: 优先从镜像使用 curl 下载包 `$package-svn.tar.gz` 再运行 `svn up`，否则使用 `svn checkout` 下载包
-        * 注: 使用 curl 下载包优先尝试 `ENV_MIRROR_URL` 指定的镜像 URL
-        * 注: outdir outname 不指定时只下载包，不复制或解压到输出
-    * url: 下载链接
-        * tar/zip: 最好同时设置 MD5, 例如: `https://xxx/xxx.tar.xz;md5=yyy`
-        * git: 最好同时设置 branch / tag / revision, tag 和 revision 不要同时设置，例如: 
+* Only for Normal Build
+
+### Download fetch_package.sh
+
+* Usage: `fetch_package.sh <method> <urls> <package> [outdir] [outname]`
+    * When outdir and outname are not specified, It only downloads the package, doesn't copy or decompress the package to the output
+    * method: Download method, currently only supports 4 methods:
+        * tar: Package downloaded with `curl` and extracted with `tar`, suffix of the package file can be `tar.gz`, `tar.bz2`, `tar.xz`, `tar`, and so on
+        * zip: Package downloaded with `curl` and extracted with `unzip`, suffix of the package file can be `gz`, `zip`, and so on
+        * git: Package downloaded with `git clone`
+        * svn: Package downloaded with `svn checkout`
+
+        * git: Package downloaded with `curl` from `$package-git-xxx.tar.gz` on the mirror server, or downloaded with `git clone`
+        * svn: Package downloaded with `curl` from `$package-svn-xxx.tar.gz` on the mirror server, or downloaded with `svn checkout`
+    * urls: Download URLs
+        * tar/zip: It is better to set `md5` at the same time, for example:
+            * `https://xxx/xxx.tar.xz;md5=yyy`
+        * git: It is better to set `branch` / `tag` / `rev` (revision) at the same time (`tag` and `rev` should not be set at the same time), for example:
             * `https://xxx/xxx.git;branch=xxx;tag=yyy`
             * `https://xxx/xxx.git;branch=xxx;rev=yyy`
             * `https://xxx/xxx.git;tag=yyy`
             * `https://xxx/xxx.git;rev=yyy`
-        * svn: 最好同时设置 revision, 例如: `https://xxx/xxx;rev=yyy`
-    * package: tar zip 是保存的文件名，git svn 是保存的文件夹名，保存的目录是 `ENV_DOWN_DIR`
-    * outdir: 解压或复制到的目录，用于编译
-    * outname: outdir 中包的文件夹名称
+        * svn: It is better to set `rev` at the same time, for example:
+            * `https://xxx/xxx;rev=yyy`
+    * package: The saved filename for `tar` / `zip`, or the saved dirname for `git` / `svn`, and the saved path is `ENV_DOWN_DIR`
+    * outdir: The path to extract to or copy to
+    * outname: The folder name of the package under `outdir`
 
-### 普通编译打补丁 exec_patch.sh
+Note: `fetch_package.sh` preferentially tries to download the package from the mirror URL specified by `ENV_MIRROR_URL` instead of the original URL
 
-* 每类补丁建立两个包，打补丁包和去补丁包，包名格式必须为 `源码包名-patch-补丁ID名` 和 `源码包名-unpatch-补丁ID名`
-* 源码包弱依赖这两个包，源码包的 `#DEPS` 语句的 Depend_Names 加上 `xxx-patch-xxx|xxx-unpatch-xxx`
-* 建立虚依赖规则文件 `#VDEPS(choice) xxx-patch-xxx-choice(xxx-unpatch-xxx xxx-patch-xxx):`
-* 源码包的所有补丁包共用一个 Makefile，示例如下:
-    * PATCH_PACKAGE : 源码包名
-    * PATCH_TOPATH  : 源码路径
-    * PATCH_FOLDER  : 补丁存放路径
-    * PATCH_NAME_补丁ID名 : 补丁名，可以是多个补丁
 
-```makefile
-PATCH_SCRIPT        := $(ENV_TOOL_DIR)/exec_patch.sh
-PATCH_PACKAGE       := xxx
-PATCH_TOPATH        := xxx
+### Patch Script exec_patch.sh
 
-PATCH_FOLDER        := xxx
-PATCH_NAME_xxx      := 0001-xxx.patch
-PATCH_NAME_yyy      := 0001-yyy.patch 0002-yyy.patch
-
-$(PATCH_PACKAGE)-unpatch-all:
-	@$(PATCH_SCRIPT) unpatch $(PATCH_FOLDER) $(PATCH_TOPATH)
-	@echo "Unpatch $(PATCH_TOPATH) Done."
-
-$(PATCH_PACKAGE)-patch-%-all:
-	@$(PATCH_SCRIPT) patch "$(patsubst %,$(PATCH_FOLDER)/%,$(PATCH_NAME_$(patsubst $(PATCH_PACKAGE)-patch-%-all,%,$@)))" $(PATCH_TOPATH)
-	@echo "Build $(patsubst %-all,%,$@) Done."
-
-$(PATCH_PACKAGE)-unpatch-%-all:
-	@$(PATCH_SCRIPT) unpatch "$(patsubst %,$(PATCH_FOLDER)/%,$(PATCH_NAME_$(patsubst $(PATCH_PACKAGE)-unpatch-%-all,%,$@)))" $(PATCH_TOPATH)
-	@echo "Build $(patsubst %-all,%,$@) Done."
-
-%-clean:
-	@
-
-%-install:
-	@
-```
-
-### Yocto 编译打补丁 externalpatch.bbclass
-
-* Yocto 官方打补丁
-    * 方法
-        * 配方文件的当前目录新建名为 `配方名` 或 `files` 的文件夹，补丁放在此文件夹内
-            * 注：查找补丁文件的文件夹不止上面这些，但我们一般使用名为 `配方名` 的文件夹
-        * 配方中加上补丁文件名声明，无需文件夹路径 `SRC_URI += "file://0001-xxx.patch"`
-        * 如果配方继承了 `externalsrc` 类，还要设置变量 `RCTREECOVEREDTASKS = "do_unpack do_fetch"`
-            * 注：`externalsrc` 类默认会把 `do_patch` 任务删除，所以要设置 `RCTREECOVEREDTASKS`
-    * 优点
-        * 实现简单
-    * 缺点
-        * 无法选择补丁是否打上
-        * 打补丁默认只会运行一次，如果其它方法去掉了补丁，重新编译，补丁不会被打上
-        * 会在源码目录生成临时文件夹，污染源码目录，例如生成了 `.pc/` `patches/`
+* Usage: `exec_patch.sh <method> <patch_srcs> <patch_dst>`
+    * method: There are only two values: `patch` for patching, `unpatch` for removing patch
+    * patch_srcs: The path of the patch files or directories
+    * patch_dst: The path of the source code to be patched
 <br>
 
-* 自定义打补丁
-    * 方法
-        * 每类补丁建立两个包，打补丁包和去补丁包，配方名格式必须为 `xxx-patch-xxx` 和 `xxx-unpatch-xxx`
-        * 源码包弱依赖这两个包 `EXTRADEPS = "xxx-patch-xxx|xxx-unpatch-xxx"` `inherit weakdep`
-        * 建立虚依赖规则文件 `#VDEPS(choice) xxx-patch-xxx-choice(xxx-unpatch-xxx xxx-patch-xxx):`
-        * 补丁包设置变量并继承外部补丁类 `inherit externalpatch`
-            * `externalpatch` 类的作用是检查补丁是否打上，从而决定是否打补丁或去补丁强制运行
-            ```sh
-            EXTERNALPATCH_SRC = "带路径的补丁文件名，可以是多个文件或目录"
-            EXTERNALPATCH_DST = "要打补丁的源码目录"
-            EXTERNALPATCH_OPT = "patch 或 unpatch"
-            inherit externalpatch
-            ```
-    * 缺点
-        * 实现稍显复杂
-        * 因为动态修改了配方，补丁选项改变时需要重新编译打/去补丁包两次
-    * 优点
-        * 可以选择补丁是否打上
-        * 可以保证打补丁或去补丁正确运行，无论是否在其它地方做了打补丁或去补丁的操作
-        * 源码目录只有补丁的修改，无临时文件或文件夹
-        * 补丁可以放在任意目录
+* Example: Choose whether to patch or not
+    * Creates two new packages: patch package (`<package to be patched>-patch-<ID>`) and unpatch package (`<package to be patched>-unpatch-<ID>`)
+    * The source package weakly depends on these two packages, Sets `xxx-patch-xxx|xxx-unpatch-xxx` to the `Depend_Names` of DEPS-statement for the source package
+    * Creates virtual package `#VDEPS(choice) xxx-patch-xxx-choice(xxx-unpatch-xxx xxx-patch-xxx):`
+    * All patch/unpatch packages share the same Makefile as follows:
+
+    ```makefile
+    PATCH_SCRIPT        := $(ENV_TOOL_DIR)/exec_patch.sh
+    PATCH_PACKAGE       := xxx  # package name to be patched
+    PATCH_TOPATH        := xxx  # package folder to be patched
+
+    PATCH_FOLDER        := xxx  # patch folder where store patches
+    PATCH_NAME_xxx      := 0001-xxx.patch # patch package ID (xxx)
+    PATCH_NAME_yyy      := 0001-yyy.patch 0002-yyy.patch # another patch package ID (xxx)
+
+    $(PATCH_PACKAGE)-unpatch-all:
+    	@$(PATCH_SCRIPT) unpatch $(PATCH_FOLDER) $(PATCH_TOPATH)
+    	@echo "Unpatch $(PATCH_TOPATH) Done."
+
+    $(PATCH_PACKAGE)-patch-%-all:
+    	@$(PATCH_SCRIPT) patch "$(patsubst %,$(PATCH_FOLDER)/%,$(PATCH_NAME_$(patsubst $(PATCH_PACKAGE)-patch-%-all,%,$@)))" $(PATCH_TOPATH)
+    	@echo "Build $(patsubst %-all,%,$@) Done."
+
+    $(PATCH_PACKAGE)-unpatch-%-all:
+    	@$(PATCH_SCRIPT) unpatch "$(patsubst %,$(PATCH_FOLDER)/%,$(PATCH_NAME_$(patsubst $(PATCH_PACKAGE)-unpatch-%-all,%,$@)))" $(PATCH_TOPATH)
+    	@echo "Build $(patsubst %-all,%,$@) Done."
+
+    %-clean:
+    	@
+
+    %-install:
+    	@
+    ```
 
 
-## OSS 层和编译缓存 process_cache.sh
+### Cache Script process_cache.sh
 
-### 测试 OSS 层和编译缓存
+* Usage: Runs `process_cache.sh -h`
 
-OSS 层正在开发中，目前有五十多个个包，需要大家的贡献完善<br>
+* Principle of Cache
+    * Validates elements that affect the compilation result, sets the checksum as a part of the cache file name
+    * The elements are: compilation scripts, patches, output of dependency packages, package archives or local source files ...
+    * Note that never add the output files to the validation
 
-编译缓冲演示demo [cache_demo](https://www.bilibili.com/video/BV15R4y1C7e6)
+### Cache Template inc.cache.mk
 
-* 第一次编译，并统计各个包的编译时间
-    * `make time_statistics` 是一个一个包编译过去(包内可能是多线程编译)，获取每个包的编译时间
-    * `make` 是不仅是包内可能是多线程编译，多个包也是同时编译，不统计编译时间
-    * 其他命令
-        * `make all_fetchs` 只下载所有选中的支持缓存的包的源码
-        * `make all_caches` 下载并编译所有选中的支持缓存的包的源码
+#### Variables of Cache Template
 
-注: 第一次编译前最好选中支持缓存的包后下载所有的源码 `make all_fetchs`，防止源码无法下载导致问题
-
-
-```sh
-lengjing@lengjing:~/cbuild$ make time_statistics
-Install Clean Done.
-Generate /home/lengjing/cbuild/output/config/Kconfig OK.
-Generate /home/lengjing/cbuild/output/config/auto.mk OK.
-Generate /home/lengjing/cbuild/output/config/DEPS OK.
-.....
-#
-# No change to /home/lengjing/cbuild/output/config/.config
-#
-curl https://www.busybox.net/downloads/busybox-1.35.0.tar.bz2 to /home/lengjing/cbuild/output/mirror-cache/downloads/busybox-1.35.0.tar.bz2
-untar /home/lengjing/cbuild/output/mirror-cache/downloads/busybox-1.35.0.tar.bz2 to /home/lengjing/cbuild/output/objects/oss/busybox
-......
-*
-* Busybox Configuration
-*
-*
-* Settings
-*
-......
-  GEN     /home/lengjing/cbuild/output/objects/oss/busybox/objects/Makefile
-  Using /home/lengjing/cbuild/output/objects/oss/busybox/busybox-1.35.0 as source for busybox
-......
-Final link with: m resolv
-Push busybox Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build busybox Done.
-curl https://github.com/DaveGamble/cJSON/archive/refs/tags/v1.7.15.tar.gz to /home/lengjing/cbuild/output/mirror-cache/downloads/cJSON-1.7.15.tar.gz
-untar /home/lengjing/cbuild/output/mirror-cache/downloads/cJSON-1.7.15.tar.gz to /home/lengjing/cbuild/output/objects/oss/cjson
-......
--- Build files have been written to: /home/lengjing/cbuild/output/objects/oss/cjson/objects
-Scanning dependencies of target cjson
-[ 25%] Building C object CMakeFiles/cjson.dir/cJSON.c.o
-[ 50%] Linking C shared library libcjson.so
-[ 50%] Built target cjson
-Scanning dependencies of target cjson_utils
-[ 75%] Building C object CMakeFiles/cjson_utils.dir/cJSON_Utils.c.o
-[100%] Linking C shared library libcjson_utils.so
-[100%] Built target cjson_utils
-[ 50%] Built target cjson
-[100%] Built target cjson_utils
-Install the project...
-......
-Push cjson Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build cjson Done.
-正克隆到 '/home/lengjing/cbuild/output/mirror-cache/downloads/ljson'...
-remote: Enumerating objects: 39, done.
-remote: Counting objects: 100% (2/2), done.
-remote: Compressing objects: 100% (2/2), done.
-remote: Total 39 (delta 1), reused 0 (delta 0), pack-reused 37
-展开对象中: 100% (39/39), 450.82 KiB | 926.00 KiB/s, 完成.
-git clone https://github.com/lengjingzju/json.git to /home/lengjing/cbuild/output/mirror-cache/downloads/ljson
-copy /home/lengjing/cbuild/output/mirror-cache/downloads/ljson to /home/lengjing/cbuild/output/objects/oss/ljson
-gcc	json.c
-gcc	json_test.c
-lib:	/home/lengjing/cbuild/output/objects/oss/ljson/objects/libljson.so
-lib:	/home/lengjing/cbuild/output/objects/oss/ljson/objects/libljson.a
-bin:	/home/lengjing/cbuild/output/objects/oss/ljson/objects/ljson_test
-Build ljson Done.
-Push ljson Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build ljson Done.
-curl http://www.lua.org/ftp/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/mirror-cache/downloads/lua-5.4.4.tar.gz
-untar /home/lengjing/cbuild/output/mirror-cache/downloads/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/objects/oss/lua
-patching file Makefile
-patching file src/Makefile
-Patch /home/lengjing/cbuild/oss/lua/patch/0001-lua-Support-dynamic-library-compilation.patch to /home/lengjing/cbuild/output/objects/oss/lua/lua-5.4.4 Done.
-patching file src/lparser.c
-Patch /home/lengjing/cbuild/oss/lua/patch/CVE-2022-28805.patch to /home/lengjing/cbuild/output/objects/oss/lua/lua-5.4.4 Done.
-Guessing Linux
-Push lua Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build lua Done.
-Build done!
-
-lengjing@lengjing:~/cbuild$ cat output/config/time_statistics
-real		user		sys		package
-0.00		0.00		0.00		insclean
-0.11		0.09		0.02		deps
-29.80		101.74		24.61		busybox
-0.06		0.02		0.03		busybox
-5.56		2.69		1.22		cjson
-0.02		0.01		0.00		cjson
-3.38		1.84		0.33		ljson
-0.02		0.02		0.00		ljson
-5.76		8.39		0.93		lua
-0.04		0.03		0.01		lua
-44.71		114.80		27.17		total_time
-```
-
-* 再次编译，直接从本地缓存取了，没有重新从代码编译
-
-```sh
-lengjing@lengjing:~/cbuild$ make
-Install Clean Done.
-Generate /home/lengjing/cbuild/output/config/Kconfig OK.
-Generate /home/lengjing/cbuild/output/config/auto.mk OK.
-Generate /home/lengjing/cbuild/output/config/DEPS OK.
-Use cjson Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build cjson Done.
-Use ljson Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build ljson Done.
-Use busybox Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build busybox Done.
-Use lua Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build lua Done.
-Build done!
-```
-* 另启一个终端，启动镜像服务器
-
-```sh
-lengjing@lengjing:~/cbuild$ mv output/mirror-cache/ .
-lengjing@lengjing:~/cbuild$ cd mirror-cache/
-lengjing@lengjing:~/cbuild/mirror-cache$
-lengjing@lengjing:~/cbuild/mirror-cache$
-lengjing@lengjing:~/cbuild/mirror-cache$ tree
-.
-├── build-cache
-│   ├── v2--busybox--c0a8ff5196b1964b6105fb68035d5917.tar.gz
-│   ├── v2--cjson--eae1fa8046747993820ca17f11c11f06.tar.gz
-│   ├── v2--ljson--79f7d36ce038303d08c07abfa77f0611.tar.gz
-│   └── v2--lua--049af0a78d0305b6fb31b211723ab005.tar.gz
-└── downloads
-    ├── busybox-1.35.0.tar.bz2
-    ├── busybox-1.35.0.tar.bz2.src.hash
-    ├── cJSON-1.7.15.tar.gz
-    ├── cJSON-1.7.15.tar.gz.src.hash
-    ├── ljson
-    │   ├── json.c
-    │   ├── json.h
-    │   ├── json_test.c
-    │   ├── json_test.png
-    │   ├── LICENSE
-    │   └── README.md
-    ├── ljson-git.tar.gz
-    ├── ljson.src.hash
-    ├── lua-5.4.4.tar.gz
-    └── lua-5.4.4.tar.gz.src.hash
-
-3 directories, 18 files
-lengjing@lengjing:~/cbuild/mirror-cache$ python3 -m http.server 8888
-Serving HTTP on 0.0.0.0 port 8888 (http://0.0.0.0:8888/) ...
-```
-
-* 原先终端删除所有编译输出和缓存，开始全新编译，直接从网络缓存取了，没有重新从代码编译
-
-```sh
-lengjing@lengjing:~/cbuild$ rm -rf output
-lengjing@lengjing:~/cbuild$ make
-Install Clean Done.
-Generate /home/lengjing/cbuild/output/config/Kconfig OK.
-Generate /home/lengjing/cbuild/output/config/auto.mk OK.
-Generate /home/lengjing/cbuild/output/config/DEPS OK.
-......
-#
-# No change to /home/lengjing/cbuild/output/config/.config
-#
-curl http://127.0.0.1:8888/downloads/cJSON-1.7.15.tar.gz to /home/lengjing/cbuild/output/mirror-cache/downloads/cJSON-1.7.15.tar.gz
-curl http://127.0.0.1:8888/downloads/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/mirror-cache/downloads/lua-5.4.4.tar.gz
-curl http://127.0.0.1:8888/downloads/busybox-1.35.0.tar.bz2 to /home/lengjing/cbuild/output/mirror-cache/downloads/busybox-1.35.0.tar.bz2
-Use cjson Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build cjson Done.
-Use lua Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build lua Done.
-Use busybox Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build busybox Done.
-curl http://127.0.0.1:8888/downloads/ljson-git.tar.gz to /home/lengjing/cbuild/output/mirror-cache/downloads/ljson-git.tar.gz
-git pull in /home/lengjing/cbuild/output/mirror-cache/downloads/ljson
-Use ljson Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build ljson Done.
-Build done!
-lengjing@lengjing:~/cbuild$
-```
-
-* 设置强制编译，总是从代码编译；取消强制编译，(没有网络缓存时需要重新从代码编译一次)，再次编译直接从缓存取了，没有重新从代码编译
-    * 可用于代码开发
-
-```sh
-engjing@lengjing:~/cbuild$ make lua_setforce
-Set lua Force Build.
-lengjing@lengjing:~/cbuild$ make lua
-WARNING: Force Build lua.
-untar /home/lengjing/cbuild/output/mirror-cache/downloads/lua-5.4.4.tar.gz to /home/lengjing/cbuild/output/objects/oss/lua
-patching file Makefile
-patching file src/Makefile
-Patch /home/lengjing/cbuild/oss/lua/patch/0001-lua-Support-dynamic-library-compilation.patch to /home/lengjing/cbuild/output/objects/oss/lua/lua-5.4.4 Done.
-patching file src/lparser.c
-Patch /home/lengjing/cbuild/oss/lua/patch/CVE-2022-28805.patch to /home/lengjing/cbuild/output/objects/oss/lua/lua-5.4.4 Done.
-Guessing Linux
-Push lua Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build lua Done.
-lengjing@lengjing:~/cbuild$ make lua
-WARNING: Force Build lua.
-Guessing Linux
-Push lua Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build lua Done.
-lengjing@lengjing:~/cbuild$ make lua
-WARNING: Force Build lua.
-Guessing Linux
-Push lua Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build lua Done.
-lengjing@lengjing:~/cbuild$ make lua_unsetforce
-Unset lua Force Build.
-lengjing@lengjing:~/cbuild$ make lua
-Use lua Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build lua Done.
-lengjing@lengjing:~/cbuild$ make lua
-Use lua Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build lua Done.
-lengjing@lengjing:~/cbuild$
-```
-
-* 修改加入到校验的文件，从代码编译了一次
-
-```
-lengjing@lengjing:~/cbuild$ echo >> oss/ljson/patch/Makefile
-lengjing@lengjing:~/cbuild$ make ljson
-gcc	json_test.c
-gcc	json.c
-lib:	/home/lengjing/cbuild/output/objects/oss/ljson/objects/libljson.a
-lib:	/home/lengjing/cbuild/output/objects/oss/ljson/objects/libljson.so
-bin:	/home/lengjing/cbuild/output/objects/oss/ljson/objects/ljson_test
-Build ljson Done.
-Push ljson Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build ljson Done.
-lengjing@lengjing:~/cbuild$ make ljson
-Use ljson Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build ljson Done.
-lengjing@lengjing:~/cbuild$ make ljson
-Use ljson Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build ljson Done.
-```
-
-* 修改代码的 config，设置了强制编译，总是从代码编译
-
-```sh
-lengjing@lengjing:~/cbuild$ make busybox_menuconfig
-untar /home/lengjing/cbuild/output/mirror-cache/downloads/busybox-1.35.0.tar.bz2 to /home/lengjing/cbuild/output/objects/oss/busybox
-......
-#
-# using defaults found in .config
-#
-......
-Final link with: m resolv
-Push busybox Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build busybox Done.
-lengjing@lengjing:~/cbuild$ make busybox
-WARNING: Force Build busybox.
-  GEN     /home/lengjing/cbuild/output/objects/oss/busybox/objects/Makefile
-  Using /home/lengjing/cbuild/output/objects/oss/busybox/busybox-1.35.0 as source for busybox
-Push busybox Cache to /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build busybox Done.
-```
-
-* 还原代码的默认 config，取消设置了强制编译，直接从缓存取了，没有重新从代码编译
-
-```sh
-lengjing@lengjing:~/cbuild$ make busybox_defconfig
-......
-Unset busybox Force Build.
-lengjing@lengjing:~/cbuild$ make busybox
-Use busybox Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build busybox Done.
-lengjing@lengjing:~/cbuild$ make busybox
-Use busybox Cache in /home/lengjing/cbuild/output/mirror-cache/build-cache.
-Build busybox Done.
-```
-
-### 编译缓存模板说明 inc.cache.mk
-
-* 作用原理
-    * 对包编译结果有影响的元素做校验当做缓存文件的名字的一部分
-    * 影响包编译的元素有: 编译脚本、补丁、依赖包的输出、包的压缩包文件或本地源码文件
-    * 注意绝不要把编译后输出的文件加入到校验
+* Variables for Download and Compilation
+    * FETCH_METHOD    : Download method choosen from `tar` `zip` `git` `svn`, its default value is `tar`
+    * SRC_URLS        : Download URLs, it contains `url` `branch` `rev` `tag` `md5`, its default value is generated according to the following variables:
+        * SRC_URL     : pure URL
+        * SRC_BRANCH  : branch for `git`
+        * SRC_TAG     : tag for `git`
+        * SRC_REV     : rev (revision) for `git` or `svn`
+        * SRC_MD5     : md5 for `tar` or `zip`
+    * SRC_PATH        : Source code path, its default value is `$(OUT_PATH)/$(SRC_DIR)`
+    * OBJ_PATH        : Compilation output path, its default value is `$(OUT_PATH)/build`
+    * INS_PATH        : Installation root path, its default value is `$(OUT_PATH)/image`
+    * INS_SUBDIR      : Installation sub-directory, its default value is `/usr`, so the actual installation path is `$(INS_PATH)$(INS_SUBDIR)`
+    * PC_FILES        : pkg-config files which has been installed to `.../lib/pkgconfig/`, and multiple files are separated by space
+    * MAKES           : Compilation command, it default value is `ninja $(ENV_BUILD_JOBS) $(MAKES_FLAGS)` for meson, `make $(ENV_BUILD_JOBS) $(ENV_MAKE_FLAGS) $(MAKES_FLAGS)` for others
+        * MAKES_FLAGS : Users can set extra compilation flags
 <br>
 
-* 用户可能要设置的变量
-    * FETCH_METHOD    : 下载包的方式，可选择 `tar zip git svn`，默认值为 tar
-    * SRC_URLS        : 下载包的 URL，包含 branch / revision / tag / md5 等信息，默认值根据下面变量的设置生成
-        * SRC_URL     : 裸的 URL
-        * SRC_BRANCH  : git 的 branch
-        * SRC_TAG     : git 的 tag
-        * SRC_REV     : git 或 svn 的 revision
-        * SRC_MD5     : tar 或 zip 的 MD5 
-    * SRC_PATH        : 包的源码路径，默认取变量 `$(OUT_PATH)/$(SRC_DIR)` 设置的值
-    * OBJ_PATH        : 包的编译输出路径，默认取变量 `$(OUT_PATH)/build` 设置的值
-    * INS_PATH        : 包的安装根目录，默认取变量 `$(OUT_PATH)/image` 设置的值
-    * INS_SUBDIR      : 包的安装子目录，默认值为 `/usr`，则真正的安装目录为 `$(INS_PATH)$(INS_SUBDIR)`
-    * PC_FILES        : 包安装的 pkg-config 配置文件的文件名，多个文件空格分开
-    * MAKES           : make 命令的值，默认值为 `make -s $(ENV_BUILD_JOBS) $(MAKES_FLAGS)`，用户可以设置额外的参数 `MAKES_FLAGS`
-        * meson 编译时默认值为 `ninja $(ENV_BUILD_JOBS) $(MAKES_FLAGS)`，用户可以设置额外的参数 `MAKES_FLAGS`
-    * CACHE_SRCFILE   : http 下载保存的文件名，默认取变量 `SRC_NAME` 设置的值
-        * 指定了此变量会自动对下载的文件校验，本地代码不需要指定此变量
-    * CACHE_OUTPATH   : 包的输出目录，会在此目录生成校验文件和 log 文件等，默认取变量 `OUT_PATH` 设置的值
-    * CACHE_INSPATH   : 包的安装目录，默认取变量 `$(INS_PATH)` 设置的值
-    * CACHE_GRADE     : 缓存级别，默认取 2，缓存总共4个级别，分别是 soc_name cpu_name arch_name cpu_family
-        * 例如: 我有一颗 cortex-a55 的 soc 名字叫做 a9，那么缓存级别数组为 `a9 cortex-a55 armv8-a aarch64`
-    * CACHE_CHECKSUM  : 额外需要校验的文件或目录，多个项目使用空格分开，默认加上当前目录的 mk.deps 文件
-        * 目录支持如下语法: `搜索的目录路径:搜索的字符串:忽略的文件夹名:忽略的字符串`，其中子项目可以使用竖线 `|` 隔开
-            * 例如: `"srca|srcb:*.c|*.h|Makefile:test:*.o|*.d"`, `"src:*.c|*.h|*.cpp|*.hpp"`
-    * CACHE_DEPENDS   : 手动指定包的依赖，默认值为空(即自动分析依赖)
-        * 如果包没有依赖可以设置为 `none`
-        * 如果不指定依赖会自动分析 `${ENV_CFG_ROOT}` 中的 DEPS 和 .config 文件获取依赖
-    * CACHE_APPENDS   : 增加额外的校验字符串，例如动态变化的配置
-    * CACHE_URL       : 指定网络下载的 URL，如果设置了 SRC_URL，默认取变量 `[$(FETCH_METHOD)]$(SRC_URL)` 设置的值
-        * 格式需要是 `[download_method]url`，例如 `[tar]url` `[zip]url` `[git]url` `[svn]url`
-    * CACHE_VERBOSE   : 是否生成 log 文件，默认取 1， 生成 log 文件是 `$(CACHE_OUTPATH)/$(CACHE_PACKAGE)-cache.log`
+* Variables for Cache Processing
+    * CACHE_SRCFILE   : Save filename or dirname for download package, its default value is `$(SRC_NAME)
+        * Local package needn't set it
+    * CACHE_OUTPATH   : Output root path, its default value is `$(OUT_PATH)`
+    * CACHE_INSPATH   : Installation root path, its default value is `$(INS_PATH)`
+    * CACHE_GRADE     : Cache grade number, which determines the prefix of the compilation cache file, its default value is 2
+        * There are generally four levels of cache grades: `soc_name` `cpu_name` `arch_name` `cpu_family`
+            * For example: If the soc is v9 (cortex-a55), then the cache grades are `v9 cortex-a55 armv8-a aarch64`
+    * CACHE_CHECKSUM  : Extra files and directories to verify, `mk.deps` file is added to the value by default
+        * The directory supports the following syntax: `<search directories>:<search strings>:<ignored dirnames>:<ignored strings>`, sub-items can be separated by a vertical line`|` :
+            * For example: `"srca|srcb:*.c|*.h|Makefile:test:*.o|*.d"`, `"src:*.c|*.h|*.cpp|*.hpp"`
+    * CACHE_DEPENDS   : Package dependencies, its default value is space (automatically analyzes dependencies)
+        * If the package doesn't have any dependencies, it is better to set the value to `none`
+    * CACHE_APPENDS   : Extra strings to verify, such as dynamical configurations
+    * CACHE_URL       : Download URLs, its default value is `[$(FETCH_METHOD)]$(SRC_URLS)` when downloading package in the script
+    * CACHE_VERBOSE   : Whether to generate log file, its default value is `1`(Generates log), the log file is `$(CACHE_OUTPATH)/$(CACHE_PACKAGE)-cache.log`
+
+
+#### Functions of Cache Template
+
+* do_inspc / do_syspc: Converts the path in the pkg-config files to the virtual / actual path, the variable `PC_FILES` should be set first
+* do_fetch: Fetches the package from the internet or mirror server then extracts it to `$(OUT_PATH)`
+* do_patch: Patches the package, the variable `PATCH_FOLDER` should be set first
+* do_compile: Execute Compilation
+    * If the variable `SRC_URL` is set, `do_fetch` task will automatically run
+    * If the variable `PATCH_FOLDER` is set, `do_patch` task will automatically run
+    * If the function `do_prepend` is set, it will run before `MAKES` command
+    * If the variable `COMPILE_TOOL` is set, it provides the following compilation methods:
+        * If the value is set to `configure`, `configure` command will run before `MAKES` command
+            * CONFIGURE_FLAGS: Users can set extra flags for `configure` command
+            * CROSS_CONFIGURE: Read-only, cross-compilation flags for `configure` command
+        * If the value is set to `cmake`, `cmake` command will run before `MAKES` command
+            * CMAKE_FLAGS: Users can set extra flags for `cmake` command
+            * CROSS_CONFIGURE: Read-only, cross-compilation flags for `cmake` command
+        * If the value is set to `meson`, `meson` command will run before `MAKES` command
+            * MESON_FLAGS: Users can set extra flags for `meson` command
+            * do_meson_cfg: Meson uses a ini file to configure cross-compilation, this function will modify the default configuration
+            * MESON_WRAP_MODE: Sets the wrap mode, its default value is `--wrap-mode=nodownload` (prevents meson downloads dependency packages)
+            * MESON_LIBDIR: Sets the libdir, its default value is `--libdir=$(INS_PATH)$(INS_SUBDIR)/lib` (prevents native-build installs libraries to `xxx/lib/x86_64-linux-gnu/`)
+    * If the function `do_prepend` is set, it will run after `MAKES` command
+* do_check: Checks whether the cache is matched
+    * If the returned string has `MATCH`, it means that the cache is matched
+    * If the returned string has `ERROR`, it means that the function runs failed
+* do_pull: Pulls the cache to `$(ENV_CACHE_DIR)` and extracts the cache to `$(OUT_PATH)` if `$(INS_PATH)` is not existed
+* do_push: Pushes the cache to `$(ENV_CACHE_DIR)`
+* do_setforce: Sets force compilation flag
+* do_set1force: Sets one-time force compilation flag, the next compilation is normal
+* do_unsetforce: Removes force compilation flag
+
+
+#### Targets of Cache Template
+    * all / clean / install: Necessary targets provided by the template
+        * If the variable `USER_DEFINED_TARGET` is not set to y, it will uses `all / clean / install` targets provided by the template
+        * If the function `do_prepend` is set, it will run at the end of the `install` target
+    * psysroot: Prepares the dependency sysroot in `OUT_PATH` instead of `ENV_TOP_OUT`
+    * srcbuild: Compiles without cache mechanism
+    * cachebuild: Compiles with cache mechanism
+    * dofetch: Only download package from internet or mirror server
+    * setforce: Sets force compilation flag
+    * set1force: Sets one-time force compilation flag
+    * unsetforce: Removes force compilation flag
+
+Note: When we compile OSS packages from source code, we usually add `cache` `psysroot` to `Other_Target_Names` of DEPS-statement, which means that the cache mechanism is used to speed up re-compilation, and dependency sysroot is in `OUT_PATH` instead of `ENV_TOP_OUT` to prevent automatically adding undeclared dependency packages
+
+
+### Compiling OSS Layer
+
+
+* The number of OSS packages is increasing, and at present there are more than 50 packages
+* Compilation Commands:
+    * `make time_statistics`: Compiles all packages one by one, and counts the compilation time of each package
+        * Each OSS package in the time statistics file has three lines: line 1 is to prepare the sysroot for dependencies, line 2 is to compile, and line 3 is to install to the global sysroot
+    * `make`: Multi-threadedly compiles all packages
+    * `make all_fetchs`: Only downloads source code of all cache packages one by one
+    * `make all_caches`: Downloads and compiles all cache packages one by one
 <br>
 
-* 提供的函数
-    * do_inspc / do_syspc: 将 pkg-config 配置文件中的路径转换为虚拟路径和实际路径，需要先设置配置文件名变量 PC_FILES 
-    * do_fetch: 自动从网络拉取代码并解压到输出目录
-    * do_patch: 打补丁，用户需要设置补丁目录 `PATCH_FOLDER`
-    * do_compile: 用户如果没有设置此函数，将采用模板中的默认 do_compile 函数
-        * 如果用户设置了 SRC_URL 变量，会自动加上拉取代码操作
-        * 如果用户设置了 PATCH_FOLDER 变量，会自动加上打补丁操作
-    * 如果用户设置了 do_prepend 函数，会在 make 命令前运行此函数
-        * 如果用户设置了 COMPILE_TOOL 变量，提供如下编译方式的支持
-        * 如果 COMPILE_TOOL 值是 cmake，会在编译命令 make 前运行 cmake 命令，通过 `CMAKE_FLAGS` 变量提供额外的命令参数
-            * CROSS_CONFIGURE: configure 配置交叉编译时的参数
-        * 如果 COMPILE_TOOL 值是 configure，会在 make 命令前运行 configure 命令，通过 `CONFIGURE_FLAGS` 变量提供额外的命令参数
-            * CROSS_CMAKE: cmake 配置交叉编译时的参数
-        * 如果 COMPILE_TOOL 值是 meson，会在编译命令 ninja 前运行 meson 配置命令，通过 `MESON_FLAGS` 变量提供额外的命令参数
-            * meson 使用 ini 文件配置交叉编译，用户可以定义 do_meson_cfg 函数追加或修改默认的配置
-            * MESON_WRAP_MODE 默认值 `--wrap-mode=nodownload` 表示禁止 meson 下载依赖包编译
-            * MESON_LIBDIR 默认值 `--libdir=$(INS_PATH)$(INS_SUBDIR)/lib`，表示设置安装库文件路径，不然本地编译时会安装到 lib 下的 x86_64-linux-gnu
-        * 如果用户设置了 do_append 函数，会在 make 命令后运行此函数
-    * do_check: 检查是否匹配 cache，返回的字符串有 MATCH 表示匹配，ERROR 表示错误
-    * do_pull: 如果 INS_PATH 目录不存在，将 cache 解压的输出目录
-    * do_push: 将 cache 加入到全局缓存目录
-    * do_setforce: 设置强制编译，用户某些操作后需要重新编译的操作需要调用此函数，例如用户修改 config
-    * do_set1force: 设置强制编译一次，下次编译就是正常编译
-    * do_unsetforce: 取消强制编译，例如用户还原默认 config
-    * 其它函数用户一般不会在外部调用
-<br>
-
-* 提供的目标
-    * 如果用户没有设置 `USER_DEFINED_TARGET` 为 y，采用模板默认提供的 `all clean install` 目标
-        * 如果用户设置了 do_install_append 函数，会在 install 目标尾部运行此函数
-    * psysroot: 在 OUT_PATH 目录准备 sysroot
-    * srcbuild: 没有缓存机制的编译
-    * cachebuild: 有缓存机制的编译
-    * dofetch: 仅下载源码
-    * setforce: 设置强制编译
-    * set1force: 设置强制编译一次
-    * unsetforce: 取消强制编译
-
-
-注: 我们从源码编译 OSS 包时，一般会在 DEPS 语句的其它目标加上 cache psysroot，表示使用缓存机制加快再次编译和在 OUT_PATH 准备 sysroot 防止 OSS 自动加上依赖未声明的包导致编译出错
-
-注: 运行 `export LOG_OUTPUT=` 命令将显示编译信息
-
-## 测试 Yocto 编译
-
-### Yocto 快速开始
-
-* 安装编译环境
+* Compiles the cross-compilation toolchain, for example cortex-a53
 
     ```sh
-    lengjing@lengjing:~/cbuild$ sudo apt install gawk wget git diffstat unzip \
-        texinfo gcc build-essential chrpath socat cpio \
-        python3 python3-pip python3-pexpect xz-utils \
-        debianutils iputils-ping python3-git python3-jinja2 \
-        libegl1-mesa libsdl1.2-dev pylint3 xterm \
-        python3-subunit mesa-common-dev zstd liblz4-tool qemu
+    lengjing@lengjing:~/data/cbuild$ source scripts/build.env cortex-a53
+    ...
+    lengjing@lengjing:~/data/cbuild$ make -C scripts/toolchain
+    make: Entering directory '/home/lengjing/data/cbuild/scripts/toolchain'
+    make[1]: Entering directory '/home/lengjing/data/cbuild/scripts/toolchain'
+    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/gmp/gmp-6.2.1.tar.xz" gmp-6.2.1.tar.xz /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs gmp-6.2.1
+    curl http://ftp.gnu.org/gnu/gmp/gmp-6.2.1.tar.xz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/gmp-6.2.1.tar.xz
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/gmp-6.2.1.tar.xz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs
+    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/mpfr/mpfr-4.1.1.tar.xz" mpfr-4.1.1.tar.xz /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs mpfr-4.1.1
+    curl http://ftp.gnu.org/gnu/mpfr/mpfr-4.1.1.tar.xz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/mpfr-4.1.1.tar.xz
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/mpfr-4.1.1.tar.xz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs
+    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/mpc/mpc-1.3.1.tar.gz" mpc-1.3.1.tar.gz /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs mpc-1.3.1
+    curl http://ftp.gnu.org/gnu/mpc/mpc-1.3.1.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/mpc-1.3.1.tar.gz
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/mpc-1.3.1.tar.gz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs
+    /home/lengjing/data/cbuild/scripts/bin/exec_patch.sh patch patch/mpc /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs/mpc-1.3.1
+    patching file src/mpc.h
+    Patch patch/mpc/0001-mpc-Fix-configuring-gcc-failed.patch to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs/mpc-1.3.1 Done.
+    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://libisl.sourceforge.io/isl-0.25.tar.xz" isl-0.25.tar.xz /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs isl-0.25
+    curl http://libisl.sourceforge.io/isl-0.25.tar.xz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/isl-0.25.tar.xz
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/isl-0.25.tar.xz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs
+    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.88.tar.xz" linux-5.15.88.tar.xz /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs linux-5.15.88
+    curl http://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.88.tar.xz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/linux-5.15.88.tar.xz
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/linux-5.15.88.tar.xz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs
+    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/binutils/binutils-2.40.tar.xz" binutils-2.40.tar.xz /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs binutils-2.40
+    curl http://ftp.gnu.org/gnu/binutils/binutils-2.40.tar.xz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/binutils-2.40.tar.xz
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/binutils-2.40.tar.xz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs
+    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/gcc/gcc-12.2.0/gcc-12.2.0.tar.xz" gcc-12.2.0.tar.xz /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs gcc-12.2.0
+    curl http://ftp.gnu.org/gnu/gcc/gcc-12.2.0/gcc-12.2.0.tar.xz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/gcc-12.2.0.tar.xz
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/gcc-12.2.0.tar.xz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs
+    sed -i 's@print-multi-os-directory@print-multi-directory@g' \
+        `find /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs/gcc-12.2.0 -name configure -o -name configure.ac -o -name Makefile.in | xargs`
+    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/glibc/glibc-2.36.tar.xz" glibc-2.36.tar.xz /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs glibc-2.36
+    curl http://ftp.gnu.org/gnu/glibc/glibc-2.36.tar.xz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/glibc-2.36.tar.xz
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/glibc-2.36.tar.xz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs
+    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/gdb/gdb-12.1.tar.xz" gdb-12.1.tar.xz /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs gdb-12.1
+    curl http://ftp.gnu.org/gnu/gdb/gdb-12.1.tar.xz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/gdb-12.1.tar.xz
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/gdb-12.1.tar.xz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs
+
+     ./output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/bin/aarch64-linux-gnu-gcc -v
+    Using built-in specs.
+    COLLECT_GCC=./output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/bin/aarch64-linux-gnu-gcc
+    COLLECT_LTO_WRAPPER=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/libexec/gcc/aarch64-linux-gnu/12.2.0/lto-wrapper
+    Target: aarch64-linux-gnu
+    Configured with: /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs/gcc-12.2.0/configure --target=aarch64-linux-gnu --prefix=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15 --with-gmp=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/host --with-mpfr=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/host --with-mpc=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/host --with-isl=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/host --with-sysroot=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/aarch64-linux-gnu/libc --with-build-sysroot=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/aarch64-linux-gnu/libc --with-toolexeclibdir=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/aarch64-linux-gnu/libc/lib --enable-languages=c,c++ --enable-shared --enable-threads=posix --enable-checking=release --with-arch=armv8-a --with-cpu=cortex-a53 --disable-bootstrap --disable-multilib --enable-multiarch --enable-nls --without-included-gettext --enable-clocale=gnu --enable-lto --enable-linker-build-id --enable-gnu-unique-object --enable-libstdcxx-debug --enable-libstdcxx-time=yes
+    Thread model: posix
+    Supported LTO compression algorithms: zlib zstd
+    gcc version 12.2.0 (GCC)
+    lengjing@lengjing:~/data/cbuild$ ls output/mirror-cache/build-cache/
+    x86_64--cortex-a53-toolchain-gcc12.2.0-linux5.15-native--8ec20b3593ccaf0a87712ade12d00de6.tar.gz
     ```
 
-* 拉取 Poky 工程
+* After cleaning up all download packages, counts the compilation time of each package with the following packages selected
+    * busybox: Configures with menuconfig
+    * cjson: Compiles with CMake
+    * libpcap: Compiles with Autotools
+    * ljson: Compiles with user-defined Makefile
+    * lua: Compiles with patch patched
+    * ncurses: Compiles with dependence of native-compilation package
+    * tcpdump: Compiles with dependence of libpcap
 
     ```sh
-    lengjing@lengjing:~/cbuild$ git clone git://git.yoctoproject.org/poky
-    lengjing@lengjing:~/cbuild$ cd poky
-    lengjing@lengjing:~/cbuild/poky$ git branch -a
-    lengjing@lengjing:~/cbuild/poky$ git checkout -t origin/kirkstone -b my-kirkstone
-    lengjing@lengjing:~/cbuild/poky$ cd ..
+    lengjing@lengjing:~/data/cbuild$ rm -rf output/cortex-a53 output/mirror-cache/downloads
+    ...
+    lengjing@lengjing:~/data/cbuild$ make test_config
+    ...
+    lengjing@lengjing:~/data/cbuild$ make time_statistics
+    Generate /home/lengjing/data/cbuild/output/cortex-a53/config/Kconfig OK.
+    Generate /home/lengjing/data/cbuild/output/cortex-a53/config/auto.mk OK.
+    Generate /home/lengjing/data/cbuild/output/cortex-a53/config/DEPS OK.
+    curl http://www.busybox.net/downloads/busybox-1.35.0.tar.bz2 to /home/lengjing/data/cbuild/output/mirror-cache/downloads/busybox-1.35.0.tar.bz2
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/busybox-1.35.0.tar.bz2 to /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/busybox
+    /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/busybox/busybox-1.35.0/applets/usage.c: In function 'main':
+    /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/busybox/busybox-1.35.0/applets/usage.c:52:3: warning: ignoring return value of 'write', declared with attribute warn_unused_result [-Wunused-result]
+    ...
+    Push busybox Cache to /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build busybox Done.
+    Install busybox Done.
+    curl http://github.com/DaveGamble/cJSON/archive/refs/tags/v1.7.15.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/cJSON-1.7.15.tar.gz
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/cJSON-1.7.15.tar.gz to /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/cjson
+    Push cjson Cache to /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build cjson Done.
+    Install cjson Done.
+    curl http://www.tcpdump.org/release/libpcap-1.10.1.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/libpcap-1.10.1.tar.gz
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/libpcap-1.10.1.tar.gz to /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/libpcap
+    Push libpcap Cache to /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build libpcap Done.
+    Install libpcap Done.
+    git clone https://github.com/lengjingzju/json.git to /home/lengjing/data/cbuild/output/mirror-cache/downloads/ljson
+    Cloning into '/home/lengjing/data/cbuild/output/mirror-cache/downloads/ljson'...
+    remote: Enumerating objects: 39, done.
+    remote: Counting objects: 100% (2/2), done.
+    remote: Compressing objects: 100% (2/2), done.
+    remote: Total 39 (delta 1), reused 0 (delta 0), pack-reused 37
+    Unpacking objects: 100% (39/39), done.
+    copy /home/lengjing/data/cbuild/output/mirror-cache/downloads/ljson to /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/ljson
+    Push ljson Cache to /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build ljson Done.
+    Install ljson Done.
+    curl http://www.lua.org/ftp/lua-5.4.4.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/lua-5.4.4.tar.gz
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/lua-5.4.4.tar.gz to /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/lua
+    patching file Makefile
+    patching file src/Makefile
+    Patch /home/lengjing/data/cbuild/oss/lua/patch/0001-lua-Support-dynamic-library-compilation.patch to /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/lua/lua-5.4.4 Done.
+    patching file src/lparser.c
+    Patch /home/lengjing/data/cbuild/oss/lua/patch/CVE-2022-28805.patch to /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/lua/lua-5.4.4 Done.
+    Push lua Cache to /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build lua Done.
+    Install lua Done.
+    curl http://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.3.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/ncurses-6.3.tar.gz
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/ncurses-6.3.tar.gz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/oss/ncurses
+    configure: WARNING: This option applies only to wide-character library
+    ...
+    Push ncurses-native Cache to /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build ncurses-native Done.
+    Install ncurses-native Done.
+    Install ncurses-native Done.
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/ncurses-6.3.tar.gz to /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/ncurses
+    configure: WARNING: If you wanted to set the --build type, don't use --host.
+    ...
+    Push ncurses Cache to /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build ncurses Done.
+    Install ncurses Done.
+    Install libpcap Done.
+    curl http://www.tcpdump.org/release/tcpdump-4.99.1.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/tcpdump-4.99.1.tar.gz
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/tcpdump-4.99.1.tar.gz to /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/tcpdump
+    configure: WARNING: using cross tools not prefixed with host triplet
+    configure: WARNING: pcap/pcap-inttypes.h: accepted by the compiler, rejected by the preprocessor!
+    configure: WARNING: pcap/pcap-inttypes.h: proceeding with the compiler's result
+    Push tcpdump Cache to /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build tcpdump Done.
+    Install tcpdump Done.
+    Build rootfs Done.
+    Install packages from /home/lengjing/data/cbuild/output/cortex-a53/sysroot
+    Install busybox Done.
+    Install Glibc target from /home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/aarch64-linux-gnu/libc
+    Build done!
+
+    lengjing@lengjing:~/data/cbuild$ cat output/cortex-a53/config/time_statistics
+    real		user		sys		package
+    0.04		0.04		0.00		deps
+    0.04		0.04		0.01		busybox
+    23.77		77.62		16.90		busybox
+    0.01		0.00		0.00		busybox
+    0.06		0.05		0.01		cjson
+    4.92		1.71		0.47		cjson
+    0.00		0.00		0.00		cjson
+    0.05		0.04		0.01		libpcap
+    14.59		8.47		1.15		libpcap
+    0.01		0.00		0.00		libpcap
+    0.05		0.05		0.00		ljson
+    4.23		1.16		0.09		ljson
+    0.00		0.00		0.00		ljson
+    0.06		0.05		0.00		lua
+    7.93		6.59		0.41		lua
+    0.00		0.00		0.00		lua
+    0.06		0.05		0.01		ncurses-native
+    30.24		65.82		12.07		ncurses-native
+    0.08		0.01		0.06		ncurses-native
+    0.08		0.00		0.07		ncurses-native_install
+    0.17		0.08		0.09		ncurses
+    31.85		107.68		18.63		ncurses
+    0.08		0.01		0.06		ncurses
+    0.01		0.00		0.00		libpcap_install
+    0.07		0.06		0.01		tcpdump
+    13.14		10.84		3.02		tcpdump
+    0.01		0.00		0.00		tcpdump
+    0.00		0.00		0.00		rootfs
+    1.17		0.53		0.44		rootfs
+    132.74		281.01		53.54		total_time
     ```
 
-注：通过 [Yocto Releases Wiki](https://wiki.yoctoproject.org/wiki/Releases) 界面获取版本代号，上述命令拉取了4.0版本。
-
-* 构建镜像
-
-    ```shell
-    lengjing@lengjing:~/cbuild$ source poky/oe-init-build-env               # 初始化环境
-    lengjing@lengjing:~/cbuild/build$ bitbake core-image-minimal            # 构建最小镜像
-    lengjing@lengjing:~/cbuild/build$ ls -al tmp/deploy/images/qemux86-64/  # 输出目录
-    lengjing@lengjing:~/cbuild/build$ runqemu qemux86-64                    # 运行仿真器
-    ```
-
-注: `source oe-init-build-env <dirname>`功能: 初始化环境，并将工具目录(`bitbake/bin/` 和 `scripts/`)加入到环境变量; 在当前目录自动创建并切换到工作目录(不指定时默认为 build)。
-
-### Yocto 配方模板
-
-* 编写类文件 (xxx.bbclass)
-    * 可以在类文件中 `meta-xxx/classes/xxx.bbclass` 定义环境变量，在配方文件中继承 `inherit xxx`
-    * 例如 testenv.bbclass
-
-        ```sh
-        export CONF_PATH = "${STAGING_BINDIR_NATIVE}"
-        export OUT_PATH = "${WORKDIR}/build"
-        export ENV_INS_ROOT = "${WORKDIR}/image"
-        export ENV_DEP_ROOT = "${WORKDIR}/recipe-sysroot"
-        export ENV_BUILD_MODE
-        ```
-
-    * 例如 kconfig.bbclass
-
-        ```py
-        inherit terminal
-        KCONFIG_CONFIG_COMMAND ??= "menuconfig"
-        KCONFIG_CONFIG_PATH ??= "${B}/.config"
-
-        python do_setrecompile () {
-            if hasattr(bb.build, 'write_taint'):
-                bb.build.write_taint('do_compile', d)
-        }
-
-        do_setrecompile[nostamp] = "1"
-        addtask setrecompile
-
-        python do_menuconfig() {
-            config = d.getVar('KCONFIG_CONFIG_PATH')
-
-            try:
-                mtime = os.path.getmtime(config)
-            except OSError:
-                mtime = 0
-
-            oe_terminal("sh -c \"make %s; if [ \\$? -ne 0 ]; then echo 'Command failed.'; printf 'Press any key to continue... '; read r; fi\"" % d.getVar('KCONFIG_CONFIG_COMMAND'),
-                d.getVar('PN') + ' Configuration', d)
-
-            if hasattr(bb.build, 'write_taint'):
-                try:
-                    newmtime = os.path.getmtime(config)
-                except OSError:
-                    newmtime = 0
-
-                if newmtime != mtime:
-                    bb.build.write_taint('do_compile', d)
-        }
-
-        do_menuconfig[depends] += "kconfig-native:do_populate_sysroot"
-        do_menuconfig[nostamp] = "1"
-        do_menuconfig[dirs] = "${B}"
-        addtask menuconfig after do_configure
-        ```
-
-* 编写配方文件 (xxx.bb)
-    * `recipetool create -o <xxx.bb> <package_src_dir>` 创建一个基本配方，例子中手动增加的条目说明如下
-    * 包依赖
-        * 包依赖其他包时需要使用 `DEPENDS += "package1 package2"` 说明
-        * 链接其它包时 (`LDFLAGS += -lname1 -lname2`) 需要增加 `RDEPENDS:${PN} += "package1 package2"` 说明
-    * 编译继承类
-        * 使用 menuconfig 需要继承 `inherit kconfig`
-            * 如果是 `make -f wrapper.mk menuconfig`，需要设置 `KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"`
-            * 如果 .config 输出目录是编译输出目录，需要设置 `KCONFIG_CONFIG_PATH = "${OUT_PATH}/.config"`
-        * 使用 Makefile 编译应用继承 `inherit sanity`，使用 cmake 编译应用继承 `inherit cmake`
-        * 编译外部内核模块继承 `inherit module`
-        * 编译主机本地工具继承 `inherit native`
-    * 安装和打包
-        * 设置的变量
-            * includedir 指 xxx/usr/include
-            * base_libdir 指 xxx/lib;  libdir指 xxx/usr/lib;  bindir指 xxx/usr/bin; datadir 指 xxx/usr/share
-            * 有时候需要精确指定打包的文件而不是目录，防止多个打包的目录有重合导致打包出错
-            * 更多目录信息参考poky工程的 `meta/conf/bitbake.conf` 文件
-            ```
-            FILES:${PN}-dev = "${includedir}"
-            FILES:${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
-            ```
-        * 继承 `inherit sanity` 或 `inherit cmake` 时需要按实际情况指定打包的目录，否则 do_package 任务出错
-        * 继承 `inherit module` 不需要指定头文件和模块文件的打包的目录，但如果安装其它文件时，需要指定这个文件的打包目录
-        * 忽略某些警告和错误
-            * `ALLOW_EMPTY:${PN} = "1"` 忽略包安装的文件只有头文件或为空，生成镜像时 do_rootfs 错误
-            * `INSANE_SKIP:${PN} += "dev-so"` 忽略安装的文件是符号链接的错误
-                * 更多信息参考 [insane.bbclass](https://docs.yoctoproject.org/ref-manual/classes.html?highlight=sanity#insane-bbclass)
-
-    ```
-    LICENSE = "CLOSED"
-    LIC_FILES_CHKSUM = ""
-
-    # No information for SRC_URI yet (only an external source tree was specified)
-    SRC_URI = ""
-
-    #DEPENDS += "package1 package2"
-    #RDEPENDS:${PN} += "package1 package2"
-
-    inherit testenv
-    #KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"
-    #KCONFIG_CONFIG_PATH = "${OUT_PATH}/.config"
-    #inherit kconfig
-    inherit sanity
-    #inherit cmake
-    #inherit module
-    #inherit native
-
-
-    # NOTE: this is a Makefile-only piece of software, so we cannot generate much of the
-    # recipe automatically - you will need to examine the Makefile yourself and ensure
-    # that the appropriate arguments are passed in.
-
-    do_configure () {
-     # Specify any needed configure commands here
-     :
-    }
-
-    do_compile () {
-     # You will almost certainly need to add additional arguments here
-     oe_runmake
-    }
-
-    do_install () {
-     # NOTE: unable to determine what to put here - there is a Makefile but no
-     # target named "install", so you will need to define this yourself
-     oe_runmake install
-    }
-
-    ALLOW_EMPTY:${PN} = "1"
-    INSANE_SKIP:${PN} += "dev-so"
-    FILES:${PN}-dev = "${includedir}"
-    FILES:${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
-    ```
-
-* 编写配方附加文件 (xxx.bbappend)
-    * 配方附加文件在 cbuild 的实现中，主要作用是指示包的源码路径和 Makefile 路径，一般这两个路径一样
-    * EXTERNALSRC: 源码目录，编译会对这个目录做校验决定是否重新编译
-        * 如果源码不全在 EXTERNALSRC 目录内，我们需要追加文件或目录做校验，追加任务的 `file-checksums` 标记，否则源码修改后没有重新编译
-        * 用户可以继承类 `extrasrc.bbclass` 来做追加，可设置的变量
-            * EXTRASRC_CONFIGURE: 追加做 do_configure 任务校验的文件或目录
-            * EXTRASRC_COMPILE: 追加做 do_compile 任务校验的文件或目录
-            * EXTRASRC_INSTALL: 追加做 do_install 任务校验的文件或目录
-
-            ```py
-            python () {
-                tasks = ['configure', 'compile', 'install']
-
-                for task in tasks:
-                    task_name = 'do_%s' % (task)
-                    src_name = 'EXTRASRC_%s' % (task.upper())
-                    src_str = d.getVar(src_name)
-
-                    if src_str:
-                        srcs = src_str.split()
-                        for src in srcs:
-                            if os.path.exists(src):
-                                if os.path.isdir(src):
-                                    d.appendVarFlag(task_name, 'file-checksums', ' %s/*:True' % (src))
-                                else:
-                                    d.appendVarFlag(task_name, 'file-checksums', ' %s:True' % (src))
-                                #bb.warn('%s is appended in %s of %s\n' % (d.getVarFlag(task_name, 'file-checksums'), task_name, d.getVar('PN')))
-                            else:
-                                bb.warn('%s is not existed in %s of %s\n' % (src, task_name, d.getVar('PN')))
-            }
-            ```
-
-    * EXTERNALSRC_BUILD: 运行 make 命令的目录，可以和 EXTERNALSRC 不同
-
-    ```
-    inherit externalsrc
-    EXTERNALSRC = "${ENV_TOP_DIR}/<package_src>"
-    EXTERNALSRC_BUILD = "${ENV_TOP_DIR}/<package_src>"
-    ```
-
-注: [从3.4版本开始，对变量的覆盖样式语法由下滑线 `_` 变成了冒号 `:`](https://docs.yoctoproject.org/migration-guides/migration-3.4.html#override-syntax-changes)
-
-### 测试 Yocto 编译
-
-* `build/conf/local.conf` 配置文件中增加如下变量定义
-
-    ```
-    ENV_TOP_DIR = "/home/lengjing/cbuild"
-    ENV_BUILD_MODE = "yocto"
-    ```
-
-* 增加测试的层
+* Re-compiles, the result is taken directly from the local cache, without re-compiling from the source code
 
     ```sh
-    lengjing@lengjing:~/cbuild/build$ bitbake-layers add-layer ../examples/meta-cbuild
+    lengjing@lengjing:~/data/cbuild$ make -C scripts/toolchain
+    make: Entering directory '/home/lengjing/data/cbuild/scripts/toolchain'
+    Use cortex-a53-toolchain-gcc12.2.0-linux5.15 Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build cortex-a53-toolchain-gcc12.2.0-linux5.15 Done.
+    make: Leaving directory '/home/lengjing/data/cbuild/scripts/toolchain'
+    lengjing@lengjing:~/data/cbuild$ make time_statistics
+    Generate /home/lengjing/data/cbuild/output/cortex-a53/config/Kconfig OK.
+    Generate /home/lengjing/data/cbuild/output/cortex-a53/config/auto.mk OK.
+    Generate /home/lengjing/data/cbuild/output/cortex-a53/config/DEPS OK.
+    Use busybox Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build busybox Done.
+    Install busybox Done.
+    Use cjson Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build cjson Done.
+    Install cjson Done.
+    Use libpcap Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build libpcap Done.
+    Install libpcap Done.
+    Use ljson Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build ljson Done.
+    Install ljson Done.
+    Use lua Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build lua Done.
+    Install lua Done.
+    Use ncurses-native Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build ncurses-native Done.
+    Install ncurses-native Done.
+    Use ncurses Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build ncurses Done.
+    Install ncurses Done.
+    Use tcpdump Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build tcpdump Done.
+    Install tcpdump Done.
+    Build rootfs Done.
+    Install packages from /home/lengjing/data/cbuild/output/cortex-a53/sysroot
+    Install busybox Done.
+    Install Glibc target from /home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/aarch64-linux-gnu/libc
+    Build done!
+    lengjing@lengjing:~/data/cbuild$
+    lengjing@lengjing:~/data/cbuild$ cat output/cortex-a53/config/time_statistics
+    real		user		sys		package
+    0.04		0.03		0.00		deps
+    0.04		0.04		0.00		busybox
+    0.09		0.08		0.02		busybox
+    0.01		0.00		0.00		busybox
+    0.05		0.05		0.00		cjson
+    0.08		0.07		0.01		cjson
+    0.00		0.00		0.00		cjson
+    0.04		0.04		0.01		libpcap
+    0.08		0.07		0.01		libpcap
+    0.03		0.00		0.01		libpcap
+    0.04		0.04		0.00		ljson
+    0.08		0.07		0.01		ljson
+    0.00		0.00		0.00		ljson
+    0.05		0.05		0.00		lua
+    0.08		0.08		0.01		lua
+    0.00		0.00		0.00		lua
+    0.05		0.04		0.01		ncurses-native
+    0.08		0.08		0.01		ncurses-native
+    0.28		0.01		0.19		ncurses-native
+    0.06		0.05		0.01		ncurses
+    0.09		0.09		0.01		ncurses
+    0.25		0.01		0.18		ncurses
+    0.05		0.04		0.01		tcpdump
+    0.09		0.08		0.01		tcpdump
+    0.00		0.00		0.00		tcpdump
+    0.03		0.00		0.02		rootfs
+    1.14		0.53		0.44		rootfs
+    2.96		1.66		1.09		total_time
     ```
 
-* bitbake 编译
+* Creates another terminal and starts the mirror server
 
     ```sh
-    lengjing@lengjing:~/cbuild/build$ bitbake test-app2  # 编译应用
-    lengjing@lengjing:~/cbuild/build$ bitbake test-app3  # 编译应用
-    lengjing@lengjing:~/cbuild/build$ bitbake test-hello # 编译内核模块
-    lengjing@lengjing:~/cbuild/build$ bitbake test-mod2  # 编译内核模块
-    lengjing@lengjing:~/cbuild/build$ bitbake test-conf  # 编译 kconfig 测试程序
-    lengjing@lengjing:~/cbuild/build$ bitbake test-conf -c menuconfig # 修改配置
+    lengjing@lengjing:~/data/cbuild$ cd output
+    lengjing@lengjing:~/data/cbuild/output$ mv mirror-cache mirror
+    lengjing@lengjing:~/data/cbuild/output$ cd mirror
+    lengjing@lengjing:~/data/cbuild/output/mirror$ rm -rf downloads/lock
+    lengjing@lengjing:~/data/cbuild/output/mirror$ tree
+    .
+    ├── build-cache
+    │   ├── cortex-a53--busybox--b7c40d7a733221bbd8327e487cfee505.tar.gz
+    │   ├── cortex-a53--cjson--8167d8f3fd82197b44bb7498b4d97bb0.tar.gz
+    │   ├── cortex-a53--libpcap--5db3b7c187d08870a29ee48f725e96bc.tar.gz
+    │   ├── cortex-a53--ljson--1cb819ebcb847f1feff24879246c30d5.tar.gz
+    │   ├── cortex-a53--lua--370ffcee1a70bc93516df21de9de0634.tar.gz
+    │   ├── cortex-a53--ncurses--96424c436be9e0bc02bcdaea10083a8f.tar.gz
+    │   ├── cortex-a53--tcpdump--5652e8bf037a2ee5792fcbf02adee2b7.tar.gz
+    │   ├── x86_64--cortex-a53-toolchain-gcc12.2.0-linux5.15-native--8ec20b3593ccaf0a87712ade12d00de6.tar.gz
+    │   └── x86_64--ncurses-native--54a6ab0af25ad68f24bff08355b59efb.tar.gz
+    └── downloads
+        ├── busybox-1.35.0.tar.bz2
+        ├── busybox-1.35.0.tar.bz2.src.hash
+        ├── cJSON-1.7.15.tar.gz
+        ├── cJSON-1.7.15.tar.gz.src.hash
+        ├── libpcap-1.10.1.tar.gz
+        ├── libpcap-1.10.1.tar.gz.src.hash
+        ├── ljson
+        │   ├── json.c
+        │   ├── json.h
+        │   ├── json_test.c
+        │   ├── json_test.png
+        │   ├── LICENSE
+        │   └── README.md
+        ├── ljson-git-br.-rev.7b2f6ae6cf7011e94682b073669f5ff8f69095cc.tar.gz
+        ├── ljson.src.hash
+        ├── lua-5.4.4.tar.gz
+        ├── lua-5.4.4.tar.gz.src.hash
+        ├── ncurses-6.3.tar.gz
+        ├── ncurses-6.3.tar.gz.src.hash
+        ├── tcpdump-4.99.1.tar.gz
+        └── tcpdump-4.99.1.tar.gz.src.hash
+
+    3 directories, 29 files
+    lengjing@lengjing:~/data/cbuild/output/mirror$ python3 -m http.server 8888
+    Serving HTTP on 0.0.0.0 port 8888 (http://0.0.0.0:8888/) ...
     ```
 
-常见 Yocto 问题可以查看 [Yocto 笔记](./notes/yoctoqa.md)
+* The original terminal deletes all compilation output and cache, re-compiles, the result is taken directly from the mirror server cache, without re-compiling from the source code
+
+    ```sh
+    lengjing@lengjing:~/data/cbuild$ rm -rf output/cortex-a53 output/mirror-cache output/toolchain
+    lengjing@lengjing:~/data/cbuild$ make test_config
+    ...
+    lengjing@lengjing:~/data/cbuild$ make -C scripts/toolchain
+    make: Entering directory '/home/lengjing/data/cbuild/scripts/toolchain'
+    curl http://127.0.0.1:8888/build-cache/x86_64--cortex-a53-toolchain-gcc12.2.0-linux5.15-native--8ec20b3593ccaf0a87712ade12d00de6.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/build-cache/x86_64--cortex-a53-toolchain-gcc12.2.0-linux5.15-native--8ec20b3593ccaf0a87712ade12d00de6.tar.gz
+    Use cortex-a53-toolchain-gcc12.2.0-linux5.15 Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build cortex-a53-toolchain-gcc12.2.0-linux5.15 Done.
+    make: Leaving directory '/home/lengjing/data/cbuild/scripts/toolchain'
+    lengjing@lengjing:~/data/cbuild$ make time_statistics
+    Generate /home/lengjing/data/cbuild/output/cortex-a53/config/Kconfig OK.
+    Generate /home/lengjing/data/cbuild/output/cortex-a53/config/auto.mk OK.
+    Generate /home/lengjing/data/cbuild/output/cortex-a53/config/DEPS OK.
+    curl http://127.0.0.1:8888/build-cache/cortex-a53--busybox--b7c40d7a733221bbd8327e487cfee505.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/build-cache/cortex-a53--busybox--b7c40d7a733221bbd8327e487cfee505.tar.gz
+    Use busybox Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build busybox Done.
+    Install busybox Done.
+    curl http://127.0.0.1:8888/build-cache/cortex-a53--cjson--8167d8f3fd82197b44bb7498b4d97bb0.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/build-cache/cortex-a53--cjson--8167d8f3fd82197b44bb7498b4d97bb0.tar.gz
+    Use cjson Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build cjson Done.
+    Install cjson Done.
+    curl http://127.0.0.1:8888/build-cache/cortex-a53--libpcap--5db3b7c187d08870a29ee48f725e96bc.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/build-cache/cortex-a53--libpcap--5db3b7c187d08870a29ee48f725e96bc.tar.gz
+    Use libpcap Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build libpcap Done.
+    Install libpcap Done.
+    curl http://127.0.0.1:8888/build-cache/cortex-a53--ljson--1cb819ebcb847f1feff24879246c30d5.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/build-cache/cortex-a53--ljson--1cb819ebcb847f1feff24879246c30d5.tar.gz
+    Use ljson Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build ljson Done.
+    Install ljson Done.
+    curl http://127.0.0.1:8888/build-cache/cortex-a53--lua--370ffcee1a70bc93516df21de9de0634.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/build-cache/cortex-a53--lua--370ffcee1a70bc93516df21de9de0634.tar.gz
+    Use lua Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build lua Done.
+    Install lua Done.
+    curl http://127.0.0.1:8888/build-cache/x86_64--ncurses-native--54a6ab0af25ad68f24bff08355b59efb.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/build-cache/x86_64--ncurses-native--54a6ab0af25ad68f24bff08355b59efb.tar.gz
+    Use ncurses-native Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build ncurses-native Done.
+    Install ncurses-native Done.
+    curl http://127.0.0.1:8888/build-cache/cortex-a53--ncurses--96424c436be9e0bc02bcdaea10083a8f.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/build-cache/cortex-a53--ncurses--96424c436be9e0bc02bcdaea10083a8f.tar.gz
+    Use ncurses Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build ncurses Done.
+    Install ncurses Done.
+    curl http://127.0.0.1:8888/build-cache/tcpdump--5652e8bf037a2ee5792fcbf02adee2b7.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/build-cache/tcpdump--5652e8bf037a2ee5792fcbf02adee2b7.tar.gz
+    Use tcpdump Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build tcpdump Done.
+    Install tcpdump Done.
+    Build rootfs Done.
+    Install packages from /home/lengjing/data/cbuild/output/cortex-a53/sysroot
+    Install busybox Done.
+    Install Glibc target from /home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/aarch64-linux-gnu/libc
+    Build done!
+
+    lengjing@lengjing:~/data/cbuild$ cat output/cortex-a53/config/time_statistics
+    real		user		sys		package
+    0.04		0.03		0.00		deps
+    0.06		0.05		0.01		busybox
+    0.12		0.10		0.02		busybox
+    0.01		0.00		0.00		busybox
+    0.07		0.06		0.00		cjson
+    0.08		0.07		0.02		cjson
+    0.00		0.00		0.00		cjson
+    0.07		0.06		0.01		libpcap
+    0.12		0.09		0.03		libpcap
+    0.01		0.00		0.00		libpcap
+    0.06		0.05		0.01		ljson
+    0.11		0.09		0.04		ljson
+    0.00		0.00		0.00		ljson
+    0.07		0.06		0.00		lua
+    0.10		0.10		0.01		lua
+    0.01		0.01		0.00		lua
+    0.08		0.05		0.03		ncurses-native
+    0.21		0.15		0.10		ncurses-native
+    0.08		0.01		0.07		ncurses-native
+    0.09		0.08		0.01		ncurses
+    0.21		0.17		0.07		ncurses
+    0.09		0.01		0.07		ncurses
+    0.08		0.06		0.02		tcpdump
+    0.11		0.11		0.01		tcpdump
+    0.00		0.00		0.00		tcpdump
+    0.00		0.00		0.00		rootfs
+    1.00		0.54		0.45		rootfs
+    3.00		2.07		1.10		total_time
+    ```
+
+* Sets force compilation flag, it always compiles from source code
+
+    ```sh
+    lengjing@lengjing:~/data/cbuild$ make lua_setforce
+    Set lua Force Build.
+    lengjing@lengjing:~/data/cbuild$ make lua
+    WARNING: Force Build lua.
+    curl http://127.0.0.1:8888/downloads/lua-5.4.4.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/lua-5.4.4.tar.gz
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/lua-5.4.4.tar.gz to /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/lua
+    patching file Makefile
+    patching file src/Makefile
+    Patch /home/lengjing/data/cbuild/oss/lua/patch/0001-lua-Support-dynamic-library-compilation.patch to /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/lua/lua-5.4.4 Done.
+    patching file src/lparser.c
+    Patch /home/lengjing/data/cbuild/oss/lua/patch/CVE-2022-28805.patch to /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/lua/lua-5.4.4 Done.
+    Push lua Cache to /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build lua Done.
+    Install lua Done.
+    lengjing@lengjing:~/data/cbuild$ make lua
+    WARNING: Force Build lua.
+    Push lua Cache to /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build lua Done.
+    Install lua Done.
+    ```
+
+* Removes force compilation flag, the result is taken directly from the mirror server cache, without re-compiling from the source code
+
+    ```sh
+    lengjing@lengjing:~/data/cbuild$ make lua_unsetforce
+    Unset lua Force Build.
+    lengjing@lengjing:~/data/cbuild$ make lua
+    curl http://127.0.0.1:8888/build-cache/cortex-a53--lua--370ffcee1a70bc93516df21de9de0634.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/build-cache/cortex-a53--lua--370ffcee1a70bc93516df21de9de0634.tar.gz
+    Use lua Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build lua Done.
+    Install lua Done.
+    lengjing@lengjing:~/data/cbuild$ make lua
+    Use lua Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build lua Done.
+    Install lua Done.
+    ```
+
+* Modifies the file to verify, it compiles from source code
+
+    ```sh
+    lengjing@lengjing:~/data/cbuild$ echo >> oss/ljson/patch/Makefile
+    lengjing@lengjing:~/data/cbuild$ make ljson
+    curl http://127.0.0.1:8888/downloads/ljson-git-br.-rev.7b2f6ae6cf7011e94682b073669f5ff8f69095cc.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/ljson-git-br.-rev.7b2f6ae6cf7011e94682b073669f5ff8f69095cc.tar.gz
+    copy /home/lengjing/data/cbuild/output/mirror-cache/downloads/ljson to /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/ljson
+    Push ljson Cache to /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build ljson Done.
+    Install ljson Done.
+    lengjing@lengjing:~/data/cbuild$ make ljson
+    Use ljson Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build ljson Done.
+    Install ljson Done.
+    ```
+
+* Modifies the configuration, it sets force compilation flag and always compiles from source code
+
+    ```sh
+    lengjing@lengjing:~/data/cbuild$ make busybox_menuconfig
+    curl http://127.0.0.1:8888/downloads/busybox-1.35.0.tar.bz2 to /home/lengjing/data/cbuild/output/mirror-cache/downloads/busybox-1.35.0.tar.bz2
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/busybox-1.35.0.tar.bz2 to /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/busybox
+      GEN     /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/busybox/build/Makefile
+    #
+    # using defaults found in .config
+    #
+
+    *** End of configuration.
+    *** Execute 'make' to build the project or try 'make help'.
+
+    Set busybox Force Build.
+    lengjing@lengjing:~/data/cbuild$ make busybox
+    WARNING: Force Build busybox.
+    /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/busybox/busybox-1.35.0/applets/usage.c: In function 'main':
+    /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/busybox/busybox-1.35.0/applets/usage.c:52:3: warning: ignoring return value of 'write', declared with attribute warn_unused_result [-Wunused-result]
+    ...
+    Push busybox Cache to /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build busybox Done.
+    Install busybox Done.
+    lengjing@lengjing:~/data/cbuild$ make busybox
+    WARNING: Force Build busybox.
+    Push busybox Cache to /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build busybox Done.
+    Install busybox Done.
+    ```
+
+* Restores the default configuration, it removes force compilation flag, the result is taken directly from the mirror server cache, without re-compiling from the source code
+
+    ```sh
+    lengjing@lengjing:~/data/cbuild$ make busybox_defconfig
+      GEN     /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/busybox/build/Makefile
+    *
+    * Busybox Configuration
+    *
+    *
+    * Settings
+    *
+    ...
+    Unset busybox Force Build.
+    lengjing@lengjing:~/data/cbuild$ make busybox
+    curl http://127.0.0.1:8888/build-cache/cortex-a53--busybox--b7c40d7a733221bbd8327e487cfee505.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/build-cache/cortex-a53--busybox--b7c40d7a733221bbd8327e487cfee505.tar.gz
+    Use busybox Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build busybox Done.
+    Install busybox Done.
+    lengjing@lengjing:~/data/cbuild$ make busybox
+    Use busybox Cache in /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build busybox Done.
+    Install busybox Done.
+    ```
+
+* Modifies the file to verify of the dependency, the dependency package and the package compile from source code
+
+    ```sh
+    lengjing@lengjing:~/data/cbuild$ echo >> oss/libpcap/mk.deps
+    lengjing@lengjing:~/data/cbuild$ make tcpdump
+    curl http://127.0.0.1:8888/downloads/libpcap-1.10.1.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/libpcap-1.10.1.tar.gz
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/libpcap-1.10.1.tar.gz to /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/libpcap
+    Push libpcap Cache to /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build libpcap Done.
+    Install libpcap Done.
+    Install libpcap Done.
+    curl http://127.0.0.1:8888/downloads/tcpdump-4.99.1.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/tcpdump-4.99.1.tar.gz
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/tcpdump-4.99.1.tar.gz to /home/lengjing/data/cbuild/output/cortex-a53/objects/oss/tcpdump
+    configure: WARNING: using cross tools not prefixed with host triplet
+    configure: WARNING: pcap/pcap-inttypes.h: accepted by the compiler, rejected by the preprocessor!
+    configure: WARNING: pcap/pcap-inttypes.h: proceeding with the compiler's result
+    Push tcpdump Cache to /home/lengjing/data/cbuild/output/mirror-cache/build-cache.
+    Build tcpdump Done.
+    Install tcpdump Done.
+    ```
 

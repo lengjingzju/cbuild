@@ -15,7 +15,7 @@ LIC_FILES_CHKSUM = ""
 # No information for SRC_URI yet (only an external source tree was specified)
 SRC_URI = ""
 
-inherit testenv
+inherit cbuildenv
 inherit sanity
 
 # NOTE: this is a Makefile-only piece of software, so we cannot generate much of the

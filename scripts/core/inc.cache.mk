@@ -1,3 +1,9 @@
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
+
 ifeq ($(KERNELRELEASE), )
 COLORECHO       ?= $(if $(findstring dash,$(shell readlink /bin/sh)),echo,echo -e)
 FETCH_SCRIPT    := $(ENV_TOOL_DIR)/fetch_package.sh
@@ -15,7 +21,7 @@ INS_SUBDIR      ?= /usr
 PC_FILES        ?=
 
 ifneq ($(COMPILE_TOOL), meson)
-MAKES           ?= make -s $(ENV_BUILD_JOBS) $(MAKES_FLAGS)
+MAKES           ?= make $(ENV_BUILD_JOBS) $(ENV_MAKE_FLAGS) $(MAKES_FLAGS)
 else
 MAKES           ?= ninja $(ENV_BUILD_JOBS) $(MAKES_FLAGS)
 MESON_WRAP_MODE ?= --wrap-mode=nodownload
@@ -152,6 +158,10 @@ ifeq ($(PREPARE_SYSROOT), y)
 psysroot:
 	@checksum=$$($(call do_check)); \
 	matchflag=$$(echo "$${checksum}" | grep -wc MATCH); \
+	checkinfo=$$(echo "$${checksum}" | sed '/MATCH/ d'); \
+	if [ ! -z "$${checkinfo}" ]; then \
+		echo "$${checkinfo}"; \
+	fi; \
 	if [ $${matchflag} -eq 0 ]; then \
 		$(call prepare_sysroot); \
 	fi

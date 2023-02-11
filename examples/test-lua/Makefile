@@ -1,36 +1,21 @@
-PACKAGE_NAME = lua
+PACKAGE_NAME     = lua
 
 include $(ENV_MAKE_DIR)/inc.env.mk
 
-VERSION             := 5.4.4
-SRC_DIRNAME         := lua-$(VERSION)
-DOWNLOAD_NAME       := $(SRC_DIRNAME).tar.gz
-SRC_URL             := http://www.lua.org/ftp/$(DOWNLOAD_NAME)
-INSTALL_PATH        := $(OUT_PATH)/image
+VERSION          = 5.4.4
+SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
+SRC_NAME         = $(SRC_DIR).tar.gz
+SRC_URL          = http://www.lua.org/ftp/$(SRC_NAME)
+SRC_MD5          = bd8ce7069ff99a400efd14cf339a727b
 
-PATCH_FOLDER        := $(shell pwd)/patch
-PATCH_SCRIPT        := $(ENV_TOOL_DIR)/exec_patch.sh
-FETCH_SCRIPT        := $(ENV_TOOL_DIR)/fetch_package.sh
+PATCH_FOLDER     = $(shell pwd)/patch
+CACHE_CHECKSUM  += $(PATCH_FOLDER)
+CACHE_DEPENDS    = none
+MAKES_FLAGS      = INSTALL_TOP=$(INS_PATH)$(INS_SUBDIR) INSTALL_DATA="cp -rfp" -C $(SRC_PATH)
+MAKES_FLAGS     += $(if $(CROSS_COMPILE),CC=$(CC) AR="$(AR) rcs" RANLIB="$(RANLIB) -D")
 
-MAKES               := make -s CC=$(CC) AR="$(AR) rcs" RANLIB="$(RANLIB) -D" \
-                       INSTALL_TOP=$(INSTALL_PATH) INSTALL_DATA="cp -rfp" -C $(OUT_PATH)/$(SRC_DIRNAME)
+include $(ENV_MAKE_DIR)/inc.cache.mk
 
-INSTALL_HEADERS     := $(INSTALL_PATH)/include/*
-INSTALL_LIBRARIES   := $(INSTALL_PATH)/lib/liblua.*
-INSTALL_BINARIES    := $(INSTALL_PATH)/bin/*
-
-.PHONY: all clean install
-
-all:
-	@$(FETCH_SCRIPT) tar $(SRC_URL) $(DOWNLOAD_NAME) $(OUT_PATH) $(SRC_DIRNAME)
-	@$(PATCH_SCRIPT) patch $(PATCH_FOLDER) $(OUT_PATH)/$(SRC_DIRNAME)
-	@rm -rf $(INSTALL_PATH) && $(MAKES) && $(MAKES) install
-	@echo "Build $(PACKAGE_NAME) Done."
-
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/liblua.so*
+INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
 include $(ENV_MAKE_DIR)/inc.ins.mk
-
-clean:
-	@rm -rf $(OUT_PATH)
-	@echo "Clean $(PACKAGE_NAME) Done."
-
-install: install_hdrs install_libs install_bins

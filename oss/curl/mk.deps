@@ -1,9 +1,14 @@
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
 
 #DEPS(mk.deps) curl-native(cache psysroot): unselect zlib-native openssl-native
 #DEPS(mk.deps) curl(cache psysroot release): unselect zlib openssl
 
 PACKAGE_NAME     = curl
-PACKAGE_DEPS     = zlib openssl
+SEARCH_HDRS     = zlib openssl
 
 EXPORT_PC_ENV    = y
 include $(ENV_MAKE_DIR)/inc.env.mk

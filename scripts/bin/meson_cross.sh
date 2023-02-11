@@ -1,5 +1,11 @@
 #!/bin/bash
 
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
+
 out_path=$1
 cross_infos=$(${ENV_TOOL_DIR}/process_machine.sh cross_meson)
 

@@ -1,3 +1,9 @@
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
+
 ifeq ($(KERNELRELEASE), )
 
 .PHONY: install_libs install_base_libs install_bins install_base_bins install_hdrs install_datas

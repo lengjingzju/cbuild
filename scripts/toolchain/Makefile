@@ -1,3 +1,9 @@
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
+
 ifeq ($(ENV_TOP_DIR), )
 $(error Please souce env first.)
 endif

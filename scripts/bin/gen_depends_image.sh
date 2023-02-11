@@ -1,5 +1,11 @@
 #!/bin/bash
 
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
+
 package=$1
 outdir=$2
 deppath=$3

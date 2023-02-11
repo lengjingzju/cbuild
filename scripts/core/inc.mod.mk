@@ -1,3 +1,9 @@
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
+
 ifneq ($(KERNELRELEASE), )
 
 MOD_NAME       ?= hello
@@ -42,7 +48,7 @@ endif
 else
 
 KERNEL_SRC     ?= /lib/modules/$(shell uname -r)/build
-MOD_MAKES      += $(ENV_BUILD_JOBS) -s -C $(KERNEL_SRC) $(if $(KERNEL_OUT),O=$(KERNEL_OUT))
+MOD_MAKES      += $(ENV_BUILD_JOBS) $(ENV_MAKE_FLAGS) -C $(KERNEL_SRC) $(if $(KERNEL_OUT),O=$(KERNEL_OUT))
 
 ifeq ($(findstring $(ENV_BUILD_MODE),external yocto), )
 

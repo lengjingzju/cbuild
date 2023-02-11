@@ -1,3 +1,9 @@
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
+
 import sys, os, re
 from argparse import ArgumentParser
 
@@ -830,7 +836,7 @@ class Deps:
                 make = '@$(PRECMD)make'
                 if item['targets'] and 'jobserver' in item['targets']:
                     make += ' $(ENV_BUILD_JOBS)'
-                make += ' -s -C %s' % (item['path'])
+                make += ' $(ENV_MAKE_FLAGS) -C %s' % (item['path'])
                 if item['make']:
                     make += ' -f %s' % (item['make'])
 

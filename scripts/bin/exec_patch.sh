@@ -1,5 +1,11 @@
 #!/bin/bash
 
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
+
 patch_opt=$1
 patch_src=$2
 patch_dst=$3

@@ -1,5 +1,5 @@
 PACKAGE_NAME ?= test-app2
-PACKAGE_DEPS ?= test-app
+SEARCH_HDRS ?= test-app
 
 BIN_NAME = test2
 

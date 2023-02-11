@@ -18,7 +18,7 @@ SRC_URI = ""
 DEPENDS += "test-app"
 RDEPENDS:${PN} += "test-app"
 
-inherit testenv
+inherit cbuildenv
 inherit sanity
 
 # NOTE: this is a Makefile-only piece of software, so we cannot generate much of the

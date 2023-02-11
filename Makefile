@@ -1,3 +1,9 @@
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
+
 OUT_PATH       := $(ENV_CFG_ROOT)
 KCONFIG        := $(OUT_PATH)/Kconfig
 CONF_SAVE_PATH := $(ENV_TOP_DIR)/configs
@@ -12,7 +18,7 @@ TIME_FORMAT    := /usr/bin/time -a -o $(OUT_PATH)/time_statistics -f \"%e\\t\\t%
 .PHONY: all clean insclean distclean toolchain deps all-deps total_time time_statistics
 
 all: loadconfig
-	@make $(ENV_BUILD_JOBS) -s MAKEFLAGS= all_targets
+	@make $(ENV_BUILD_JOBS) $(ENV_MAKE_FLAGS) MAKEFLAGS= all_targets
 	@echo "Build done!"
 
 -include $(OUT_PATH)/.config
@@ -51,10 +57,10 @@ all-deps:
 	done
 
 total_time: loadconfig
-	@$(PRECMD)make -s all_targets
+	@$(PRECMD)make $(ENV_MAKE_FLAGS) all_targets
 	@echo "Build done!"
 
 time_statistics:
 	@mkdir -p $(OUT_PATH)
 	@$(if $(findstring dash,$(shell readlink /bin/sh)),echo,echo -e) "real\t\tuser\t\tsys\t\tpackage" > $(OUT_PATH)/$@
-	@make -s PRECMD="$(TIME_FORMAT) " total_time
+	@make $(ENV_MAKE_FLAGS) PRECMD="$(TIME_FORMAT) " total_time

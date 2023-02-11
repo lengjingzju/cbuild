@@ -1,6 +1,13 @@
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
+
 inherit terminal
 
 KCONFIG_CONFIG_COMMAND ??= "menuconfig"
+KCONFIG_DEFCONFIG_COMMAND ??= "defconfig"
 KCONFIG_CONFIG_PATH ??= "${B}/.config"
 
 python do_setrecompile () {
@@ -36,4 +43,19 @@ do_menuconfig[depends] += "kconfig-native:do_populate_sysroot"
 do_menuconfig[nostamp] = "1"
 do_menuconfig[dirs] = "${B}"
 addtask menuconfig after do_configure
+
+run_defconfig() {
+    oe_runmake ${KCONFIG_DEFCONFIG_COMMAND}
+}
+
+python do_defconfig() {
+    bb.build.exec_func("run_defconfig", d)
+    if hasattr(bb.build, 'write_taint'):
+        bb.build.write_taint('do_compile', d)
+}
+
+do_defconfig[depends] += "kconfig-native:do_populate_sysroot"
+do_defconfig[nostamp] = "1"
+do_defconfig[dirs] = "${B}"
+addtask defconfig
 

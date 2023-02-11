@@ -17,7 +17,7 @@ SRC_URI = ""
 
 DEPENDS += "kconfig-native"
 
-inherit testenv
+inherit cbuildenv
 inherit kconfig
 inherit sanity
 

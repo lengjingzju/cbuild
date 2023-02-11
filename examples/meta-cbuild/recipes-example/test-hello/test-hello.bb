@@ -17,7 +17,7 @@ SRC_URI = ""
 
 DEPENDS += "test-hello-add test-hello-sub"
 
-inherit testenv
+inherit cbuildenv
 inherit module
 
 # NOTE: this is a Makefile-only piece of software, so we cannot generate much of the

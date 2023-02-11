@@ -33,6 +33,251 @@
     * [文件获取★☆☆](https://docs.yoctoproject.org/bitbake/2.0/bitbake-user-manual/bitbake-user-manual-fetching.html)
     * [变量词汇表★☆☆](https://docs.yoctoproject.org/bitbake/2.0/bitbake-user-manual/bitbake-user-manual-ref-variables.html)
 
+## Yocto 配方模板
+
+### 编写类文件 (xxx.bbclass)
+
+* 可以在类文件中 `meta-xxx/classes/xxx.bbclass` 定义环境变量，在配方文件中继承 `inherit xxx`
+
+* 例如 cbuildenv.bbclass
+
+    ```sh
+    export ENV_TOP_DIR
+    export ENV_MAKE_DIR = "${ENV_TOP_DIR}/scripts/core"
+    export CONF_PATH = "${STAGING_BINDIR_NATIVE}"
+    export OUT_PATH = "${WORKDIR}/build"
+    export ENV_INS_ROOT = "${WORKDIR}/image"
+    export ENV_DEP_ROOT = "${WORKDIR}/recipe-sysroot"
+    export ENV_CFG_ROOT = "${TOPDIR}/config"
+    export ENV_BUILD_MODE
+    ```
+
+* 例如 kconfig.bbclass
+
+    ```py
+    inherit terminal
+    KCONFIG_CONFIG_COMMAND ??= "menuconfig"
+    KCONFIG_CONFIG_PATH ??= "${B}/.config"
+
+    python do_setrecompile () {
+        if hasattr(bb.build, 'write_taint'):
+            bb.build.write_taint('do_compile', d)
+    }
+
+    do_setrecompile[nostamp] = "1"
+    addtask setrecompile
+
+    python do_menuconfig() {
+        config = d.getVar('KCONFIG_CONFIG_PATH')
+
+        try:
+            mtime = os.path.getmtime(config)
+        except OSError:
+            mtime = 0
+
+        oe_terminal("sh -c \"make %s; if [ \\$? -ne 0 ]; then echo 'Command failed.'; printf 'Press any key to continue... '; read r; fi\"" % d.getVar('KCONFIG_CONFIG_COMMAND'),
+            d.getVar('PN') + ' Configuration', d)
+
+        if hasattr(bb.build, 'write_taint'):
+            try:
+                newmtime = os.path.getmtime(config)
+            except OSError:
+                newmtime = 0
+
+            if newmtime != mtime:
+                bb.build.write_taint('do_compile', d)
+    }
+
+    do_menuconfig[depends] += "kconfig-native:do_populate_sysroot"
+    do_menuconfig[nostamp] = "1"
+    do_menuconfig[dirs] = "${B}"
+    addtask menuconfig after do_configure
+    ```
+
+### 编写配方文件 (xxx.bb)
+
+* `recipetool create -o <xxx.bb> <package_src_dir>` 创建一个基本配方，例子中手动增加的条目说明如下
+<br>
+
+* 包依赖
+    * 包依赖其他包时需要使用 `DEPENDS += "package1 package2"` 说明
+    * 链接其它包时 (`LDFLAGS += -lname1 -lname2`) 的动态库，需要增加 `RDEPENDS:${PN} += "package1 package2"` 说明
+<br>
+
+* 编译继承类
+    * 使用 menuconfig 需要继承 `inherit kconfig`
+        * 如果是 `make -f wrapper.mk menuconfig`，需要设置 `KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"`
+        * 如果 .config 输出目录是编译输出目录，需要设置 `KCONFIG_CONFIG_PATH = "${OUT_PATH}/.config"`
+    * 使用 Makefile 编译应用继承 `inherit sanity`，使用 cmake 编译应用继承 `inherit cmake`
+    * 编译外部内核模块继承 `inherit module`
+    * 编译主机本地工具继承 `inherit native`
+<br>
+
+* 安装和打包
+    * 设置的变量
+        * includedir 指 xxx/usr/include
+        * base_libdir 指 xxx/lib;  libdir指 xxx/usr/lib;  bindir指 xxx/usr/bin; datadir 指 xxx/usr/share
+        * 有时候需要精确指定打包的文件而不是目录，防止多个打包的目录有重合导致打包出错
+        * 更多目录信息参考 Poky 工程的 `meta/conf/bitbake.conf` 文件
+        ```
+        FILES:${PN}-dev = "${includedir}"
+        FILES:${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
+        ```
+    * 继承 `inherit sanity` 或 `inherit cmake` 时需要按实际情况指定打包的目录，否则 do_package 任务出错
+    * 继承 `inherit module` 不需要指定头文件和模块文件的打包的目录，但如果安装其它文件时，需要指定这个文件的打包目录
+    * 忽略某些警告和错误
+        * `ALLOW_EMPTY:${PN} = "1"` 忽略包安装的文件只有头文件或为空，生成镜像时 do_rootfs 错误
+        * `INSANE_SKIP:${PN} += "dev-so"` 忽略安装的文件是符号链接的错误
+            * 更多信息参考 [insane.bbclass](https://docs.yoctoproject.org/ref-manual/classes.html?highlight=sanity#insane-bbclass)
+<br>
+
+* 配方模板
+
+    ```
+    LICENSE = "CLOSED"
+    LIC_FILES_CHKSUM = ""
+
+    # No information for SRC_URI yet (only an external source tree was specified)
+    SRC_URI = ""
+
+    #DEPENDS += "package1 package2"
+    #RDEPENDS:${PN} += "package1 package2"
+
+    inherit cbuildenv
+    #KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"
+    #KCONFIG_CONFIG_PATH = "${OUT_PATH}/.config"
+    #inherit kconfig
+    inherit sanity
+    #inherit cmake
+    #inherit module
+    #inherit native
+
+
+    # NOTE: this is a Makefile-only piece of software, so we cannot generate much of the
+    # recipe automatically - you will need to examine the Makefile yourself and ensure
+    # that the appropriate arguments are passed in.
+
+    do_configure () {
+     # Specify any needed configure commands here
+     :
+    }
+
+    do_compile () {
+     # You will almost certainly need to add additional arguments here
+     oe_runmake
+    }
+
+    do_install () {
+     # NOTE: unable to determine what to put here - there is a Makefile but no
+     # target named "install", so you will need to define this yourself
+     oe_runmake install
+    }
+
+    ALLOW_EMPTY:${PN} = "1"
+    INSANE_SKIP:${PN} += "dev-so"
+    FILES:${PN}-dev = "${includedir}"
+    FILES:${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
+    ```
+
+注: [从3.4版本开始，对变量的覆盖样式语法由下滑线 `_` 变成了冒号 `:`](https://docs.yoctoproject.org/migration-guides/migration-3.4.html#override-syntax-changes)
+
+
+### 编写配方附加文件 (xxx.bbappend)
+
+* 配方附加文件在 cbuild 的实现中，主要作用是指示包的源码路径和 Makefile 路径，一般这两个路径一样
+<br>
+
+* EXTERNALSRC: 源码目录，编译会对这个目录做校验决定是否重新编译
+    * 如果源码不全在 EXTERNALSRC 目录内，我们需要追加文件或目录做校验，追加任务的 `file-checksums` 标记，否则源码修改后没有重新编译
+    * 用户可以继承类 `extrasrc.bbclass` 来做追加，可设置的变量
+        * EXTRASRC_CONFIGURE: 追加做 do_configure 任务校验的文件或目录
+        * EXTRASRC_COMPILE: 追加做 do_compile 任务校验的文件或目录
+        * EXTRASRC_INSTALL: 追加做 do_install 任务校验的文件或目录
+
+        ```py
+        python () {
+            tasks = ['configure', 'compile', 'install']
+
+            for task in tasks:
+                task_name = 'do_%s' % (task)
+                src_name = 'EXTRASRC_%s' % (task.upper())
+                src_str = d.getVar(src_name)
+
+                if src_str:
+                    srcs = src_str.split()
+                    for src in srcs:
+                        if os.path.exists(src):
+                            if os.path.isdir(src):
+                                d.appendVarFlag(task_name, 'file-checksums', ' %s/*:True' % (src))
+                            else:
+                                d.appendVarFlag(task_name, 'file-checksums', ' %s:True' % (src))
+                            #bb.warn('%s is appended in %s of %s\n' % (d.getVarFlag(task_name, 'file-checksums'), task_name, d.getVar('PN')))
+                        else:
+                            bb.warn('%s is not existed in %s of %s\n' % (src, task_name, d.getVar('PN')))
+        }
+        ```
+<br>
+
+* EXTERNALSRC_BUILD: 运行 make 命令的目录，可以和 EXTERNALSRC 不同
+<br>
+
+* 本地源码的配方附加文件模板
+
+```
+inherit externalsrc
+EXTERNALSRC = "${ENV_TOP_DIR}/<package_src>"
+EXTERNALSRC_BUILD = "${ENV_TOP_DIR}/<package_src>"
+```
+
+## Yocto 编译打补丁
+
+### Yocto 官方打补丁
+
+* 方法
+    * 配方文件的当前目录新建名为 `配方名` 或 `files` 的文件夹，补丁放在此文件夹内
+        * 注：查找补丁文件的文件夹不止上面这些，但我们一般使用名为 `配方名` 的文件夹
+    * 配方中加上补丁文件名声明，无需文件夹路径 `SRC_URI += "file://0001-xxx.patch"`
+    * 如果配方继承了 `externalsrc` 类，还要设置变量 `RCTREECOVEREDTASKS = "do_unpack do_fetch"`
+        * 注：`externalsrc` 类默认会把 `do_patch` 任务删除，所以要设置 `RCTREECOVEREDTASKS`
+<br>
+
+* 优点
+    * 实现简单
+<br>
+
+* 缺点
+    * 无法选择补丁是否打上
+    * 打补丁默认只会运行一次，如果其它方法去掉了补丁，重新编译，补丁不会被打上
+    * 会在源码目录生成临时文件夹，污染源码目录，例如生成了 `.pc/` `patches/`
+
+
+### 自定义打补丁 externalpatch.bbclass
+
+* 方法
+    * 每类补丁建立两个包，打补丁包和去补丁包，配方名格式必须为 `xxx-patch-xxx` 和 `xxx-unpatch-xxx`
+    * 源码包弱依赖这两个包 `EXTRADEPS = "xxx-patch-xxx|xxx-unpatch-xxx"` `inherit weakdep`
+    * 建立虚依赖规则文件 `#VDEPS(choice) xxx-patch-xxx-choice(xxx-unpatch-xxx xxx-patch-xxx):`
+    * 补丁包设置变量并继承外部补丁类 `inherit externalpatch`
+        * `externalpatch` 类的作用是检查补丁是否打上，从而决定是否打补丁或去补丁强制运行
+        ```sh
+        EXTERNALPATCH_SRC = "带路径的补丁文件名，可以是多个文件或目录"
+        EXTERNALPATCH_DST = "要打补丁的源码目录"
+        EXTERNALPATCH_OPT = "patch 或 unpatch"
+        inherit externalpatch
+        ```
+<br>
+
+* 缺点
+    * 实现稍显复杂
+    * 因为动态修改了配方，补丁选项改变时需要重新编译打/去补丁包两次
+<br>
+
+* 优点
+    * 可以选择补丁是否打上
+    * 可以保证打补丁或去补丁正确运行，无论是否在其它地方做了打补丁或去补丁的操作
+    * 源码目录只有补丁的修改，无临时文件或文件夹
+    * 补丁可以放在任意目录
+
 ## Yocto 编译和普通编译最大不同是什么
 
 答：普通编译使用的是主机的编译环境；

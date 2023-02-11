@@ -1,9 +1,14 @@
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
 
 #DEPS(mk.deps) tcpdump-native(cache psysroot): unselect libpcap-native
 #DEPS(mk.deps) tcpdump(cache psysroot release): unselect libpcap
 
 PACKAGE_NAME     = tcpdump
-PACKAGE_DEPS     = pcap
+SEARCH_HDRS     = pcap
 
 include $(ENV_MAKE_DIR)/inc.env.mk
 

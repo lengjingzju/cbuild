@@ -1,9 +1,14 @@
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
 
 #DEPS(mk.deps) dbus-native(cache psysroot): unselect expat-native
 #DEPS(mk.deps) dbus(cache psysroot release): unselect expat
 
 PACKAGE_NAME     = dbus
-PACKAGE_DEPS     = expat
+SEARCH_HDRS     = expat
 
 EXPORT_PC_ENV    = y
 include $(ENV_MAKE_DIR)/inc.env.mk

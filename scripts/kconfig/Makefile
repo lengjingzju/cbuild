@@ -1,3 +1,9 @@
+############################################
+# SPDX-License-Identifier: GPL-2.0         #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
+
 ifeq ($(ENV_BUILD_MODE), external)
 OUT_PATH       ?= $(shell pwd | sed 's:$(ENV_TOP_DIR):$(ENV_OUT_HOST):')
 else

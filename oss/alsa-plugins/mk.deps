@@ -1,9 +1,14 @@
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
 
 #DEPS(mk.deps) alsa-plugins-native(cache psysroot): unselect alsa-lib-native
 #DEPS(mk.deps) alsa-plugins(cache psysroot release): unselect alsa-lib
 
 PACKAGE_NAME     = alsa-plugins
-PACKAGE_DEPS     = alsa
+SEARCH_HDRS     = alsa
 
 EXPORT_PC_ENV    = y
 include $(ENV_MAKE_DIR)/inc.env.mk

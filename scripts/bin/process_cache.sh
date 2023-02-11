@@ -1,5 +1,11 @@
 #!/bin/bash
 
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
+
 usage() {
     echo "========================================"
     echo -e "\033[34mUsage: '$0 -m method -p package -n -s srcfile -o outdir -i insdir -g grade -c checksum -d depends -a appends -u url -v verbose\033[0m"
@@ -243,7 +249,7 @@ get_one_depend_checksum() {
             for prefixname in ${cache_grades}; do
                 depcache=$(ls ${ENV_CACHE_DIR}/${prefixname}--${depname}--*.tar.gz 2>/dev/null)
                 if [ ! -z "${depcache}" ]; then
-                    ${checktool} ${depcache} >> ${checktmp1}
+                    echo ${depcache} | sed -E 's/.*--(\w+).tar.gz/\1/g' >> ${checktmp1}
                     break
                 else
                     depcache=""
@@ -252,7 +258,7 @@ get_one_depend_checksum() {
         else
             depcache=$(ls ${ENV_CACHE_DIR}/$(uname -m)--${depname}--*.tar.gz 2>/dev/null)
             if [ ! -z "${depcache}" ]; then
-                ${checktool} ${depcache} >> ${checktmp1}
+                echo ${depcache} | sed -E 's/.*--(\w+).tar.gz/\1/g' >> ${checktmp1}
             else
                 depcache=""
             fi

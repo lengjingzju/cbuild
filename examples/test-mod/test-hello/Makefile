@@ -6,7 +6,7 @@ MOD_NAME = hello_dep
 else
 
 PACKAGE_NAME ?= test-hello
-PACKAGE_DEPS ?= test-hello-add test-hello-sub
+SEARCH_HDRS ?= test-hello-add test-hello-sub
 
 all: modules
 	@echo "Build $(PACKAGE_NAME) Done."

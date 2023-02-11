@@ -1,5 +1,11 @@
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
+
 COLORECHO      ?= $(if $(findstring dash,$(shell readlink /bin/sh)),echo,echo -e)
-LOGOUTPUT      ?= 1>/dev/null
+LOGOUTPUT      ?= $(if $(filter -s,$(ENV_MAKE_FLAGS)),1>/dev/null)
 
 INSTALL_HDR    ?= $(PACKAGE_NAME)
 SEARCH_HDRS    ?= $(PACKAGE_DEPS)

@@ -1,3 +1,8 @@
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
 
 #DEPS(mk.deps) isl-native(cache psysroot): unselect gmp-native
 #DEPS(mk.deps) isl(cache psysroot release): unselect gmp

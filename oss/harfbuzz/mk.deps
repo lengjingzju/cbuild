@@ -1,3 +1,8 @@
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
 
 #DEPS(harfbuzz-without-freetype.mk) harfbuzz-without-freetype-native(cache psysroot): unselect icu-native glib-native
 #DEPS(harfbuzz-without-freetype.mk) harfbuzz-without-freetype(cache psysroot release): unselect icu glib
@@ -5,7 +10,7 @@
 #DEPS(mk.deps) harfbuzz(cache psysroot release): unselect icu libpng freetype glib
 
 PACKAGE_NAME    ?= harfbuzz
-PACKAGE_DEPS     = icu glib
+SEARCH_HDRS     = icu glib
 
 EXPORT_PC_ENV    = y
 include $(ENV_MAKE_DIR)/inc.env.mk
@@ -24,7 +29,7 @@ PC_FILES         = harfbuzz*.pc
 CONFIGURE_FLAGS += CFLAGS="$(call link_hdrs)" LDFLAGS="$(call link_libs)"
 
 ifeq ($(findstring -without-freetype,$(PACKAGE_NAME)), )
-PACKAGE_DEPS    += freetype2 libpng16
+SEARCH_HDRS    += freetype2 libpng16
 CONFIGURE_FLAGS += --with-freetype=yes
 else
 CONFIGURE_FLAGS += --with-freetype=no

@@ -17,7 +17,7 @@ SRC_URI = ""
 
 DEPENDS += "flex-native bison-native"
 
-inherit testenv
+inherit cbuildenv
 inherit native
 
 # NOTE: this is a Makefile-only piece of software, so we cannot generate much of the

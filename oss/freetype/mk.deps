@@ -1,9 +1,14 @@
+############################################
+# SPDX-License-Identifier: MIT             #
+# Copyright (C) 2021-.... Jing Leng        #
+# Contact: Jing Leng <lengjingzju@163.com> #
+############################################
 
 #DEPS(mk.deps) freetype-native(cache psysroot): unselect libpng-native zlib-native bzip2-native harfbuzz-without-freetype-native
 #DEPS(mk.deps) freetype(cache psysroot release): unselect libpng zlib bzip2 harfbuzz-without-freetype
 
 PACKAGE_NAME     = freetype
-PACKAGE_DEPS     = zlib libpng16 bzip2 harfbuzz
+SEARCH_HDRS     = zlib libpng16 bzip2 harfbuzz
 
 EXPORT_PC_ENV    = y
 include $(ENV_MAKE_DIR)/inc.env.mk
