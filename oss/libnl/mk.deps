@@ -23,7 +23,7 @@ PC_FILES         = libnl-3.0.pc libnl-cli-3.0.pc libnl-genl-3.0.pc libnl-idiag-3
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
 
-INSTALL_TODIR_etc  = $(INS_PATH)/usr/etc/* /etc
+INSTALL_SYSCONFS  = $(INS_PATH)/usr/etc/*
 INSTALL_TODIR_cls  = $(INS_PATH)/usr/lib/libnl/cli/cls/*.so /lib/libnl/cli/cls
 INSTALL_TODIR_qdisc= $(INS_PATH)/usr/lib/libnl/cli/qdisc/*.so /lib/libnl/cli/qdisc
 INSTALL_LIBRARIES  = $(INS_PATH)/usr/lib/*.so*
@@ -31,4 +31,4 @@ INSTALL_BINARIES   = $(INS_PATH)/usr/bin/*
 
 include $(ENV_MAKE_DIR)/inc.ins.mk
 
-release: install_todir_etc install_todir_cls install_todir_qdisc install_base_libs install_base_bins
+release: install_sysconfs install_todir_cls install_todir_qdisc install_base_libs install_base_bins

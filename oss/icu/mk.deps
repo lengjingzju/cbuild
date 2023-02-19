@@ -33,10 +33,10 @@ endef
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
 
-INSTALL_LIBRARIES  = $(INS_PATH)/usr/lib/*.so* $(INS_PATH)/usr/lib/icu
-INSTALL_BINARIES   = $(INS_PATH)/usr/bin/*
-INSTALL_TODIR_sbin = $(INS_PATH)/usr/sbin/* /usr/sbin
-INSTALL_DATAS      = $(INS_PATH)/usr/share/icu
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so* $(INS_PATH)/usr/lib/icu
+INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
+INSTALL_SBINS    = $(INS_PATH)/usr/sbin/*
+INSTALL_DATAS    = $(INS_PATH)/usr/share/icu
 include $(ENV_MAKE_DIR)/inc.ins.mk
 
-release: install_libs install_bins install_todir_sbin install_datas
+release: install_libs install_bins install_sbins install_datas

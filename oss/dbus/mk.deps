@@ -28,10 +28,10 @@ include $(ENV_MAKE_DIR)/inc.cache.mk
 
 INSTALL_BINARIES  = $(INS_PATH)/usr/bin/*
 INSTALL_LIBRARIES = $(INS_PATH)/usr/lib/libdbus-1.so* $(INS_PATH)/usr/lib/dbus-*
-INSTALL_TODIR_etc = $(INS_PATH)/usr/etc/* /etc
-INSTALL_TODIR_libexec = $(INS_PATH)/usr/libexec/* /usr/libexec
-INSTALL_TODIR_share = $(INS_PATH)/usr/share/dbus-1 $(INS_PATH)/usr/share/xml /usr/share
+INSTALL_SYSCONFS  = $(INS_PATH)/usr/etc/*
+INSTALL_LIBEXECS  = $(INS_PATH)/usr/libexec/*
+INSTALL_DATAS     = $(INS_PATH)/usr/share/dbus-1 $(INS_PATH)/usr/share/xml
 
 include $(ENV_MAKE_DIR)/inc.ins.mk
 
-release: install_bins install_libs install_todir_etc install_todir_libexec install_todir_share
+release: install_bins install_libs install_sysconfs install_libexecs install_datas

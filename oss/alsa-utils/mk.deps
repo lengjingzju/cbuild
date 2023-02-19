@@ -30,8 +30,8 @@ include $(ENV_MAKE_DIR)/inc.cache.mk
 INSTALL_LIBRARIES = $(INS_PATH)/lib/*
 INSTALL_BINARIES  = $(INS_PATH)/usr/bin/*
 INSTALL_TODIR_lib = $(INS_PATH)/usr/lib/alsa-topology/*.so* /usr/lib/alsa-topology
-INSTALL_TODIR_sbin= $(INS_PATH)/usr/sbin/* /usr/sbin
-INSTALL_DATAS     = $(INS_PATH)/usr/share/alsa $(INS_PATH)/usr/share/locale
+INSTALL_SBINS     = $(INS_PATH)/usr/sbin/*
+INSTALL_DATAS     = $(INS_PATH)/usr/share/alsa
 include $(ENV_MAKE_DIR)/inc.ins.mk
 
-release: install_base_libs install_bins install_todir_lib install_todir_sbin install_datas
+release: install_base_libs install_bins install_todir_lib install_sbins install_datas

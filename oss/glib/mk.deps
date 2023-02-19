@@ -29,10 +29,10 @@ endef
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
 
-INSTALL_LIBRARIES     = $(INS_PATH)/usr/lib/*.so*
-INSTALL_BINARIES      = $(INS_PATH)/usr/bin/*
-INSTALL_TODIR_libexec = $(INS_PATH)/usr/libexec/* /usr/libexec
-INSTALL_DATAS         = $(INS_PATH)/usr/share/*
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
+INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
+INSTALL_LIBEXECS = $(INS_PATH)/usr/libexec/*
+INSTALL_DATAS    = $(INS_PATH)/usr/share/*
 include $(ENV_MAKE_DIR)/inc.ins.mk
 
-release: install_libs install_bins install_todir_libexec install_datas
+release: install_libs install_bins install_libexecs install_datas

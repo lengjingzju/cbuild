@@ -34,8 +34,8 @@ endef
 include $(ENV_MAKE_DIR)/inc.cache.mk
 
 INSTALL_TODIR_lib = $(INS_PATH)/usr/lib/alsa-lib/*.so* /usr/lib/alsa-lib
-INSTALL_TODIR_etc = $(INS_PATH)/etc/* /etc
+INSTALL_SYSCONFS  = $(INS_PATH)/etc/*
 INSTALL_DATAS     = $(INS_PATH)/usr/share/alsa
 include $(ENV_MAKE_DIR)/inc.ins.mk
 
-release: install_todir_lib install_todir_etc install_datas
+release: install_todir_lib install_sysconfs install_datas

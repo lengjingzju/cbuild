@@ -1387,6 +1387,7 @@ egrep -o '\b\w+\b' $filename | \
     * 命令参数
         * `-n num`              : 表示 num 个元素之后另起一行
         * `-d separator`        : separator 是单个字符，表示这个字符作为定界符，例如: `echo "AXBXCX" | xargs -d X`
+        * `-i`                  : 表示在 `{}` 表示的指定位置替换参数，否则参数位置是末尾
 <br>
 
 * `tr set1 set2`                : 字符映射

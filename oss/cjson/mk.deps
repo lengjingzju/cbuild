@@ -24,7 +24,7 @@ PC_FILES         = libcjson.pc libcjson_utils.pc
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
 
-INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/libcjson*.so*
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
 include $(ENV_MAKE_DIR)/inc.ins.mk
 
 release: install_libs

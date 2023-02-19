@@ -483,66 +483,109 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
 ### 安装模板 inc.ins.mk
 
 * 安装模板被应用编译和内核模块编译共用
+* 安装模板的安装目录基本符合 [GNUInstallDirs](https://www.gnu.org/prep/standards/html_node/Directory-Variables.html) 标准
+    * `base_*dir` 和 `hdrdir` 不属于 GNUInstallDirs 的标准
+    * 安装的根目录是 `$(INS_PREFIX)`
+
 
 #### 安装模板的目标和变量说明
 
-* install_libs: 安装库文件集
-    * 用户需要设置被安装的库文件集变量 INSTALL_LIBRARIES
-    * 编译应用时 `inc.app.mk`，编译生成的库文件会加入到 `LIB_TARGETS` 变量，INSTALL_LIBRARIES 已默认赋值为 `$(LIB_TARGETS)`
-    * 安装目录是 `$(INS_PREFIX)/usr/lib`
-* install_base_libs: 安装库文件集
-    * 用户需要设置被安装的库文件集变量 INSTALL_BASE_LIBRARIES，该变量默认取 INSTALL_LIBRARIES 的值
-    * 安装目录是 `$(INS_PREFIX)/lib`
-* install_bins: 安装可执行文件集
-    * 用户需要设置被安装的可执行文件集变量 INSTALL_BINARIES
-    * 编译应用时 `inc.app.mk`，编译生成的可执行文件会加入到 `BIN_TARGETS` 变量，INSTALL_BINARIES 已默认赋值为 `$(BIN_TARGETS)`
-    * 安装目录是 `$(INS_PREFIX)/usr/bin`
-* install_base_bins: 安装可执行文件集
-    * 用户需要设置被安装的可执行文件集变量 INSTALL_BASE_BINARIES，该变量默认取 INSTALL_BINARIES 的值
-    * 安装目录是 `$(INS_PREFIX)/bin`
-* install_hdrs: 安装头文件集
-    * 用户需要设置被安装的头文件集变量 INSTALL_HEADERS
-    * 安装目录是 `$(INS_PREFIX)/usr/include/$(INSTALL_HDR)`
-* install_datas: 安装数据文件集
-    * 用户需要设置被安装的数据文件集变量 INSTALL_DATAS
-    * 安装目录是 `$(INS_PREFIX)/usr/share`
-* install_datas_xxx / install_todir_xxx / install_tofile_xxx: 安装文件集到特定文件夹
-    * 要安装的文件集分别由 INSTALL_DATAS_xxx / INSTALL_TODIR_xxx / INSTALL_TOFILE_xxx 定义
-    * 定义的值前面部分是要安装的文件集，最后一项是以斜杆 `/` 开头的安装目标路径
-    * install_datas_xxx 安装到目录 `$(INS_PREFIX)/usr/share$(INSTALL_DATAS_xxx最后一项)`
-    * install_todir_xxx 安装到目录`$(INS_PREFIX)$(INSTALL_TODIR_xxx最后一项)`
-    * install_tofile_xxx 安装到文件`$(INS_PREFIX)$(INSTALL_TOFILE_xxx最后一项)` ，INSTALL_TOFILE_xxx 的值有且只有两项
-    * 例子:
-        * 创建2个空白文件 testa 和 testb，Makefile 内容如下:
+* `$(eval $(call install_obj,<ID名>,<cp 选项>))`: 生成安装到指定目录的 Makefile 规则
+    * ID名: 目录名去掉 `dir`
+    *  Makefile 规则的目标: `install_<小写id名>s`
+    * 要安装的源文件集的变量名: `INSTALL_<大写ID名>S`
 
-            ```makefile
-            INSTALL_DATAS_test = testa testb /testa/testb
-            INSTALL_TODIR_test = testa testb /usr/local/bin
-            INSTALL_TOFILE_testa = testa /etc/a.conf
-            INSTALL_TOFILE_testb = testa /etc/b.conf
+* 已定义的 Makefile 规则
+    * 规则 `install_sysroot` 不是由 `install_obj` 定义的
+        * `install_sysroot`: 将指定目录下的所有文件和文件夹安装到根安装目录
 
-            all: install_datas_test install_todir_test install_tofile_testa install_tofile_testb
-            include $(ENV_MAKE_DIR)/inc.ins.mk
-            ```
+    | 目录名           | 目录定义(目标文件夹)          | 要安装的源文件集          | Makefile 规则的目标    |
+    | ---------------- | ----------------------------- | ------------------------- | ---------------------- |
+    | `base_bindir`    | `/bin`                        | `$(INSTALL_BASE_BINS)`    | `install_base_bins`    |
+    | `base_sbindir`   | `/sbin`                       | `$(INSTALL_BASE_SBINS)`   | `install_base_sbins`   |
+    | `base_libdir`    | `/lib`                        | `$(INSTALL_BASE_LIBS)`    | `install_base_libs`    |
+    | `bindir`         | `/usr/bin`                    | `$(INSTALL_BINS)`         | `install_bins`         |
+    | `sbindir`        | `/usr/sbin`                   | `$(INSTALL_SBINS)`        | `install_sbins`        |
+    | `libdir`         | `/usr/lib`                    | `$(INSTALL_LIBS)`         | `install_libs`         |
+    | `libexecdir`     | `/usr/libexec`                | `$(INSTALL_LIBEXECS)`     | `install_libexecs`     |
+    | `hdrdir`         | `/usr/include/$(INSTALL_HDR)` | `$(INSTALL_HDRS)`         | `install_hdrs`         |
+    | `includedir`     | `/usr/include`                | `$(INSTALL_INCLUDES)`     | `install_includes`     |
+    | `datadir`        | `/usr/share`                  | `$(INSTALL_DATAS)`        | `install_datas`        |
+    | `infodir`        | `$(datadir)/info`             | `$(INSTALL_INFOS)`        | `install_infos`        |
+    | `localedir`      | `$(datadir)/locale`           | `$(INSTALL_LOCALES)`      | `install_locales`      |
+    | `mandir`         | `$(datadir)/man`              | `$(INSTALL_MANS)`         | `install_mans`         |
+    | `docdir`         | `$(datadir)/doc`              | `$(INSTALL_DOCS)`         | `install_docs`         |
+    | `sysconfdir`     | `/etc`                        | `$(INSTALL_SYSCONFS)`     | `install_sysconfs`     |
+    | `servicedir`     | `/srv`                        | `$(INSTALL_SERVICES)`     | `install_services`     |
+    | `sharedstatedir` | `/com`                        | `$(INSTALL_SHAREDSTATES)` | `install_sharedstates` |
+    | `localstatedir`  | `/var`                        | `$(INSTALL_LOCALSTATES)`  | `install_localstates`  |
+    | `runstatedir`    | `/run`                        | `$(INSTALL_RUNSTATES)`    | `install_runstates`    |
+    | ` `              | `/`                           | `$(INSTALL_SYSROOT)`      | `install_sysroot`      |
 
-        * 运行 make 安装后的文件树
+* 变量默认值定义
+    * 编译应用时 `inc.app.mk`，编译生成的可执行文件会加入到 `BIN_TARGETS` 变量，`INSTALL_BINARIES` 已默认赋值为 `$(BIN_TARGETS)`
+    * 编译应用时 `inc.app.mk`，编译生成的库文件会加入到 `LIB_TARGETS` 变量，`INSTALL_LIBRARIES` 已默认赋值为 `$(LIB_TARGETS)`
 
-            ```
-            sysroot
-            ├── etc
-            │   ├── a.conf
-            │   └── b.conf
-            └── usr
-                ├── local
-                │   └── bin
-                │       ├── testa
-                │       └── testb
-                └── share
-                    └── testa
+    ``` makefile
+    INSTALL_BASE_BINARIES  ?= $(INSTALL_BINARIES)
+    INSTALL_BASE_BINS      ?= $(INSTALL_BASE_BINARIES)
+    INSTALL_BINS           ?= $(INSTALL_BINARIES)
+    INSTALL_BASE_LIBRARIES ?= $(INSTALL_LIBRARIES)
+    INSTALL_BASE_LIBS      ?= $(INSTALL_BASE_LIBRARIES)
+    INSTALL_LIBS           ?= $(INSTALL_LIBRARIES)
+    INSTALL_HDRS           ?= $(INSTALL_HEADERS)
+    ```
+
+* `$(eval $(call install_ext,<ID名>,<cp 选项>))`: 生成安装到指定目录的指定子目录的 Makefile 模式规则
+    * ID名: 目录名去掉 `dir`
+    *  Makefile 模式规则的目标: `install_<小写id名>s_%`，`%` 匹配小写字符
+    * 要安装的源文件集和目标子文件夹的变量名: `INSTALL_<大写ID名>S_xxx`，`xxx` 和目标中的模式匹配部分的字符串相同
+        * 定义的值前面部分是要安装的源文件集，最后一项是以斜杆 `/` 开头的指定子目录
+
+* 已定义的 Makefile 模式规则
+    * 模式规则 `install_todir_xxx` 和 `install_tofile_xxx` 不是由 `install_ext` 定义的
+        * `install_todir_xxx`: 安装到根目录的指定子目录的 Makefile 模式规则
+        * `install_tofile_xxx`: 安装到根目录的指定文件的 Makefile 模式规则，用于安装文件并重命名
+
+    | 目录名           | 目标文件夹                    | 设置安装的变量名            | Makefile 规则的模式目标 |
+    | ---------------- | ----------------------------- | --------------------------- | ----------------------- |
+    | `includedir`     | `/usr/include<指定子目录>`    | `$(INSTALL_INCLUDES_<xxx>)` | `install_includes_%`    |
+    | `datadir`        | `/usr/share<指定子目录>`      | `$(INSTALL_DATAS_<xxx>)`    | `install_datas_%`       |
+    | `sysconfdir`     | `/etc<指定子目录>`            | `$(INSTALL_SYSCONFS_<xxx>)` | `install_sysconfs_%`    |
+    | ` `              | `<指定子目录>`                | `$(INSTALL_TODIR_<xxx>)`    | `install_todir_%`       |
+    | ` `              | `<指定子文件>`                | `$(INSTALL_TOFILE_<xxx>)`   | `install_tofile_%`      |
+
+* 模式规则例子
+    * 创建2个空白文件 testa 和 testb，Makefile 内容如下:
+
+        ```makefile
+        INSTALL_DATAS_test = testa testb /testa/testb
+        INSTALL_TODIR_test = testa testb /usr/local/bin
+        INSTALL_TOFILE_testa = testa /etc/a.conf
+        INSTALL_TOFILE_testb = testa /etc/b.conf
+
+        all: install_datas_test install_todir_test install_tofile_testa install_tofile_testb
+        include $(ENV_MAKE_DIR)/inc.ins.mk
+        ```
+
+    * 运行 make 安装后的文件树
+
+        ```
+        sysroot
+        ├── etc
+        │   ├── a.conf
+        │   └── b.conf
+        └── usr
+            ├── local
+            │   └── bin
+            │       ├── testa
+            │       └── testb
+            └── share
+                └── testa
+                    └── testb
+                        ├── testa
                         └── testb
-                            ├── testa
-                            └── testb
-            ```
+        ```
 
 
 ### 应用模板 inc.app.mk

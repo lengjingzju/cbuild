@@ -29,6 +29,10 @@ define do_prepend
 	fi
 endef
 
+define do_append
+	rm -f $(INS_PATH)/linuxrc $(INS_PATH)/sbin/init
+endef
+
 include $(ENV_MAKE_DIR)/inc.cache.mk
 
 .PHONY: defconfig menuconfig

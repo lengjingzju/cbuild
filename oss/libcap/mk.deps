@@ -24,8 +24,8 @@ PC_FILES         = libcap.pc libpsx.pc
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
 
-INSTALL_LIBRARIES  = $(INS_PATH)/usr/lib/*.so*
-INSTALL_TODIR_sbin = $(INS_PATH)/usr/sbin/* /usr/sbin
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
+INSTALL_SBINS    = $(INS_PATH)/usr/sbin/*
 include $(ENV_MAKE_DIR)/inc.ins.mk
 
-release: install_libs install_todir_sbin
+release: install_libs install_sbins

@@ -21,6 +21,24 @@ linux_version=5.15.88
 gcc_version=12.2.0
 
 case $soc in
+    'cortex-a76')
+        cpu=cortex-a76
+        arch=armv8.2-a
+        cpu_family=aarch64
+        endian=little
+        linux_arch=arm64
+        cross_target=aarch64-linux-gnu
+        gcc_arch_option="--with-arch=armv8.2-a --with-tune=cortex-a76 --with-cpu=cortex-a76+crypto+dotprod+fp16+rcpc"
+        ;;
+    'cortex-a53+crypto')
+        cpu=cortex-a53+crypto
+        arch=armv8-a
+        cpu_family=aarch64
+        endian=little
+        linux_arch=arm64
+        cross_target=aarch64-linux-gnu
+        gcc_arch_option="--with-arch=armv8-a --with-cpu=cortex-a53+crypto"
+        ;;
     'cortex-a53')
         cpu=cortex-a53
         arch=armv8-a

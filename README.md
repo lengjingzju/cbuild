@@ -319,8 +319,6 @@ Note: The virtual packages will not participate in compilation, but is used to o
 * Environment Variable
     * ENVNAME=val1,val2             : Indicates that this package depends on the environment variable ENVNAME whose value is equal to val1 or equal to val2
     * ENVNAME!=val1,val2            : Indicates that this package depends on the environment variable ENVNAME whose value is not equal to val1 and not equal to val2
-<br>
-
 
 Note: Special dependencies are set to the `Depend_Names` of DEPS-statement in Normal Build, the variable `EXTRADEPS` in the recipe in Yocto Build, and
 if EXTRADEPS contains weak dependencies, the recipe should `inherit weakdep` class, and handling weak dependencies depends on `.config` in ENV_CFG_ROOT
@@ -503,69 +501,109 @@ Note: bitbake cann't directly use the environment variables of the current shell
 ### Installation Template inc.ins.mk
 
 * `inc.ins.mk` is shared by application compilation and driver compilation
+* The Installation directories are basically consistent with the [GNUInstallDirs](https://www.gnu.org/prep/standards/html_node/Directory-Variables.html) standard
+    * `base_*dir` and `hdrdir` don't belong to the GNUInstallDirs standard
+    * The root installation directory is `$(INS_PREFIX)`
 
-#### Targets of Installation Template
 
-* install_libs: Install the libraries
-    * Users need to set the value of the variable `INSTALL_LIBRARIES` to the installed libraries
-    * When compiling applications, the compilation-generated libraries are added to the variable `LIB_TARGETS`, the default value of `INSTALL_LIBRARIES` has been assigned to `$(LIB_TARGETS)`
-    * The installation destination directory is `$(INS_PREFIX)/usr/lib`
-* install_base_libs: Install the libraries
-    * Users need to set the value of the variable `INSTALL_BASE_LIBRARIES` to the installed libraries
-    * The default value of `INSTALL_BASE_LIBRARIES` has been assigned to `$(INSTALL_LIBRARIES)`
-    * The installation destination directory is `$(INS_PREFIX)/lib`
-* install_bins: Install the executables
-    * Users need to set the value of the variable `INSTALL_BINARIES` to the installed executables
+#### Functions and Targets of Installation Template
+
+* `$(eval $(call install_obj,<ID>,<cp options>))`: Generates Makefile rules for installation to the specified directory
+    * ID: The directory name with `dir` removed
+    * Makefile Target: `install_<lowercase id>s`
+    * Variable name to specify files / folders to install: `INSTALL_<uppercase ID>S`
+
+* Defined Makefile Rules
+    * Note: The Makefile rule of `install_sysroot` is not defined by `install_obj`
+        * `install_sysroot`: Installs all files and folders in the specified directory to the root installation directory
+
+    | Directory Name   | Directory Value               | Files and Folders to Install | Makefile Target        |
+    | ---------------- | ----------------------------- | ---------------------------- | ---------------------- |
+    | `base_bindir`    | `/bin`                        | `$(INSTALL_BASE_BINS)`       | `install_base_bins`    |
+    | `base_sbindir`   | `/sbin`                       | `$(INSTALL_BASE_SBINS)`      | `install_base_sbins`   |
+    | `base_libdir`    | `/lib`                        | `$(INSTALL_BASE_LIBS)`       | `install_base_libs`    |
+    | `bindir`         | `/usr/bin`                    | `$(INSTALL_BINS)`            | `install_bins`         |
+    | `sbindir`        | `/usr/sbin`                   | `$(INSTALL_SBINS)`           | `install_sbins`        |
+    | `libdir`         | `/usr/lib`                    | `$(INSTALL_LIBS)`            | `install_libs`         |
+    | `libexecdir`     | `/usr/libexec`                | `$(INSTALL_LIBEXECS)`        | `install_libexecs`     |
+    | `hdrdir`         | `/usr/include/$(INSTALL_HDR)` | `$(INSTALL_HDRS)`            | `install_hdrs`         |
+    | `includedir`     | `/usr/include`                | `$(INSTALL_INCLUDES)`        | `install_includes`     |
+    | `datadir`        | `/usr/share`                  | `$(INSTALL_DATAS)`           | `install_datas`        |
+    | `infodir`        | `$(datadir)/info`             | `$(INSTALL_INFOS)`           | `install_infos`        |
+    | `localedir`      | `$(datadir)/locale`           | `$(INSTALL_LOCALES)`         | `install_locales`      |
+    | `mandir`         | `$(datadir)/man`              | `$(INSTALL_MANS)`            | `install_mans`         |
+    | `docdir`         | `$(datadir)/doc`              | `$(INSTALL_DOCS)`            | `install_docs`         |
+    | `sysconfdir`     | `/etc`                        | `$(INSTALL_SYSCONFS)`        | `install_sysconfs`     |
+    | `servicedir`     | `/srv`                        | `$(INSTALL_SERVICES)`        | `install_services`     |
+    | `sharedstatedir` | `/com`                        | `$(INSTALL_SHAREDSTATES)`    | `install_sharedstates` |
+    | `localstatedir`  | `/var`                        | `$(INSTALL_LOCALSTATES)`     | `install_localstates`  |
+    | `runstatedir`    | `/run`                        | `$(INSTALL_RUNSTATES)`       | `install_runstates`    |
+    | ` `              | `/`                           | `$(INSTALL_SYSROOT)`         | `install_sysroot`      |
+
+* Default Directories
     * When compiling applications, the compilation-generated executables are added to the variable `BIN_TARGETS`, the default value of `INSTALL_BINARIES` has been assigned to `$(BIN_TARGETS)`
-    * The installation destination directory is `$(INS_PREFIX)/usr/bin`
-* install_base_bins: Install the executables
-    * Users need to set the value of the variable `INSTALL_BASE_BINARIES` to the installed executables
-    * The default value of `INSTALL_BASE_BINARIES` has been assigned to `$(INSTALL_BINARIES)`
-    * The installation destination directory is `$(INS_PREFIX)/bin`
-* install_hdrs: Install the headers
-    * Users need to set the value of the variable `INSTALL_HEADERS` to the installed headers
-    * The installation destination directory is `$(INS_PREFIX)/usr/include/$(INSTALL_HDR)`
-* install_hdrs: Install the datas
-    * Users need to set the value of the variable `INSTALL_DATAS` to the installed datas
-    * The installation destination directory is `$(INS_PREFIX)/usr/share`
-* install_datas_xxx / install_todir_xxx / install_tofile_xxx: Install files to the special directory
-    * Users need to set the value of the variable `INSTALL_DATAS_xxx` `INSTALL_TODIR_xxx` `INSTALL_TOFILE_xxx` to the installed datas
-    * The installation destination directory is `$(INS_PREFIX)/usr/share`
-    * The preceded items are the files to install, and the last item (must begins with a slash `/`) is the installation destination
-    * The installation destination directory of `install_datas_xxx` is `$(INS_PREFIX)/usr/share$(lastword $(INSTALL_DATAS_xxx))`
-    * The installation destination directory of `install_todir_xxx` is `$(INS_PREFIX)$(lastword $(INSTALL_TODIR_xxx))`
-    * The installation destination file of `install_tofile_xxx` is `$(INS_PREFIX)$(lastword $(INSTALL_TOFILE_xxx))`
-    * For example:
-        * Create 2 blank files testa and testb, and the content of Makefile is as follows:
+    * When compiling applications, the compilation-generated libraries are added to the variable `LIB_TARGETS`, the default value of `INSTALL_LIBRARIES` has been assigned to `$(LIB_TARGETS)`
 
-            ```makefile
-            INSTALL_DATAS_test = testa testb /testa/testb
-            INSTALL_TODIR_test = testa testb /usr/local/bin
-            INSTALL_TOFILE_testa = testa /etc/a.conf
-            INSTALL_TOFILE_testb = testa /etc/b.conf
+    ``` makefile
+    INSTALL_BASE_BINARIES  ?= $(INSTALL_BINARIES)
+    INSTALL_BASE_BINS      ?= $(INSTALL_BASE_BINARIES)
+    INSTALL_BINS           ?= $(INSTALL_BINARIES)
+    INSTALL_BASE_LIBRARIES ?= $(INSTALL_LIBRARIES)
+    INSTALL_BASE_LIBS      ?= $(INSTALL_BASE_LIBRARIES)
+    INSTALL_LIBS           ?= $(INSTALL_LIBRARIES)
+    INSTALL_HDRS           ?= $(INSTALL_HEADERS)
+    ```
 
-            all: install_datas_test install_todir_test install_tofile_testa install_tofile_testb
-            include $(ENV_MAKE_DIR)/inc.ins.mk
-            ```
+* `$(eval $(call install_ext,<ID>,<cp options>))`: Generates Makefile pattern rules for installation to the specified sub-directory in the specified directory
+    * ID: The directory name with `dir` removed
+    * Makefile Pattern Target: `install_<lowercase id>s_%`, `%` matches lowercase letters etc
+    * Variable Name for Installation: `INSTALL_<uppercase ID>S_<xxx>`, xxx is same as the pattern in the Target
+        * The preceded items are the files / folders to install, and the last item (must begins with a slash `/`) is the installation destination
 
-        *  The installation file tree after `make`
+* Defined Makefile Pattern Rules
+    * Note: The Makefile pattern rules of `install_todir_xxx` and `install_tofile_xxx` are not defined by `install_ext`
+        * `install_todir_xxx`: Installs the specified files and folders to the specified sub-directory in the root installation directory
+        * `install_tofile_xxx`: Installs the specified file to the specified file in the root installation directory
 
-            ```
-            sysroot
-            ├── etc
-            │   ├── a.conf
-            │   └── b.conf
-            └── usr
-                ├── local
-                │   └── bin
-                │       ├── testa
-                │       └── testb
-                └── share
-                    └── testa
+    | Directory Name   | Installation Directory            | Variable Name for Installation | Makefile Pattern Target |
+    | ---------------- | --------------------------------- | ------------------------------ | ----------------------- |
+    | `includedir`     | `/usr/include<specified sub-dir>` | `$(INSTALL_INCLUDES_<xxx>)`    | `install_includes_%`    |
+    | `datadir`        | `/usr/share<specified sub-dir>`   | `$(INSTALL_DATAS_<xxx>)`       | `install_datas_%`       |
+    | `sysconfdir`     | `/etc<specified sub-dir>`         | `$(INSTALL_SYSCONFS_<xxx>)`    | `install_sysconfs_%`    |
+    | ` `              | `<specified sub-dir>`             | `$(INSTALL_TODIR_<xxx>)`       | `install_todir_%`       |
+    | ` `              | `<specified file>`                | `$(INSTALL_TOFILE_<xxx>)`      | `install_tofile_%`      |
+
+* Examples of Pattern Rules
+    * Create 2 blank files testa and testb, and the content of Makefile is as follows:
+
+        ```makefile
+        INSTALL_DATAS_test = testa testb /testa/testb
+        INSTALL_TODIR_test = testa testb /usr/local/bin
+        INSTALL_TOFILE_testa = testa /etc/a.conf
+        INSTALL_TOFILE_testb = testa /etc/b.conf
+
+        all: install_datas_test install_todir_test install_tofile_testa install_tofile_testb
+        include $(ENV_MAKE_DIR)/inc.ins.mk
+        ```
+
+    *  The installation file tree after `make`:
+
+        ```
+        sysroot
+        ├── etc
+        │   ├── a.conf
+        │   └── b.conf
+        └── usr
+            ├── local
+            │   └── bin
+            │       ├── testa
+            │       └── testb
+            └── share
+                └── testa
+                    └── testb
+                        ├── testa
                         └── testb
-                            ├── testa
-                            └── testb
-            ```
+        ```
 
 
 ### Application Template inc.app.mk
@@ -582,7 +620,7 @@ Note: bitbake cann't directly use the environment variables of the current shell
         * `LIBSO_NAME = libtest.so 1 2`   : the compilation-generated library is `libtest.so.1.2`  , and the symbolic links are `libtest.so` and `libtest.so.1`
         * `LIBSO_NAME = libtest.so 1`     : the compilation-generated library is `libtest.so.1`    , and the symbolic link is `libtest.so`
         * `LIBSO_NAME = libtest.so`       : the compilation-generated library is `libtest.so`      , and there is no symbolic link
-    * If the `LIBSO_NAME` contains the version numbers, the default soname is `<library name>.<major version>`, 可以通过 LDFLAGS 覆盖默认值
+    * If the `LIBSO_NAME` contains the version numbers, the default soname is `<library name>.<major version>`
         * The soname can be overridden by LDFLAGS, for example: `LDFLAGS += -Wl,-soname=libxxxx.so`
     * The compilation-generated library will be added to the variable `LIB_TARGETS`
 * BIN_NAME: executable name when compiling a single executable
@@ -888,7 +926,7 @@ Note: `fetch_package.sh` preferentially tries to download the package from the m
 #### Targets of Cache Template
     * all / clean / install: Necessary targets provided by the template
         * If the variable `USER_DEFINED_TARGET` is not set to y, it will uses `all / clean / install` targets provided by the template
-        * If the function `do_prepend` is set, it will run at the end of the `install` target
+        * If the function `do_install_append` is set, it will run at the end of the `install` target
     * psysroot: Prepares the dependency sysroot in `OUT_PATH` instead of `ENV_TOP_OUT`
     * srcbuild: Compiles without cache mechanism
     * cachebuild: Compiles with cache mechanism

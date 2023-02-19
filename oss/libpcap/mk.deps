@@ -23,7 +23,7 @@ PC_FILES         = libpcap.pc
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
 
-INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/libpcap.so*
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
 INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
 include $(ENV_MAKE_DIR)/inc.ins.mk
 

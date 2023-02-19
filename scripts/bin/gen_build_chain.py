@@ -1315,14 +1315,14 @@ def do_image_analysis(args):
 
     recipe_list = []
     with open(target_out, 'r') as rfp:
-        for per_line in rfp.readlines():
+        for per_line in rfp.read().splitlines():
             recipe = per_line.split(':')[1].strip()
             recipe_list.append(recipe)
 
     with open(image_out, 'w') as wfp:
         wfp.write('IMAGE_INSTALL:append = " \\\n')
         with open(conf_name, 'r') as rfp:
-            for per_line in rfp.readlines():
+            for per_line in rfp.read().splitlines():
                 ret = re.match(r'CONFIG_(.*)=y', per_line)
                 if ret:
                     item = escape_tolower(ret.groups()[0])
@@ -1335,7 +1335,7 @@ def do_image_analysis(args):
         with open(patch_out, 'w') as wfp:
             wfp.write('DEPENDS += " \\\n')
             with open(conf_name, 'r') as rfp:
-                for per_line in rfp.readlines():
+                for per_line in rfp.read().splitlines():
                     ret = re.match(r'CONFIG_(.*)=y', per_line)
                     if ret:
                         item = escape_tolower(ret.groups()[0])

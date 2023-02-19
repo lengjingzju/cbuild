@@ -30,7 +30,6 @@ include $(ENV_MAKE_DIR)/inc.cache.mk
 
 INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
 INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
-INSTALL_DATAS    = $(INS_PATH)/usr/share/locale
 include $(ENV_MAKE_DIR)/inc.ins.mk
 
-release: install_libs install_bins install_datas
+release: install_libs install_bins

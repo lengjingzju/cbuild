@@ -25,7 +25,6 @@ PC_FILES         = libffi.pc
 include $(ENV_MAKE_DIR)/inc.cache.mk
 
 INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
-INSTALL_DATAS    = $(INS_PATH)/usr/share/info
 include $(ENV_MAKE_DIR)/inc.ins.mk
 
-release: install_libs install_datas
+release: install_libs

@@ -29,8 +29,8 @@ endef
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
 
-INSTALL_LIBRARIES   = $(INS_PATH)/lib/*.so*
-INSTALL_TODIR_sbin = $(INS_PATH)/sbin/* /sbin
+INSTALL_BASE_LIBS  = $(INS_PATH)/lib/*.so*
+INSTALL_BASE_SBINS = $(INS_PATH)/sbin/*
 include $(ENV_MAKE_DIR)/inc.ins.mk
 
-release: install_base_libs install_todir_sbin
+release: install_base_sbins install_base_libs
