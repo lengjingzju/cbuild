@@ -22,13 +22,14 @@ DEPEND_OBJS     = $(patsubst %.o,%.d,$(AUTOGEN_OBJS) $(PARSER_OBJS) $(LXDIALOG_O
 
 HOSTCC         ?= gcc
 HOSTCFLAGS      = -I. -I./parser -I./lxdialog
+HOSTLDFLAGS     = -static
 
 ifneq ($(ENV_BUILD_MODE), yocto)
 HOSTCFLAGS     += $(shell sh mconf-cfg.sh | grep "cflags=" | sed 's/cflags="\(.*\)"/\1/')
-HOSTLDFLAGS     = $(shell sh mconf-cfg.sh | grep "libs=" | sed 's/libs="\(.*\)"/\1/')
+HOSTLDFLAGS    += $(shell sh mconf-cfg.sh | grep "libs=" | sed 's/libs="\(.*\)"/\1/')
 else
 HOSTCFLAGS     += -D_GNU_SOURCE -D_DEFAULT_SOURCE
-HOSTLDFLAGS     = -lncurses -ltinfo
+HOSTLDFLAGS    += -lncurses -ltinfo
 endif
 
 COLORECHO       = $(if $(findstring dash,$(shell readlink /bin/sh)),echo,echo -e)

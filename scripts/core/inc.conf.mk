@@ -52,7 +52,27 @@ define sync_config_header
 	fi
 endef
 
-.PHONY: buildkconfig cleankconfig menuconfig loadconfig cleanconfig
+ifneq ($(DEF_CONFIG), )
+config_hash_file = $(CONFIG_PATH)-md5-$(shell md5sum $(CONF_SAVE_PATH)/$(DEF_CONFIG) | cut -d ' ' -f 1)
+define process_config_hash
+	rm -f $(CONFIG_PATH)-md5-* && echo > $(config_hash_file)
+endef
+else
+define process_config_hash
+	rm -f $(CONFIG_PATH)-md5-*
+endef
+endif
+
+define load_specific_config
+	mkdir -p $(CONF_OUT); \
+	cp -f $1 $(CONFIG_PATH); \
+	$(call process_config_hash); \
+	$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --silent --defconfig $1; \
+	$(call gen_config_header); \
+	echo Load $1 to .config
+endef
+
+.PHONY: buildkconfig cleankconfig menuconfig loadconfig defconfig cleanconfig
 
 ifneq ($(ENV_BUILD_MODE), yocto)
 
@@ -72,7 +92,7 @@ cleankconfig:
 endif
 
 menuconfig: buildkconfig
-	@-mkdir -p $(CONF_OUT)
+	@mkdir -p $(CONF_OUT)
 	@mtime="$(if $(wildcard $(CONFIG_PATH)),$(if $(wildcard $(AUTOHEADER_PATH)),$$(stat -c %Y $(CONFIG_PATH)),0),0)"; \
 		$(CONF_PREFIX) $(CONF_PATH)/mconf $(CONF_OPTIONS); \
 		if [ "$${mtime}" != "$$(stat -c %Y $(CONFIG_PATH))" ]; then \
@@ -85,40 +105,24 @@ ifneq ($(DEF_CONFIG), )
 menuconfig: loadconfig
 
 loadconfig: buildkconfig
-	@-mkdir -p $(CONF_OUT)
-	@if [ ! -e $(AUTOHEADER_PATH) ]; then \
-		if [ ! -e $(CONFIG_PATH) ]; then \
-			cp -f $(CONF_SAVE_PATH)/$(DEF_CONFIG) $(CONFIG_PATH); \
-		fi; \
-		$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --defconfig $(CONF_SAVE_PATH)/$(DEF_CONFIG); \
-		$(call gen_config_header); \
+	@if [ ! -e $(CONFIG_PATH) ] || [ ! -e $(config_hash_file) ]; then \
+		$(call load_specific_config,$(CONF_SAVE_PATH)/$(DEF_CONFIG)); \
 	else \
 		$(call sync_config_header); \
 	fi
 
 defconfig: buildkconfig
-	@-mkdir -p $(CONF_OUT)
-	@cp -f $(CONF_SAVE_PATH)/$(DEF_CONFIG) $(CONFIG_PATH)
-	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --defconfig $(CONF_SAVE_PATH)/$(DEF_CONFIG)
-	@$(call gen_config_header)
+	@$(call load_specific_config,$(CONF_SAVE_PATH)/$(DEF_CONFIG))
 endif
 
 syncconfig:
-	@if [ -e $(CONFIG_PATH) ]; then \
-		$(call gen_config_header); \
-	fi
+	@$(call gen_config_header)
 
 %_config: $(CONF_SAVE_PATH)/%_config buildkconfig
-	@-mkdir -p $(CONF_OUT)
-	@cp -f $< $(CONFIG_PATH)
-	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --defconfig $<
-	@$(call gen_config_header)
+	@$(call load_specific_config,$<)
 
 %_defconfig: $(CONF_SAVE_PATH)/%_defconfig buildkconfig
-	@-mkdir -p $(CONF_OUT)
-	@cp -f $< $(CONFIG_PATH)
-	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --defconfig $<
-	@$(call gen_config_header)
+	@$(call load_specific_config,$<)
 
 %_saveconfig: $(CONFIG_PATH) buildkconfig
 	@$(CONF_PREFIX) $(CONF_PATH)/conf $(CONF_OPTIONS) --savedefconfig=$(CONF_SAVE_PATH)/$(subst _saveconfig,_config,$@)
@@ -129,6 +133,6 @@ syncconfig:
 	@echo Save .config to $(CONF_SAVE_PATH)/$(subst _savedefconfig,_defconfig,$@)
 
 cleanconfig: cleankconfig
-	@rm -rf $(CONFIG_PATH) $(CONFIG_PATH).old $(dir $(AUTOCONFIG_PATH)) $(AUTOHEADER_PATH)
+	@rm -rf $(CONFIG_PATH) $(CONFIG_PATH).old $(CONFIG_PATH)-md5-* $(dir $(AUTOCONFIG_PATH)) $(AUTOHEADER_PATH)
 
 endif

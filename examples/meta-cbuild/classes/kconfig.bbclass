@@ -6,6 +6,8 @@
 
 inherit terminal
 
+DEPENDS:append = " coreutils-native kconfig-native"
+
 KCONFIG_CONFIG_COMMAND ??= "menuconfig"
 KCONFIG_DEFCONFIG_COMMAND ??= "defconfig"
 KCONFIG_CONFIG_PATH ??= "${B}/.config"
