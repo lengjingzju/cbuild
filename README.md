@@ -229,6 +229,7 @@ This project has contributed 2 commits to the Linux Kernel Community so far, whi
             * Double colons separate the list of child targets and the list of dependencies
             * Single colon separates the child internal targets and the internal dependencies, and the dependencies list can be empty
     * Depend_Names: The dependency package name ID, and multiple dependencies are separated by space (can be empty)
+        * Depend_Names supports multiple lines with using `\` at the end of the line
         * If there are circular dependencies or undefined dependencies, parsing will fail
 
 Note: The IDs (Target_Name / Depend_Names) only can consist of lowercase letters, numbers, dashes; Other_Target_Names doesn't have such requirement, wildcard symbol is accepted (`%`)
@@ -270,6 +271,7 @@ Note: The single type commands only exist in the packages with dependencies
     * For the `choice` type, a space-separated list of packages becomes a sub-options under the choice, and the first package is selected by default
     * For the `menuchoice` type, the specified package is selected by default
 * Depend_Names      : Optional, the list of dependencies with the same as the Depend_Names in the DEPS-statement
+    * Depend_Names supports multiple lines with using `\` at the end of the line
     * For example, users can set `unselect` for `menuconfig` and `config` types
 
 Note: The virtual packages will not participate in compilation, but is used to organize and manage the actual packages, Normal Build and Yocto Build has the same virtual dependency rules

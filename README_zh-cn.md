@@ -215,6 +215,7 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
         * `subtarget1:subtarget2:...::dep1:dep2:...` 是特殊语法格式，用来显式指定子目标的依赖
             * 双冒号分开子目标列表和依赖列表，子目标之间和依赖之间使用单冒号分隔，依赖列表可以为空
     * Depend_Names: 当前包依赖的其它包的名称ID，多个依赖使用空格隔开 (可以为空)
+        * Depend_Names 支持多行，行尾使用 `\` 续行
         * 如果有循环依赖或未定义依赖，解析将会失败，会打印出未解析成功的条目
             * 出现循环依赖，打印 "ERROR: circular deps!"
 
@@ -255,6 +256,7 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
     * 对 choice 类型来说，空格分开的包列表会成为 choice 下的子选项，其中第一个包为默认选择的包
     * 对 menuchoice 类型来说，可以指定默认选择的包
 * Depend_Names      : 可选，依赖项列表，和 `#DEPS` 语句用法基本相同，例如可以设置 `unselect`，choice 和 menuchoice 类型不支持 select 和 imply
+    * Depend_Names 支持多行，行尾使用 `\` 续行
 
 注: 虚依赖是指该包不是实际的包，不会参与编译，只是用来组织管理实际包，Normal Build 和 Yocto Build 编译虚拟包的写法和使用规则相同
 

@@ -162,48 +162,69 @@ class Deps:
     def __add_virtual_deps(self, vir_name, root, rootdir):
         target_list = []
         vir_path = os.path.join(root, vir_name)
+        match_type = ''
+        last_group = ''
+        ret = None
+
         with open(vir_path, 'r') as fp:
             for per_line in fp.read().splitlines():
-                ret = re.match(r'#VDEPS\s*\(\s*(\w+)\s*\)\s*([\w\-]+)\s*\(([\s\w\-\./]*)\)\s*:([\s\w\|\-\.\?\*&!=,]*)', per_line)
-                if not ret:
-                    continue
-
-                item = {}
-                self.__init_item(item)
-
-                item['path'] = root
-                if self.yocto_flag:
-                    item['spath'] = root.replace(os.path.dirname(rootdir) + '/', '', 1)
-                    item['make'] = vir_name
+                per_line = per_line.strip()
+                if match_type:
+                    if per_line and per_line[-1] == '\\':
+                        last_group = '%s %s' % (last_group, per_line[:-1].strip())
+                        continue
+                    else:
+                        last_group = '%s %s' % (last_group, per_line.strip())
                 else:
-                    item['spath'] = root.replace(rootdir + '/', '', 1)
-
-                item['vtype'] = ret.groups()[0]
-                if item['vtype'] != 'menuconfig' and item['vtype'] != 'config' and \
-                        item['vtype'] != 'menuchoice' and item['vtype'] != 'choice':
-                    print('ERROR: Invalid virtual dep type (%s) in %s' % (item['vtype'], item['path']))
-                    print('       Only support menuconfig config menuchoice choice')
-                    sys.exit(1)
-
-                item['target'] = ret.groups()[1]
-                if item['target'] in target_list:
-                    print('ERROR: Repeated virtual dep %s:%s' % (item['target'], item['path']))
-                    sys.exit(1)
-
-                targets = ret.groups()[2].strip().split()
-                if targets:
-                    for t in targets:
-                        if t[0] == '/':
-                            item['spath'] += t
-                        elif 'choice' in item['vtype']:
-                            item['targets'].append(t)
+                    ret = re.match(r'#VDEPS\s*\(\s*(\w+)\s*\)\s*([\w\-]+)\s*\(([\s\w\-\./]*)\)\s*:([\s\w\\\|\-\.\?\*&!=,]*)', per_line)
+                    if ret:
+                        match_type = 'VDEPS'
+                        if ret.groups()[3] and ret.groups()[3][-1] == '\\':
+                            last_group = ret.groups()[3][:-1].strip()
+                            continue
                         else:
-                            print('WARNING: Only menuchoice and choice have groups[2] field in %s:%s' % (item['target'], item['path']))
+                            last_group = ret.groups()[3].strip()
+                    else:
+                        continue
 
-                target_list.append(item['target'])
-                self.__set_item_deps(ret.groups()[3].strip().split(), item, False)
-                self.VirtualList.append(item)
-                self.PathList.append((item['path'], item['spath'], item['target']))
+                if match_type == 'VDEPS':
+                    match_type = ''
+                    item = {}
+                    self.__init_item(item)
+
+                    item['path'] = root
+                    if self.yocto_flag:
+                        item['spath'] = root.replace(os.path.dirname(rootdir) + '/', '', 1)
+                        item['make'] = vir_name
+                    else:
+                        item['spath'] = root.replace(rootdir + '/', '', 1)
+
+                    item['vtype'] = ret.groups()[0]
+                    if item['vtype'] != 'menuconfig' and item['vtype'] != 'config' and \
+                            item['vtype'] != 'menuchoice' and item['vtype'] != 'choice':
+                        print('ERROR: Invalid virtual dep type (%s) in %s' % (item['vtype'], item['path']))
+                        print('       Only support menuconfig config menuchoice choice')
+                        sys.exit(1)
+
+                    item['target'] = ret.groups()[1]
+                    if item['target'] in target_list:
+                        print('ERROR: Repeated virtual dep %s:%s' % (item['target'], item['path']))
+                        sys.exit(1)
+
+                    targets = ret.groups()[2].strip().split()
+                    if targets:
+                        for t in targets:
+                            if t[0] == '/':
+                                item['spath'] += t
+                            elif 'choice' in item['vtype']:
+                                item['targets'].append(t)
+                            else:
+                                print('WARNING: Only menuchoice and choice have groups[2] field in %s:%s' % (item['target'], item['path']))
+
+                    target_list.append(item['target'])
+                    self.__set_item_deps(last_group.strip().split(), item, False)
+                    self.VirtualList.append(item)
+                    self.PathList.append((item['path'], item['spath'], item['target']))
 
 
     def search_normal_depends(self, dep_name, vir_name, search_dirs, ignore_dirs = [], go_on_dirs = []):
@@ -347,11 +368,41 @@ class Deps:
         with open(dep_path, 'r') as fp:
             dep_flag = False
             ItemDict = {}
+            match_type = ''
+            last_group = ''
+            ret = None
 
             for per_line in fp.read().splitlines():
-                # e.g. "#DEPS(mk.ext) a(clean install): b c"
-                ret = re.match(r'#DEPS\s*\(\s*([\w\-\./]*)\s*\)\s*([\w\-\.]+)\s*\(([\s\w\-\.%:]*)\)\s*:([\s\w\|\-\.\?\*&!=,]*)', per_line)
-                if ret:
+                per_line = per_line.strip()
+                if match_type:
+                    if per_line and per_line[-1] == '\\':
+                        last_group = '%s %s' % (last_group, per_line[:-1].strip())
+                        continue
+                    else:
+                        last_group = '%s %s' % (last_group, per_line.strip())
+                else:
+                    ret = re.match(r'#DEPS\s*\(\s*([\w\-\./]*)\s*\)\s*([\w\-\.]+)\s*\(([\s\w\-\.%:]*)\)\s*:([\s\w\\\|\-\.\?\*&!=,@]*)', per_line)
+                    if ret:
+                        match_type = 'DEPS'
+                        if ret.groups()[3] and ret.groups()[3][-1] == '\\':
+                            last_group = ret.groups()[3][:-1].strip()
+                            continue
+                        else:
+                            last_group = ret.groups()[3].strip()
+                    else:
+                        ret = re.match(r'#INCDEPS\s*:\s*([\s\w\\\-\./${}]+)', per_line)
+                        if ret:
+                            match_type = 'INCDEPS'
+                            if ret.groups()[0] and ret.groups()[0][-1] == '\\':
+                                last_group = ret.groups()[0][:-1].strip()
+                                continue
+                            else:
+                                last_group = ret.groups()[0].strip()
+                        else:
+                            continue
+
+                if match_type == 'DEPS':
+                    match_type = ''
                     dep_flag = True
                     item = {}
                     self.__init_item(item)
@@ -377,7 +428,7 @@ class Deps:
                     else:
                         item['targets'] = targets.split()
 
-                    depends = ret.groups()[3].strip().split()
+                    depends = last_group.strip().split()
                     conf_pri_path = ''
                     conf_pub_path = ''
 
@@ -402,10 +453,10 @@ class Deps:
                     self.ActualList.append(item)
                     continue
 
-                ret = re.match(r'#INCDEPS\s*:\s*([\s\w\-\./${}]+)', per_line)
-                if ret:
+                elif match_type == 'INCDEPS':
+                    match_type = ''
                     dep_flag = True
-                    sub_paths = ret.groups()[0].split()
+                    sub_paths = last_group.split()
                     sub_paths.sort()
 
                     for sub_path in sub_paths:
