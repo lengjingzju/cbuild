@@ -271,6 +271,7 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
     * `finally`     : 表示此包编译顺序在所有其它包之后，一般用于最后生成文件系统和系统镜像，只用在Normal Build 的强依赖中
     * `unselect`    : 表示此包默认不编译，即 `default n`，否则此包默认编译，即 `default y`
     * `nokconfig`   : 表示此包不含 Kconfig 配置。同一目录有多个包时，此包无需设置 `nokconfig`，而其它包也有配置可以将配置的文件名设为 **包名.配置的后缀** ，否则需要设置 nokconfig
+    * `kconfig`     : 表示多个包共享相同的 Kconfig，一般是同一个软件的交叉编译包和本地编译包共享
 <br>
 
 * 特殊依赖(特殊符)

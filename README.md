@@ -289,6 +289,7 @@ Note: The virtual packages will not participate in compilation, but is used to o
     * `unselect`    : Indicates that this package is not compiled by default (`default n`), otherwise it is compiled by default (`default y`)
     * `nokconfig`   : Indicates that this package doesn't contain Kconfig
         * When there are multiple packages in the same directory, and only one package has Kconfig, then this package doesn't need to set `nokconfig`, and other packages should set it
+    * `kconfig`     : Indicates that multiple packages share the same Kconfig, generally, the cross/native compilation package of the same software share the same Kconfig
 <br>
 
 * Special Character

@@ -22,6 +22,7 @@ def re_replace_env(matchobj):
 class Deps:
     def __init__(self):
         self.VarDict = {}
+        self.KconfigDict = {}
         self.PathList = []
         self.PokyList = []
         self.ItemList = []
@@ -108,6 +109,11 @@ class Deps:
                 if dep == 'finally':
                     item['acount'] = 1
                     self.FinallyList.append(item['target'])
+                elif dep == 'kconfig':
+                    if item['conf'] not in self.KconfigDict.keys():
+                        self.KconfigDict[item['conf']] = []
+                    self.KconfigDict[item['conf']].append(item['target'])
+                    item['conf'] = 'kconfig'
                 elif dep == 'nokconfig':
                     item['conf'] = ''
                 elif dep == 'unselect':
@@ -651,6 +657,13 @@ class Deps:
         return 0
 
 
+    def __check_shared_kconfig(self, target):
+        for kconf_path in self.KconfigDict.keys():
+            if target in self.KconfigDict[kconf_path]:
+                return kconf_path,self.KconfigDict[kconf_path]
+        return '',[]
+
+
     def __write_one_kconfig(self, fp, item, choice_flag, max_depth):
         config_prepend = ''
         if self.prepend_flag:
@@ -674,7 +687,7 @@ class Deps:
                 else:
                     fp.write('\tbool "%s@virtual"\n' % (item['target']))
         else:
-            if not choice_flag and item['conf']:
+            if not choice_flag and item['conf'] and item['conf'] != 'kconfig':
                 fp.write('menuconfig %s\n' % (target))
             else:
                 fp.write('config %s\n' % (target))
@@ -731,7 +744,17 @@ class Deps:
         fp.write('\n')
 
         if item['conf']:
-            if choice_flag:
+            if item['conf'] == 'kconfig':
+                kconf_path,shared_targets = self.__check_shared_kconfig(item['target'])
+                if shared_targets and shared_targets[0] == item['target']:
+                    conf_str = 'if %s\nmenu "%s configuration (%s)"\nsource "%s"\nendmenu\nendif\n\n' % (
+                            ' || '.join(['%s%s' % (config_prepend, escape_toupper(v)) for v in shared_targets]),
+                            item['target'].replace('-native', ''), item['spath'], kconf_path)
+                    if choice_flag:
+                        self.conf_str += conf_str
+                    else:
+                        fp.write('%s' % (conf_str))
+            elif choice_flag:
                 conf_str = 'if %s\nmenu "%s (%s)"\nsource "%s"\nendmenu\nendif\n\n' % (target,
                         item['target'], item['spath'], item['conf'])
                 self.conf_str += conf_str
