@@ -314,9 +314,10 @@ Note: The virtual packages will not participate in compilation, but is used to o
         * Omitting the preceding word of last `|` is implicitly deduced using either a prebuild package or a source package
         * For example: `&&||libtest` is implicitly deduced as `&&*build-libtest||prebuild-libtest||libtest`
             * It means that the first virtual packages is strongly selected, and the next two actual packages are weakly dependencies
+    * `depname@condition` or `depname@@condition` : If condition is set to y and depname is selected, this package will depend on the depname package
     * Additional Notes              :
-        * For Normal Build, there is no difference between `?` and `??`, there is no difference between `|` and `||`
-        * For Yocto Build, `?` and `|` only set `DEPENDS`, `??` and `||` only set both `DEPENDS` and `RDEPENDS:${PN}`
+        * For Normal Build, there is no difference between `?` and `??`, there is no difference between `|` and `||`, there is no difference between `@` and `@@`
+        * For Yocto Build, `?` `|` `@` only set `DEPENDS`, `??` `||` `@@` set both `DEPENDS` and `RDEPENDS:${PN}`
 <br>
 
 * Environment Variable

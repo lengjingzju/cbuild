@@ -13,6 +13,7 @@ python() {
     weakrdeps = []
     appenddeps = []
     appendrdeps = []
+    ideps = []
 
     for dep in extradeps:
         if dep[0] == '&' or dep[0] == '?':
@@ -60,17 +61,41 @@ python() {
             if split_str == '||':
                 weakrdeps += subdeps
 
-    if os.path.exists(dotconfig) and weakdeps:
+        elif '@' in dep:
+            ideps.append(dep)
+
+    if os.path.exists(dotconfig):
+        all_lines = []
+        with open(dotconfig, 'r') as fp:
+            all_lines = fp.read().splitlines()
+
         for dep in weakdeps:
             depname = dep.replace('.', '__dot__').replace('+', '__plus__').replace('-', '_').upper()
-            with open(dotconfig, 'r') as fp:
-                for per_line in fp:
-                    ret = re.match(r'CONFIG_%s=y' % (depname), per_line)
-                    if ret:
-                        appenddeps.append(dep)
-                        if dep in weakrdeps:
-                            appendrdeps.append(dep)
-                        break
+            for per_line in all_lines:
+                ret = re.match(r'CONFIG_%s=y' % (depname), per_line)
+                if ret:
+                    appenddeps.append(dep)
+                    if dep in weakrdeps:
+                        appendrdeps.append(dep)
+                    break
+
+        for idep in ideps:
+            matched = 0
+            dep,condition = re.split(r'@+', idep)
+            depname = dep.replace('.', '__dot__').replace('+', '__plus__').replace('-', '_').upper()
+            for per_line in all_lines:
+                ret = re.match(r'CONFIG_%s=y' % (depname), per_line)
+                if ret:
+                    matched += 1
+                ret = re.match(r'%s=y' % (condition), per_line)
+                if ret:
+                    matched += 1
+
+                if matched == 2:
+                    appenddeps.append(dep)
+                    if '@@' in idep:
+                        appendrdeps.append(dep)
+                    break
 
     if appenddeps:
         d.appendVar('DEPENDS', ' %s' % (' '.join(appenddeps)))

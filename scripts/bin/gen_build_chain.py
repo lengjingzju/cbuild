@@ -51,6 +51,7 @@ class Deps:
         item['vsdeps'] = []     # virtual strong dependences
         item['awdeps'] = []     # actual weak dependence
         item['vwdeps'] = []     # virtual weak dependence
+        item['ideps'] = []      # condition weak dependence
         item['wrule'] = []      # weak dependence rules
         item['cdeps'] = []      # conflict dependences
         item['edeps'] = []      # env dependences
@@ -120,6 +121,8 @@ class Deps:
                     item['default'] = False
                 elif dep[0] == '!':
                     item['cdeps'].append(dep[1:])
+                elif '@' in dep:
+                    item['ideps'].append(dep)
                 elif dep[0] == '&' or dep[0] == '?':
                     amp_num = 0
                     que_num = 0
@@ -574,6 +577,10 @@ class Deps:
                                 ' '.join(deps), item['target'], item['path']))
                             sys.exit(1)
 
+            if item['ideps']:
+                deps = item['ideps']
+                item['ideps'] = [dep for dep in deps if re.split(r'@+', dep)[0] in target_list]
+
             for depid in ['asdeps', 'vsdeps', 'awdeps', 'vwdeps', 'cdeps', 'select', 'imply']:
                 if item[depid]:
                     deps = item[depid]
@@ -593,7 +600,7 @@ class Deps:
                         if rmdeps:
                             print('ERROR: deps (%s) in %s:%s are not found' % (' '.join(rmdeps), item['target'], item['path']))
                             sys.exit(1)
-            item['acount'] += len(item['asdeps']) + len(item['awdeps'])
+            item['acount'] += len(item['asdeps']) + len(item['awdeps']) + len(item['ideps'])
 
             if 'choice' in item['vtype']:
                 depid = 'targets'
@@ -639,6 +646,8 @@ class Deps:
                             itemb['acount'] -= 1
                         if itemb['awdeps'] and itema['target'] in itemb['awdeps']:
                             itemb['acount'] -= 1
+                        if itemb['ideps'] and itema['target'] in [re.split(r'@+', dep)[0] for dep in itemb['ideps']]:
+                            itemb['acount'] -= 1
                 self.ActualList += lista
                 temp = listb
             elif finally_flag:
@@ -650,7 +659,7 @@ class Deps:
             else:
                 print('--------ERROR: circular deps--------')
                 for itemb in listb:
-                    print('%s: %s: %s' % (itemb['path'], itemb['target'], ' '.join(itemb['asdeps'] + itemb['awdeps'])))
+                    print('%s: %s: %s' % (itemb['path'], itemb['target'], ' '.join(itemb['asdeps'] + itemb['awdeps'] + itemb['ideps'])))
                 print('------------------------------------')
                 return -1
 
@@ -838,9 +847,9 @@ class Deps:
     def gen_normal_target(self, filename):
         with open(filename, 'w') as fp:
             for item in self.ActualList:
-                if item['asdeps'] or item['awdeps']:
+                if item['asdeps'] or item['awdeps'] or item['ideps']:
                     fp.write('%s:\t%s:\t%s\n' % (item['path'], item['target'],
-                        ' '.join(item['asdeps'] + item['awdeps'])))
+                        ' '.join(item['asdeps'] + item['awdeps'] + item['ideps'])))
                 else:
                     fp.write('%s:\t%s:\n' % (item['path'], item['target'],))
 
@@ -887,6 +896,7 @@ class Deps:
         with open(filename, 'w') as fp:
             for item in self.ActualList:
                 phony = []
+                ideps = []
                 dep_target_name = '%s_depends' % (item['target'])
                 dep_target_flag = False
 
@@ -917,6 +927,9 @@ class Deps:
                 if item['targets'] and 'psysroot' in item['targets']:
                     make += ' PREPARE_SYSROOT=y'
 
+                if item['ideps']:
+                    ideps = [re.split(r'@+', dep)[0] for dep in item['ideps']]
+
                 if item['target'].endswith('-native'):
                     make += ' BUILD_FOR_HOST=y'
                 elif item['asdeps'] or item['awdeps']:
@@ -928,9 +941,9 @@ class Deps:
                 fp.write('ifeq ($(CONFIG_%s), y)\n\n' % (escape_toupper(item['target'])))
 
                 if item['target'] in self.FinallyList:
-                    ideps = self.FinallyList + item['asdeps'] + item['awdeps']
+                    ignore_deps = self.FinallyList + item['asdeps'] + item['awdeps'] + ideps
                     for dep in target_list:
-                        if dep not in ideps:
+                        if dep not in ignore_deps:
                             fp.write('ifeq ($(CONFIG_%s), y)\n' % (escape_toupper(dep)))
                             fp.write('%s: %s\n' % (item['target'], dep))
                             fp.write('endif\n')
@@ -940,6 +953,22 @@ class Deps:
                     dep_target_flag = True
                     for dep in item['awdeps']:
                         fp.write('ifeq ($(CONFIG_%s), y)\n' % (escape_toupper(dep)))
+                        fp.write('%s: %s\n' % (dep_target_name, dep))
+                        if targets_flag and dep not in self.FinallyList:
+                            dep_targets_flag = True
+                            fp.write('%s: %s\n' % (dep_targets_name, dep))
+                        fp.write('%s: %s_install\n' % (dep_install_name, dep))
+                        if release_flag and not dep.endswith('-native'):
+                            dep_release_flag = True
+                            fp.write('%s: %s_release\n' % (dep_release_name, dep))
+                        fp.write('endif\n')
+                    fp.write('\n')
+
+                if item['ideps']:
+                    dep_target_flag = True
+                    for idep in item['ideps']:
+                        dep,cond = re.split(r'@+', idep)
+                        fp.write('ifeq ($(CONFIG_%s)-$(%s), y-y)\n' % (escape_toupper(dep), cond))
                         fp.write('%s: %s\n' % (dep_target_name, dep))
                         if targets_flag and dep not in self.FinallyList:
                             dep_targets_flag = True
@@ -1137,6 +1166,10 @@ class Deps:
                             dvars.append(dep[1:])
                         else:
                             dvars.append(dep)
+
+                if item['ideps']:
+                    for dep in item['ideps']:
+                        dvars.append(dep.replace('@@', '@'))
 
                 if item['asdeps']:
                     for dep in item['asdeps']:

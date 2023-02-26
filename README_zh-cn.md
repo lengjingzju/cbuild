@@ -295,9 +295,10 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
         * 省略最后一个 `|` `||` 前面的字符直到 `&`被隐式推导为 `*build-包名 prebuild-包名 包名` 三元组
         * 例如： `&&||libtest` 被隐式推导为 `&&*build-libtest||prebuild-libtest||libtest`
         * 例如： `&&*build-libtest||prebuild-libtest||libtest` 表示强选中这三个包中第一个存在的包，并弱依赖后面两个实包
+    * `depname@condition` or `depname@@condition` : condition 为 y 且 depname 选中时，此包才依赖 depname
     * 其它说明:
-        * 对Normal Build 来说，`?` `??` 没有区别，`|` `||` 没有区别
-        * 对 Yocto Build 来说，`?` `|` 中的弱依赖只会设置 `DEPENDS`，`??` `||` 中的弱依赖会同时设置 `DEPENDS` 和 `RDEPENDS:${PN}`
+        * 对Normal Build 来说，`?` `??` 没有区别，`|` `||` 没有区别，`@` `@@` 没有区别
+        * 对 Yocto Build 来说，`?` `|` `@` 中的弱依赖只会设置 `DEPENDS`，`??` `||` `@@` 中的弱依赖会同时设置 `DEPENDS` 和 `RDEPENDS:${PN}`
 <br>
 
 * 特殊依赖(环境变量)

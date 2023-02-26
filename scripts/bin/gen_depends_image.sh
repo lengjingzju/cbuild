@@ -47,9 +47,14 @@ write_rule() {
                     label2=""
                     color2=""
                     headchar=${dep:0:1}
+                    condition=""
 
                     if [ "${headchar}" = "?" ] || [ "${headchar}" = "|" ]; then
                         dep=${dep:1}
+                    elif [ $(echo "${dep}" | grep -c "@") -ne 0 ]; then
+                        headchar="@"
+                        condition=$(echo "${dep}" | cut -d '@' -f 2)
+                        dep=$(echo "${dep}" | cut -d '@' -f 1)
                     else
                         headchar=""
                     fi
@@ -83,6 +88,12 @@ write_rule() {
                             style2="dashed"
                             color2="red"
                         fi
+                    elif [ "${headchar}" = "@" ]; then
+                        style1="dashed"
+                        label1="${condition}"
+                        if [ "${color1}" = "green" ] && [ $(grep -c "^${condition}=y" ${confpath}) -eq 0 ]; then
+                            color1="red"
+                        fi
                     else
                         style1="solid"
                     fi
@@ -105,6 +116,8 @@ write_rule() {
                 for dep in ${deps}; do
                     if [ ${dep:0:1} = "?" ] || [ ${dep:0:1} = "|" ]; then
                         dep=${dep:1}
+                    elif [ $(echo "${dep}" | grep -c "@") -ne 0 ]; then
+                        dep=$(echo "${dep}" | cut -d '@' -f 1)
                     fi
                     if [ $(echo "${dones}" | grep -c " ${dep} ") -eq 0 ]; then
                         dones="${dones}${dep} "
