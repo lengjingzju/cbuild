@@ -11,11 +11,12 @@ PACKAGE_NAME     = x265
 
 include $(ENV_MAKE_DIR)/inc.env.mk
 
-VERSION          = 2.7
-SRC_DIR          = multicoreware-x265-e41a9bf2bac4
-SRC_NAME         = $(PACKAGE_NAME)-$(VERSION).tar.bz2
-SRC_URL          = http://download.videolan.org/videolan/x265/$(SRC_NAME)
-SRC_MD5          = 877bacacc5ba86fc7a2992aaf5386538
+FETCH_METHOD     = git
+VERSION          = 3.5
+SRC_DIR          = $(PACKAGE_NAME)
+SRC_NAME         = $(PACKAGE_NAME)
+SRC_URL          = https://bitbucket.org/multicoreware/$(PACKAGE_NAME)_git.git
+SRC_TAG          = $(VERSION)
 SRC_PATH         = $(OUT_PATH)/$(SRC_DIR)/source
 
 CACHE_DEPENDS    = none

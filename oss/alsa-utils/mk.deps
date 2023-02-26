@@ -8,7 +8,7 @@
 #DEPS(mk.deps) alsa-utils(cache psysroot release): unselect alsa-lib
 
 PACKAGE_NAME     = alsa-utils
-SEARCH_HDRS     = alsa
+SEARCH_HDRS      = alsa
 
 include $(ENV_MAKE_DIR)/inc.env.mk
 

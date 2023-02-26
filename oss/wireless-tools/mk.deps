@@ -20,7 +20,7 @@ SRC_MD5          = e06c222e186f7cc013fd272d023710cb
 CACHE_DEPENDS    = none
 PATCH_FOLDER     = $(shell pwd)/patch
 CACHE_CHECKSUM  += $(PATCH_FOLDER)
-MAKES_FLAGS      = PREFIX=$(INS_PATH) -C $(SRC_PATH)
+MAKES_FLAGS      = PREFIX=$(INS_PATH) INSTALL_INC=$(INS_PATH)/usr/include INSTALL_MAN=$(INS_PATH)/usr/share -C $(SRC_PATH)
 MAKES_FLAGS     += $(if $(CROSS_COMPILE),CC=$(CC) AR=$(AR) RANLIB=$(RANLIB))
 
 define do_prepend

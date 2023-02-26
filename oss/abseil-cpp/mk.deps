@@ -11,11 +11,11 @@ PACKAGE_NAME     = abseil-cpp
 
 include $(ENV_MAKE_DIR)/inc.env.mk
 
-VERSION          = 20220623.1
+VERSION          = 20230125.1
 SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.gz
 SRC_URL          = http://github.com/abseil/abseil-cpp/archive/refs/tags/$(VERSION).tar.gz
-SRC_MD5          = 2aea7c1171c4c280f755de170295afd6
+SRC_MD5          = 19821db7aeb34315500e0fd5f0d9d399
 
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = cmake

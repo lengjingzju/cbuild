@@ -8,7 +8,7 @@
 #DEPS(mk.deps) libpng(cache psysroot release): unselect zlib
 
 PACKAGE_NAME     = libpng
-SEARCH_HDRS     = zlib
+SEARCH_HDRS      = zlib
 
 include $(ENV_MAKE_DIR)/inc.env.mk
 

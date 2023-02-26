@@ -23,9 +23,9 @@ PC_FILES         = alsa.pc alsa-topology.pc
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
 
-INSTALL_LIBRARIES  = $(INS_PATH)/usr/lib/*.so*
-INSTALL_BINARIES   = $(INS_PATH)/usr/bin/*
-INSTALL_DATAS      = $(INS_PATH)/usr/share/*
+INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
+INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
+INSTALL_DATAS    = $(INS_PATH)/usr/share/*
 include $(ENV_MAKE_DIR)/inc.ins.mk
 
 release: install_libs install_bins install_datas

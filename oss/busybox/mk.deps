@@ -10,11 +10,11 @@ PACKAGE_NAME     = busybox
 
 include $(ENV_MAKE_DIR)/inc.env.mk
 
-VERSION          = 1.35.0
+VERSION          = 1.36.0
 SRC_DIR          = busybox-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.bz2
 SRC_URL          = http://www.busybox.net/downloads/$(SRC_NAME)
-SRC_MD5          = 585949b1dd4292b604b7d199866e9913
+SRC_MD5          = 835e3ac11e8a5ca13756eb1573719566
 
 CACHE_CHECKSUM  += $(shell pwd)/config/$(CFG_NAME)
 CACHE_DEPENDS    = none

@@ -8,16 +8,16 @@
 #DEPS(mk.deps) curl(cache psysroot release): unselect zlib openssl
 
 PACKAGE_NAME     = curl
-SEARCH_HDRS     = zlib openssl
+SEARCH_HDRS      = zlib openssl
 
 EXPORT_PC_ENV    = y
 include $(ENV_MAKE_DIR)/inc.env.mk
 
-VERSION          = 7.87.0
+VERSION          = 7.88.0
 SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.xz
 SRC_URL          = http://curl.se/download/$(SRC_NAME)
-SRC_MD5          = 0b0f5de173afd303229e5272689578d7
+SRC_MD5          = fc56109bda128948dc2c89b157da0e41
 
 CACHE_DEPENDS    =
 COMPILE_TOOL     = configure

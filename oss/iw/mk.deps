@@ -8,7 +8,7 @@
 #DEPS(mk.deps) iw(cache psysroot release): unselect libnl
 
 PACKAGE_NAME     = iw
-SEARCH_HDRS     = libnl3
+SEARCH_HDRS      = libnl3
 
 EXPORT_PC_ENV    = y
 include $(ENV_MAKE_DIR)/inc.env.mk
@@ -20,7 +20,7 @@ SRC_URL          = http://cdn.kernel.org/pub/software/network/iw/$(SRC_NAME)
 SRC_MD5          = fd17ca2dd5f160a5d9e5fd3f8a69f416
 
 CACHE_DEPENDS    =
-MAKES_FLAGS      = PREFIX=$(INS_PATH) -C $(SRC_PATH)
+MAKES_FLAGS      = PREFIX=$(INS_PATH) MANDIR=$(INS_PATH)/usr/share/man -C $(SRC_PATH)
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
 

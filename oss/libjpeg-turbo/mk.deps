@@ -11,11 +11,11 @@ PACKAGE_NAME     = libjpeg-turbo
 
 include $(ENV_MAKE_DIR)/inc.env.mk
 
-VERSION          = 2.1.4
+VERSION          = 2.1.5.1
 SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.gz
 SRC_URL          = http://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/$(VERSION).tar.gz
-SRC_MD5          = 3241b54016c445e5d8f0ebb0ad9294ed
+SRC_MD5          = 33f72421d83ba487ff7b5c81e8765185
 
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = cmake

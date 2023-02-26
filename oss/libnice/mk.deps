@@ -8,7 +8,7 @@
 #DEPS(mk.deps) libnice(cache psysroot release): unselect openssl glib
 
 PACKAGE_NAME     = libnice
-SEARCH_HDRS     = openssl glib-2.0
+SEARCH_HDRS      = openssl glib-2.0
 
 EXPORT_PC_ENV    = y
 include $(ENV_MAKE_DIR)/inc.env.mk

@@ -8,7 +8,7 @@
 #DEPS(mk.deps) hostapd(cache psysroot release): unselect openssl libnl
 
 PACKAGE_NAME     = hostapd
-SEARCH_HDRS     = libnl3 openssl
+SEARCH_HDRS      = libnl3 openssl
 
 EXPORT_PC_ENV    = y
 include $(ENV_MAKE_DIR)/inc.env.mk

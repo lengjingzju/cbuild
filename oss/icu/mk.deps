@@ -8,7 +8,7 @@
 #DEPS(mk.deps) icu(cache psysroot release): unselect zlib
 
 PACKAGE_NAME     = icu
-SEARCH_HDRS     = zlib
+SEARCH_HDRS      = zlib
 
 EXPORT_PC_ENV    = y
 include $(ENV_MAKE_DIR)/inc.env.mk

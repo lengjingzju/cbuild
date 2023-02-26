@@ -20,14 +20,14 @@ MACHINE_SCRIPT  := $(ENV_TOOL_DIR)/process_machine.sh
 MAKES           := make $(ENV_BUILD_JOBS)
 
 GMP_VER         ?= 6.2.1
-MPFR_VER        ?= 4.1.1
+MPFR_VER        ?= 4.2.0
 MPC_VER         ?= 1.3.1
 ISL_VER         ?= 0.25
 LINUX_VER       ?= $(shell $(MACHINE_SCRIPT) linux_version)
 BINUTILS_VER    ?= 2.40
 GCC_VER         ?= $(shell $(MACHINE_SCRIPT) gcc_version)
 GLIBC_VER       ?= 2.36
-GDB_VER         ?= 12.1
+GDB_VER         ?= 13.1
 
 GMP_URL         := http://ftp.gnu.org/gnu/gmp/gmp-$(GMP_VER).tar.xz
 MPFR_URL        := http://ftp.gnu.org/gnu/mpfr/mpfr-$(MPFR_VER).tar.xz
@@ -43,7 +43,7 @@ CROSS_TARGET     = $(shell $(MACHINE_SCRIPT) cross_target)
 CROSS_DIR        = $(shell $(MACHINE_SCRIPT) toolchain_dir)
 LINUX_ARCH       = $(shell $(MACHINE_SCRIPT) linux_arch)
 
-OUT_PATH        ?= $(patsubst $(ENV_TOP_DIR)/%,$(ENV_OUT_HOST)/%,$(shell pwd))
+OUT_PATH        ?= $(ENV_OUT_HOST)/toolchain/$(CROSS_DIR)
 SRCS_PATH        = $(OUT_PATH)/srcs
 OBJS_PATH        = $(OUT_PATH)/objs
 

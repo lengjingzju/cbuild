@@ -8,7 +8,7 @@
 #DEPS(mk.deps) wpa-supplicant(cache psysroot release): unselect openssl libnl dbus
 
 PACKAGE_NAME     = wpa-supplicant
-SEARCH_HDRS     = libnl3 openssl dbus-1.0
+SEARCH_HDRS      = libnl3 openssl dbus-1.0
 
 EXPORT_PC_ENV    = y
 include $(ENV_MAKE_DIR)/inc.env.mk
