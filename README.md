@@ -374,9 +374,10 @@ if EXTRADEPS contains weak dependencies, the recipe should `inherit weakdep` cla
     ENV_OUT_ROOT     : /home/lengjing/data/cbuild/output/noarch/objects
     ENV_INS_ROOT     : /home/lengjing/data/cbuild/output/noarch/sysroot
     ENV_DEP_ROOT     : /home/lengjing/data/cbuild/output/noarch/sysroot
-    ENV_OUT_HOST     : /home/lengjing/data/cbuild/output/noarch/objects-native
-    ENV_INS_HOST     : /home/lengjing/data/cbuild/output/noarch/sysroot-native
-    ENV_DEP_HOST     : /home/lengjing/data/cbuild/output/noarch/sysroot-native
+    ENV_TOP_HOST     : /home/lengjing/data/cbuild/output/x86_64-native
+    ENV_OUT_HOST     : /home/lengjing/data/cbuild/output/x86_64-native/objects
+    ENV_INS_HOST     : /home/lengjing/data/cbuild/output/x86_64-native/sysroot
+    ENV_DEP_HOST     : /home/lengjing/data/cbuild/output/x86_64-native/sysroot
     ============================================================
     ```
 
@@ -405,9 +406,10 @@ if EXTRADEPS contains weak dependencies, the recipe should `inherit weakdep` cla
     ENV_OUT_ROOT     : /home/lengjing/data/cbuild/output/cortex-a53/objects
     ENV_INS_ROOT     : /home/lengjing/data/cbuild/output/cortex-a53/sysroot
     ENV_DEP_ROOT     : /home/lengjing/data/cbuild/output/cortex-a53/sysroot
-    ENV_OUT_HOST     : /home/lengjing/data/cbuild/output/cortex-a53/objects-native
-    ENV_INS_HOST     : /home/lengjing/data/cbuild/output/cortex-a53/sysroot-native
-    ENV_DEP_HOST     : /home/lengjing/data/cbuild/output/cortex-a53/sysroot-native
+    ENV_TOP_HOST     : /home/lengjing/data/cbuild/output/x86_64-native
+    ENV_OUT_HOST     : /home/lengjing/data/cbuild/output/x86_64-native/objects
+    ENV_INS_HOST     : /home/lengjing/data/cbuild/output/x86_64-native/sysroot
+    ENV_DEP_HOST     : /home/lengjing/data/cbuild/output/x86_64-native/sysroot
     ============================================================
     ```
 
@@ -452,6 +454,9 @@ Note: Users need to fill in the SOC-related parameters in the `process_machine.s
 * ENV_OUT_ROOT      : The root compilation output directory
 * ENV_INS_ROOT      : The root global installation directory
 * ENV_DEP_ROOT      : The root global dependency directory
+<br>
+
+* ENV_TOP_HOST      : The root output directory for native package
 * ENV_OUT_HOST      : The root compilation output directory for native package
 * ENV_INS_HOST      : The root global installation directory for native package
 * ENV_DEP_HOST      : The root global dependency directory for native package
@@ -958,45 +963,45 @@ Note: When we compile OSS packages from source code, we usually add `cache` `psy
     lengjing@lengjing:~/data/cbuild$ make -C scripts/toolchain
     make: Entering directory '/home/lengjing/data/cbuild/scripts/toolchain'
     make[1]: Entering directory '/home/lengjing/data/cbuild/scripts/toolchain'
-    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/gmp/gmp-6.2.1.tar.xz" gmp-6.2.1.tar.xz /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs gmp-6.2.1
+    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/gmp/gmp-6.2.1.tar.xz" gmp-6.2.1.tar.xz /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs gmp-6.2.1
     curl http://ftp.gnu.org/gnu/gmp/gmp-6.2.1.tar.xz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/gmp-6.2.1.tar.xz
-    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/gmp-6.2.1.tar.xz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs
-    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/mpfr/mpfr-4.1.1.tar.xz" mpfr-4.1.1.tar.xz /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs mpfr-4.1.1
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/gmp-6.2.1.tar.xz to /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs
+    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/mpfr/mpfr-4.1.1.tar.xz" mpfr-4.1.1.tar.xz /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs mpfr-4.1.1
     curl http://ftp.gnu.org/gnu/mpfr/mpfr-4.1.1.tar.xz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/mpfr-4.1.1.tar.xz
-    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/mpfr-4.1.1.tar.xz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs
-    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/mpc/mpc-1.3.1.tar.gz" mpc-1.3.1.tar.gz /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs mpc-1.3.1
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/mpfr-4.1.1.tar.xz to /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs
+    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/mpc/mpc-1.3.1.tar.gz" mpc-1.3.1.tar.gz /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs mpc-1.3.1
     curl http://ftp.gnu.org/gnu/mpc/mpc-1.3.1.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/mpc-1.3.1.tar.gz
-    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/mpc-1.3.1.tar.gz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs
-    /home/lengjing/data/cbuild/scripts/bin/exec_patch.sh patch patch/mpc /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs/mpc-1.3.1
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/mpc-1.3.1.tar.gz to /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs
+    /home/lengjing/data/cbuild/scripts/bin/exec_patch.sh patch patch/mpc /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs/mpc-1.3.1
     patching file src/mpc.h
-    Patch patch/mpc/0001-mpc-Fix-configuring-gcc-failed.patch to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs/mpc-1.3.1 Done.
-    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://libisl.sourceforge.io/isl-0.25.tar.xz" isl-0.25.tar.xz /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs isl-0.25
+    Patch patch/mpc/0001-mpc-Fix-configuring-gcc-failed.patch to /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs/mpc-1.3.1 Done.
+    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://libisl.sourceforge.io/isl-0.25.tar.xz" isl-0.25.tar.xz /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs isl-0.25
     curl http://libisl.sourceforge.io/isl-0.25.tar.xz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/isl-0.25.tar.xz
-    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/isl-0.25.tar.xz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs
-    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.88.tar.xz" linux-5.15.88.tar.xz /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs linux-5.15.88
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/isl-0.25.tar.xz to /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs
+    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.88.tar.xz" linux-5.15.88.tar.xz /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs linux-5.15.88
     curl http://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.88.tar.xz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/linux-5.15.88.tar.xz
-    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/linux-5.15.88.tar.xz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs
-    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/binutils/binutils-2.40.tar.xz" binutils-2.40.tar.xz /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs binutils-2.40
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/linux-5.15.88.tar.xz to /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs
+    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/binutils/binutils-2.40.tar.xz" binutils-2.40.tar.xz /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs binutils-2.40
     curl http://ftp.gnu.org/gnu/binutils/binutils-2.40.tar.xz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/binutils-2.40.tar.xz
-    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/binutils-2.40.tar.xz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs
-    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/gcc/gcc-12.2.0/gcc-12.2.0.tar.xz" gcc-12.2.0.tar.xz /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs gcc-12.2.0
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/binutils-2.40.tar.xz to /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs
+    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/gcc/gcc-12.2.0/gcc-12.2.0.tar.xz" gcc-12.2.0.tar.xz /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs gcc-12.2.0
     curl http://ftp.gnu.org/gnu/gcc/gcc-12.2.0/gcc-12.2.0.tar.xz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/gcc-12.2.0.tar.xz
-    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/gcc-12.2.0.tar.xz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/gcc-12.2.0.tar.xz to /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs
     sed -i 's@print-multi-os-directory@print-multi-directory@g' \
-        `find /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs/gcc-12.2.0 -name configure -o -name configure.ac -o -name Makefile.in | xargs`
-    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/glibc/glibc-2.36.tar.xz" glibc-2.36.tar.xz /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs glibc-2.36
+        `find /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs/gcc-12.2.0 -name configure -o -name configure.ac -o -name Makefile.in | xargs`
+    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/glibc/glibc-2.36.tar.xz" glibc-2.36.tar.xz /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs glibc-2.36
     curl http://ftp.gnu.org/gnu/glibc/glibc-2.36.tar.xz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/glibc-2.36.tar.xz
-    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/glibc-2.36.tar.xz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs
-    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/gdb/gdb-12.1.tar.xz" gdb-12.1.tar.xz /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs gdb-12.1
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/glibc-2.36.tar.xz to /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs
+    /home/lengjing/data/cbuild/scripts/bin/fetch_package.sh tar "http://ftp.gnu.org/gnu/gdb/gdb-12.1.tar.xz" gdb-12.1.tar.xz /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs gdb-12.1
     curl http://ftp.gnu.org/gnu/gdb/gdb-12.1.tar.xz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/gdb-12.1.tar.xz
-    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/gdb-12.1.tar.xz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/gdb-12.1.tar.xz to /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs
 
      ./output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/bin/aarch64-linux-gnu-gcc -v
     Using built-in specs.
     COLLECT_GCC=./output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/bin/aarch64-linux-gnu-gcc
     COLLECT_LTO_WRAPPER=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/libexec/gcc/aarch64-linux-gnu/12.2.0/lto-wrapper
     Target: aarch64-linux-gnu
-    Configured with: /home/lengjing/data/cbuild/output/cortex-a53/objects-native/scripts/toolchain/srcs/gcc-12.2.0/configure --target=aarch64-linux-gnu --prefix=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15 --with-gmp=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/host --with-mpfr=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/host --with-mpc=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/host --with-isl=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/host --with-sysroot=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/aarch64-linux-gnu/libc --with-build-sysroot=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/aarch64-linux-gnu/libc --with-toolexeclibdir=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/aarch64-linux-gnu/libc/lib --enable-languages=c,c++ --enable-shared --enable-threads=posix --enable-checking=release --with-arch=armv8-a --with-cpu=cortex-a53 --disable-bootstrap --disable-multilib --enable-multiarch --enable-nls --without-included-gettext --enable-clocale=gnu --enable-lto --enable-linker-build-id --enable-gnu-unique-object --enable-libstdcxx-debug --enable-libstdcxx-time=yes
+    Configured with: /home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/toolchain/srcs/gcc-12.2.0/configure --target=aarch64-linux-gnu --prefix=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15 --with-gmp=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/host --with-mpfr=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/host --with-mpc=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/host --with-isl=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/host --with-sysroot=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/aarch64-linux-gnu/libc --with-build-sysroot=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/aarch64-linux-gnu/libc --with-toolexeclibdir=/home/lengjing/data/cbuild/output/toolchain/cortex-a53-toolchain-gcc12.2.0-linux5.15/aarch64-linux-gnu/libc/lib --enable-languages=c,c++ --enable-shared --enable-threads=posix --enable-checking=release --with-arch=armv8-a --with-cpu=cortex-a53 --disable-bootstrap --disable-multilib --enable-multiarch --enable-nls --without-included-gettext --enable-clocale=gnu --enable-lto --enable-linker-build-id --enable-gnu-unique-object --enable-libstdcxx-debug --enable-libstdcxx-time=yes
     Thread model: posix
     Supported LTO compression algorithms: zlib zstd
     gcc version 12.2.0 (GCC)
@@ -1062,7 +1067,7 @@ Note: When we compile OSS packages from source code, we usually add `cache` `psy
     Build lua Done.
     Install lua Done.
     curl http://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.3.tar.gz to /home/lengjing/data/cbuild/output/mirror-cache/downloads/ncurses-6.3.tar.gz
-    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/ncurses-6.3.tar.gz to /home/lengjing/data/cbuild/output/cortex-a53/objects-native/oss/ncurses
+    untar /home/lengjing/data/cbuild/output/mirror-cache/downloads/ncurses-6.3.tar.gz to /home/lengjing/data/cbuild/output/x86_64-native/objects/oss/ncurses
     configure: WARNING: This option applies only to wide-character library
     ...
     Push ncurses-native Cache to /home/lengjing/data/cbuild/output/mirror-cache/build-cache.

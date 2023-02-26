@@ -1567,6 +1567,7 @@ egrep -o '\b\w+\b' $filename | \
         * `-d`                  : 不列出目录内容
         * `-R`                  : 递归式操作
         * `-h`                  : 将文件容量以 GB MB KB 等列出
+        * `-t`                  : 按时间排序，新的在前
      * 例如: `ls -d */` or `ls -F | grep "/$"` or `ls -l | grep "^d"` or `find . -maxdepth 1  -type d -print` 列出当前目录下的目录
 * `cd [dirname]`                : 切换目录
     * 功能

@@ -22,9 +22,10 @@ ENV_CFG_ROOT     : /home/lengjing/data/cbuild/output/noarch/config
 ENV_OUT_ROOT     : /home/lengjing/data/cbuild/output/noarch/objects
 ENV_INS_ROOT     : /home/lengjing/data/cbuild/output/noarch/sysroot
 ENV_DEP_ROOT     : /home/lengjing/data/cbuild/output/noarch/sysroot
-ENV_OUT_HOST     : /home/lengjing/data/cbuild/output/noarch/objects-native
-ENV_INS_HOST     : /home/lengjing/data/cbuild/output/noarch/sysroot-native
-ENV_DEP_HOST     : /home/lengjing/data/cbuild/output/noarch/sysroot-native
+ENV_TOP_HOST     : /home/lengjing/data/cbuild/output/x86_64-native
+ENV_OUT_HOST     : /home/lengjing/data/cbuild/output/x86_64-native/objects
+ENV_INS_HOST     : /home/lengjing/data/cbuild/output/x86_64-native/sysroot
+ENV_DEP_HOST     : /home/lengjing/data/cbuild/output/x86_64-native/sysroot
 ============================================================
 lengjing@lengjing:~/data/cbuild$ export LOGOUTPUT=
 ```
@@ -115,10 +116,10 @@ lengjing@lengjing:~/data/cbuild$ export LOGOUTPUT=
     lengjing@lengjing:~/data/cbuild/examples/test-conf$ ls config/
     def_config
     lengjing@lengjing:~/data/cbuild/examples/test-conf$ make def_config
-    bison	/home/lengjing/data/cbuild/output/noarch/objects-native/scripts/kconfig/autogen/parser.tab.c
-    gcc	/home/lengjing/data/cbuild/output/noarch/objects-native/scripts/kconfig/autogen/parser.tab.c
-    flex	/home/lengjing/data/cbuild/output/noarch/objects-native/scripts/kconfig/autogen/lexer.lex.c
-    gcc	/home/lengjing/data/cbuild/output/noarch/objects-native/scripts/kconfig/autogen/lexer.lex.c
+    bison	/home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/kconfig/autogen/parser.tab.c
+    gcc	/home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/kconfig/autogen/parser.tab.c
+    flex	/home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/kconfig/autogen/lexer.lex.c
+    gcc	/home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/kconfig/autogen/lexer.lex.c
     gcc	parser/confdata.c
     gcc	parser/menu.c
     gcc	parser/util.c
@@ -126,7 +127,7 @@ lengjing@lengjing:~/data/cbuild$ export LOGOUTPUT=
     gcc	parser/expr.c
     gcc	parser/symbol.c
     gcc	conf.c
-    gcc	/home/lengjing/data/cbuild/output/noarch/objects-native/scripts/kconfig/conf
+    gcc	/home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/kconfig/conf
     gcc	lxdialog/checklist.c
     gcc	lxdialog/inputbox.c
     gcc	lxdialog/util.c
@@ -134,7 +135,7 @@ lengjing@lengjing:~/data/cbuild$ export LOGOUTPUT=
     gcc	lxdialog/yesno.c
     gcc	lxdialog/menubox.c
     gcc	mconf.c
-    gcc	/home/lengjing/data/cbuild/output/noarch/objects-native/scripts/kconfig/mconf
+    gcc	/home/lengjing/data/cbuild/output/x86_64-native/objects/scripts/kconfig/mconf
     #
     # configuration written to /home/lengjing/data/cbuild/output/noarch/objects/examples/test-conf/.config
     #

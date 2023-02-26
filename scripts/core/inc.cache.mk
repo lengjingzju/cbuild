@@ -194,7 +194,7 @@ cachebuild:
 dofetch:
 ifneq ($(SRC_URLS), )
 	@mkdir -p $(ENV_DOWN_DIR)/lock && echo > $(ENV_DOWN_DIR)/lock/$(SRC_NAME).lock
-	@flock $(ENV_DOWN_DIR)/lock/$(SRC_NAME).lock -c "bash $(FETCH_SCRIPT) $(FETCH_METHOD) \"$(SRC_URLS)\" $(SRC_NAME)"
+	@flock $(ENV_DOWN_DIR)/lock/$(SRC_NAME).lock -c "bash $(FETCH_SCRIPT) $(FETCH_METHOD) \"$(SRC_URLS)\" $(SRC_NAME) $(if $(filter -s,$(ENV_MAKE_FLAGS)),,$(OUT_PATH) $(SRC_DIR))"
 else
 	@
 endif
