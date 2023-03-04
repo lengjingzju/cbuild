@@ -4,7 +4,7 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) protobuf(native cache psysroot release): unselect
+#DEPS(mk.deps) protobuf(native cache psysroot): unselect
 
 PACKAGE_NAME     = protobuf
 
@@ -18,12 +18,5 @@ SRC_MD5          = 6b4fd9cee2fa63834f29c7d433679855
 
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = configure
-PC_FILES         = protobuf.pc protobuf-lite.pc
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
-INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
-include $(ENV_MAKE_DIR)/inc.ins.mk
-
-release: install_libs install_bins

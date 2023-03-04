@@ -4,12 +4,11 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) libnice(native cache psysroot release): unselect openssl glib
+#DEPS(mk.deps) libnice(native cache psysroot): unselect openssl glib
 
 PACKAGE_NAME     = libnice
 SEARCH_HDRS      = openssl glib-2.0
 
-EXPORT_PC_ENV    = y
 include $(ENV_MAKE_DIR)/inc.env.mk
 
 VERSION          = 0.1.21
@@ -20,12 +19,5 @@ SRC_MD5          = fe43ff9ed4db2ecbb2d480c670bee855
 
 CACHE_DEPENDS    =
 COMPILE_TOOL     = meson
-PC_FILES         = nice.pc
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
-INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
-include $(ENV_MAKE_DIR)/inc.ins.mk
-
-release: install_libs install_bins

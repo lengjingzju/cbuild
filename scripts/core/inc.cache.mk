@@ -10,6 +10,7 @@ FETCH_SCRIPT    := $(ENV_TOOL_DIR)/fetch_package.sh
 PATCH_SCRIPT    := $(ENV_TOOL_DIR)/exec_patch.sh
 CACHE_SCRIPT    := $(ENV_TOOL_DIR)/process_cache.sh
 MACHINE_SCRIPT  := $(ENV_TOOL_DIR)/process_machine.sh
+SYSROOT_SCRIPT  := $(ENV_TOOL_DIR)/process_sysroot.sh
 MESON_SCRIPT    := $(ENV_TOOL_DIR)/meson_cross.sh
 
 FETCH_METHOD    ?= tar
@@ -18,7 +19,6 @@ SRC_URLS        ?= $(if $(SRC_URL),$(SRC_URL)$(if $(SRC_MD5),;md5=$(SRC_MD5))$(i
 OBJ_PATH        ?= $(OUT_PATH)/build
 INS_PATH        ?= $(OUT_PATH)/image
 INS_SUBDIR      ?= /usr
-PC_FILES        ?=
 
 ifneq ($(COMPILE_TOOL), meson)
 MAKES           ?= make $(ENV_BUILD_JOBS) $(ENV_MAKE_FLAGS) $(MAKES_FLAGS)
@@ -45,16 +45,6 @@ CACHE_SRCFILE   ?= $(SRC_NAME)
 CACHE_URL       ?= $(if $(SRC_URLS),[$(FETCH_METHOD)]$(SRC_URLS))
 endif
 CACHE_VERBOSE   ?= 1
-
-ifneq ($(PC_FILES), )
-define do_inspc
-	sed -i "s@$(INS_PATH)@INS_PREFIX@g" $(addprefix $(INS_PATH)$(INS_SUBDIR)/lib/pkgconfig/,$(PC_FILES))
-endef
-
-define do_syspc
-	sed -i "s@INS_PREFIX@$(INS_PREFIX)@g" $(addprefix $(INS_PREFIX)$(INS_SUBDIR)/lib/pkgconfig/,$(PC_FILES))
-endef
-endif
 
 define do_fetch
 	mkdir -p $(ENV_DOWN_DIR)/lock && echo > $(ENV_DOWN_DIR)/lock/$(SRC_NAME).lock && \
@@ -87,9 +77,23 @@ define do_compile
 		cd $(OBJ_PATH); \
 	fi; \
 	rm -rf $(INS_PATH) && $(MAKES) $(LOGOUTPUT) && $(MAKES) install $(LOGOUTPUT); \
-	$(if $(PC_FILES),$(call do_inspc),true); \
+	$(SYSROOT_SCRIPT) replace $(INS_PATH); \
 	$(if $(do_append),$(call do_append),true); \
 	set +e
+endef
+endif
+
+ifeq ($(do_clean), )
+define do_clean
+	rm -rf $(OUT_PATH)
+endef
+endif
+
+ifeq ($(do_install), )
+define do_install
+	install -d $(INS_PREFIX); \
+	flock $(INS_PREFIX) -c "bash $(SYSROOT_SCRIPT) $(if $(INSTALL_OPTION),$(INSTALL_OPTION),install) $(INS_PATH) $(INS_PREFIX)"; \
+	$(if $(do_install_append),$(call do_install_append))
 endef
 endif
 
@@ -140,14 +144,11 @@ ifneq ($(USER_DEFINED_TARGET), y)
 all: cachebuild
 
 clean:
-	@rm -rf $(OUT_PATH)
+	@$(call do_clean)
 	@echo "Clean $(PACKAGE_ID) Done."
 
 install:
-	@install -d $(INS_PREFIX)
-	@$(call safe_copy,-rfp,$(INS_PATH)/* $(INS_PREFIX))
-	@$(if $(PC_FILES),$(call do_syspc))
-	@$(if $(do_install_append),$(call do_install_append))
+	@$(call do_install)
 	@echo "Install $(PACKAGE_ID) Done."
 
 endif

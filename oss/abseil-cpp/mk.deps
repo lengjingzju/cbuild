@@ -19,7 +19,6 @@ SRC_MD5          = 19821db7aeb34315500e0fd5f0d9d399
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = cmake
 CMAKE_FLAGS      = -DCMAKE_CXX_STANDARD=11 -DABSL_PROPAGATE_CXX_STD=ON
-PC_FILES         = absl_*.pc
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
 

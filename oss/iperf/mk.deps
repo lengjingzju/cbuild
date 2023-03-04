@@ -4,7 +4,7 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) iperf(native cache psysroot release): unselect
+#DEPS(mk.deps) iperf(native cache psysroot): unselect
 
 PACKAGE_NAME     = iperf
 
@@ -20,9 +20,3 @@ CACHE_DEPENDS    = none
 COMPILE_TOOL     = configure
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
-INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
-include $(ENV_MAKE_DIR)/inc.ins.mk
-
-release: install_libs install_bins

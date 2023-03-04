@@ -485,7 +485,6 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
 <br>
 
 * EXPORT_HOST_ENV: 交叉编译包依赖自己编译的本地包时需要设置为 y
-* EXPORT_PC_ENV: 设置为 y 时导出 pkg-config 的搜索路径
 * BUILD_FOR_HOST: 设置为 y 时表示本地编译(native-compilation)
 * PREPARE_SYSROOT: 设置为 y 时Normal Build 使用 OUT_PATH 下的 sysroot 而不是 ENV_TOP_OUT 下的 sysroot / sysroot-native
 * LOGOUTPUT: 默认值为 1>/dev/null，置为空时编译 应用(include inc.app.mk) 和 oss 源码时 (include inc.cache.mk) 时输出更多信息
@@ -507,8 +506,6 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
     * 要安装的源文件集的变量名: `INSTALL_<大写ID名>S`
 
 * 已定义的 Makefile 规则
-    * 规则 `install_sysroot` 不是由 `install_obj` 定义的
-        * `install_sysroot`: 将指定目录下的所有文件和文件夹安装到根安装目录
 
     | 目录名           | 目录定义(目标文件夹)          | 要安装的源文件集          | Makefile 规则的目标    |
     | ---------------- | ----------------------------- | ------------------------- | ---------------------- |
@@ -531,7 +528,6 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
     | `sharedstatedir` | `/com`                        | `$(INSTALL_SHAREDSTATES)` | `install_sharedstates` |
     | `localstatedir`  | `/var`                        | `$(INSTALL_LOCALSTATES)`  | `install_localstates`  |
     | `runstatedir`    | `/run`                        | `$(INSTALL_RUNSTATES)`    | `install_runstates`    |
-    | ` `              | `/`                           | `$(INSTALL_SYSROOT)`      | `install_sysroot`      |
 
 * 变量默认值定义
     * 编译应用时 `inc.app.mk`，编译生成的可执行文件会加入到 `BIN_TARGETS` 变量，`INSTALL_BINARIES` 已默认赋值为 `$(BIN_TARGETS)`
@@ -869,7 +865,6 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
     * OBJ_PATH        : 包的编译输出路径，默认取变量 `$(OUT_PATH)/build` 设置的值
     * INS_PATH        : 包的安装根目录，默认取变量 `$(OUT_PATH)/image` 设置的值
     * INS_SUBDIR      : 包的安装子目录，默认值为 `/usr`，则真正的安装目录为 `$(INS_PATH)$(INS_SUBDIR)`
-    * PC_FILES        : 包安装的 pkg-config 配置文件的文件名，多个文件空格分开
     * MAKES           : make 命令的值，默认值为 `make $(ENV_BUILD_JOBS) $(ENV_MAKE_FLAGS) $(MAKES_FLAGS)`，用户可以设置额外的参数 `MAKES_FLAGS`
         * meson 编译时默认值为 `ninja $(ENV_BUILD_JOBS) $(MAKES_FLAGS)`，用户可以设置额外的参数 `MAKES_FLAGS`
 <br>
@@ -896,7 +891,6 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
 
 #### 缓存模板提供的函数
 
-* do_inspc / do_syspc: 将 pkg-config 配置文件中的路径转换为虚拟路径和实际路径，需要先设置配置文件名变量 PC_FILES
 * do_fetch: 自动从网络拉取代码并解压到输出目录
 * do_patch: 打补丁，用户需要设置补丁目录 `PATCH_FOLDER`
 * do_compile: 用户如果没有设置此函数，将采用模板中的默认 do_compile 函数
@@ -913,6 +907,9 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
             * MESON_WRAP_MODE 默认值 `--wrap-mode=nodownload` 表示禁止 meson 下载依赖包编译
             * MESON_LIBDIR 默认值 `--libdir=$(INS_PATH)$(INS_SUBDIR)/lib`，表示设置安装库文件路径，不然本地编译时会安装到 lib 下的 x86_64-linux-gnu
     * 如果用户设置了 do_append 函数，会在 make 命令后运行此函数
+* do_clean: 用户如果没有设置此函数，将采用模板中的默认 do_clean 函数
+* do_install: 用户如果没有设置此函数，将采用模板中的默认 do_install 函数
+    * 如果用户设置了 do_install_append 函数，会在 install 目标尾部运行此函数
 * do_check: 检查是否匹配 cache，返回的字符串有 MATCH 表示匹配，ERROR 表示错误
 * do_pull: 如果 INS_PATH 目录不存在，将 cache 解压的输出目录
 * do_push: 将 cache 加入到全局缓存目录
@@ -925,7 +922,6 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
 
 * all / clean / install: 包的必要目标
     * 如果用户没有设置 `USER_DEFINED_TARGET` 为 y，采用模板默认提供的 `all clean install` 目标
-    * 如果用户设置了 do_install_append 函数，会在 install 目标尾部运行此函数
 * psysroot: 在 OUT_PATH 目录准备 sysroot
 * srcbuild: 没有缓存机制的编译
 * cachebuild: 有缓存机制的编译

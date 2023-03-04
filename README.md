@@ -503,7 +503,6 @@ Note: bitbake cann't directly use the environment variables of the current shell
 <br>
 
 * EXPORT_HOST_ENV           : Sets it to y when cross-compilation package depends on native-compilation packages
-* EXPORT_PC_ENV             : Sets it to y to export the pkg-config environment variables
 * BUILD_FOR_HOST            : When set to y, indicates native-compilation
 * PREPARE_SYSROOT           : When set to y, indicates preparing dependency sysroot in `OUT_PATH` instead of `ENV_TOP_OUT`
 * LOGOUTPUT                 : When set to empty, more compilation messages will be displayed, its default value is `1>/dev/null`
@@ -525,8 +524,6 @@ Note: bitbake cann't directly use the environment variables of the current shell
     * Variable name to specify files / folders to install: `INSTALL_<uppercase ID>S`
 
 * Defined Makefile Rules
-    * Note: The Makefile rule of `install_sysroot` is not defined by `install_obj`
-        * `install_sysroot`: Installs all files and folders in the specified directory to the root installation directory
 
     | Directory Name   | Directory Value               | Files and Folders to Install | Makefile Target        |
     | ---------------- | ----------------------------- | ---------------------------- | ---------------------- |
@@ -549,7 +546,6 @@ Note: bitbake cann't directly use the environment variables of the current shell
     | `sharedstatedir` | `/com`                        | `$(INSTALL_SHAREDSTATES)`    | `install_sharedstates` |
     | `localstatedir`  | `/var`                        | `$(INSTALL_LOCALSTATES)`     | `install_localstates`  |
     | `runstatedir`    | `/run`                        | `$(INSTALL_RUNSTATES)`       | `install_runstates`    |
-    | ` `              | `/`                           | `$(INSTALL_SYSROOT)`         | `install_sysroot`      |
 
 * Default Directories
     * When compiling applications, the compilation-generated executables are added to the variable `BIN_TARGETS`, the default value of `INSTALL_BINARIES` has been assigned to `$(BIN_TARGETS)`
@@ -879,7 +875,6 @@ Note: `fetch_package.sh` preferentially tries to download the package from the m
     * OBJ_PATH        : Compilation output path, its default value is `$(OUT_PATH)/build`
     * INS_PATH        : Installation root path, its default value is `$(OUT_PATH)/image`
     * INS_SUBDIR      : Installation sub-directory, its default value is `/usr`, so the actual installation path is `$(INS_PATH)$(INS_SUBDIR)`
-    * PC_FILES        : pkg-config files which has been installed to `.../lib/pkgconfig/`, and multiple files are separated by space
     * MAKES           : Compilation command, it default value is `ninja $(ENV_BUILD_JOBS) $(MAKES_FLAGS)` for meson, `make $(ENV_BUILD_JOBS) $(ENV_MAKE_FLAGS) $(MAKES_FLAGS)` for others
         * MAKES_FLAGS : Users can set extra compilation flags
 <br>
@@ -904,10 +899,9 @@ Note: `fetch_package.sh` preferentially tries to download the package from the m
 
 #### Functions of Cache Template
 
-* do_inspc / do_syspc: Converts the path in the pkg-config files to the virtual / actual path, the variable `PC_FILES` should be set first
 * do_fetch: Fetches the package from the internet or mirror server then extracts it to `$(OUT_PATH)`
 * do_patch: Patches the package, the variable `PATCH_FOLDER` should be set first
-* do_compile: Execute Compilation
+* do_compile: Executes Compilation
     * If the variable `SRC_URL` is set, `do_fetch` task will automatically run
     * If the variable `PATCH_FOLDER` is set, `do_patch` task will automatically run
     * If the function `do_prepend` is set, it will run before `MAKES` command
@@ -924,6 +918,9 @@ Note: `fetch_package.sh` preferentially tries to download the package from the m
             * MESON_WRAP_MODE: Sets the wrap mode, its default value is `--wrap-mode=nodownload` (prevents meson downloads dependency packages)
             * MESON_LIBDIR: Sets the libdir, its default value is `--libdir=$(INS_PATH)$(INS_SUBDIR)/lib` (prevents native-build installs libraries to `xxx/lib/x86_64-linux-gnu/`)
     * If the function `do_prepend` is set, it will run after `MAKES` command
+* do_clean: Executes cleanup
+* do_install: Executes installation
+    * If the function `do_install_append` is set, it will run at the end of the `install` target
 * do_check: Checks whether the cache is matched
     * If the returned string has `MATCH`, it means that the cache is matched
     * If the returned string has `ERROR`, it means that the function runs failed
@@ -937,7 +934,6 @@ Note: `fetch_package.sh` preferentially tries to download the package from the m
 #### Targets of Cache Template
     * all / clean / install: Necessary targets provided by the template
         * If the variable `USER_DEFINED_TARGET` is not set to y, it will uses `all / clean / install` targets provided by the template
-        * If the function `do_install_append` is set, it will run at the end of the `install` target
     * psysroot: Prepares the dependency sysroot in `OUT_PATH` instead of `ENV_TOP_OUT`
     * srcbuild: Compiles without cache mechanism
     * cachebuild: Compiles with cache mechanism
@@ -950,7 +946,6 @@ Note: When we compile OSS packages from source code, we usually add `cache` `psy
 
 
 ### Compiling OSS Layer
-
 
 * The number of OSS packages is increasing, and at present there are more than 50 packages
 * Compilation Commands:

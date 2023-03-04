@@ -4,7 +4,7 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) x265(native cache psysroot release): unselect
+#DEPS(mk.deps) x265(native cache psysroot): unselect
 
 PACKAGE_NAME     = x265
 
@@ -21,12 +21,5 @@ SRC_PATH         = $(OUT_PATH)/$(SRC_DIR)/source
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = cmake
 CMAKE_FLAGS      = -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_CXX_FLAGS="-fPIC"
-PC_FILES         = x265.pc
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
-INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
-include $(ENV_MAKE_DIR)/inc.ins.mk
-
-release: install_libs install_bins

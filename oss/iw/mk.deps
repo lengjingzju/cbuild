@@ -4,12 +4,11 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) iw(native cache psysroot release): unselect libnl
+#DEPS(mk.deps) iw(native cache psysroot): unselect libnl
 
 PACKAGE_NAME     = iw
 SEARCH_HDRS      = libnl3
 
-EXPORT_PC_ENV    = y
 include $(ENV_MAKE_DIR)/inc.env.mk
 
 VERSION          = 5.19
@@ -22,8 +21,3 @@ CACHE_DEPENDS    =
 MAKES_FLAGS      = PREFIX=$(INS_PATH) MANDIR=$(INS_PATH)/usr/share/man -C $(SRC_PATH)
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-INSTALL_BASE_SBINS = $(INS_PATH)/sbin/*
-include $(ENV_MAKE_DIR)/inc.ins.mk
-
-release: install_base_sbins

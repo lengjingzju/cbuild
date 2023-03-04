@@ -62,7 +62,7 @@ $(addprefix -Wl$(comma)-rpath-link=,$(wildcard $(addprefix $(DEP_PREFIX),/lib /u
 endef
 
 define prepare_sysroot
-	make ENV_INS_ROOT=$(OUT_PATH)/sysroot ENV_INS_HOST=$(OUT_PATH)/sysroot-native \
+	make ENV_INS_ROOT=$(OUT_PATH)/sysroot ENV_INS_HOST=$(OUT_PATH)/sysroot-native INSTALL_OPTION=link \
 		-C $(ENV_TOP_DIR) $(PACKAGE_ID)_install_depends
 endef
 
@@ -75,14 +75,12 @@ export PATH:=$(shell echo $(addprefix $(PATH_PREFIX),/bin /usr/bin /usr/local/bi
 export LD_LIBRARY_PATH:=$(shell echo $(addprefix $(PATH_PREFIX),/lib /usr/lib /usr/local/lib)$(if $(LD_LIBRARY_PATH),:$(LD_LIBRARY_PATH)) | sed 's/ /:/g')
 endif
 
-ifeq ($(EXPORT_PC_ENV), y)
-export PKG_CONFIG_LIBDIR=$(DEP_PREFIX)/usr/lib/pkgconfig
-export PKG_CONFIG_PATH=$(shell echo $(wildcard $(addprefix $(DEP_PREFIX),$(addsuffix /pkgconfig,/lib /usr/lib /usr/local/lib))) | sed 's@ @:@g')
-endif
-
 # yocto envs should be exported by yocto recipe.
 
 ifneq ($(ENV_BUILD_MODE), yocto)
+
+export PKG_CONFIG_LIBDIR=$(DEP_PREFIX)/usr/lib/pkgconfig
+export PKG_CONFIG_PATH=$(shell echo $(wildcard $(addprefix $(DEP_PREFIX),$(addsuffix /pkgconfig,/lib /usr/lib /usr/local/lib))) | sed 's@ @:@g')
 
 ifneq ($(BUILD_FOR_HOST), y)
 

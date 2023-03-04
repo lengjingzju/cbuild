@@ -4,7 +4,7 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) mpfr(native cache psysroot release): unselect gmp
+#DEPS(mk.deps) mpfr(native cache psysroot): unselect gmp
 
 PACKAGE_NAME     = mpfr
 
@@ -19,11 +19,5 @@ SRC_MD5          = a25091f337f25830c16d2054d74b5af7
 CACHE_DEPENDS    =
 COMPILE_TOOL     = configure
 CONFIGURE_FLAGS  = --with-gmp=$(DEP_PREFIX)/usr
-PC_FILES         = mpfr.pc
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
-include $(ENV_MAKE_DIR)/inc.ins.mk
-
-release: install_libs

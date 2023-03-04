@@ -4,7 +4,7 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) pcre2(native cache psysroot release): unselect
+#DEPS(mk.deps) pcre2(native cache psysroot): unselect
 
 PACKAGE_NAME     = pcre2
 
@@ -19,12 +19,5 @@ SRC_MD5          = a8e9ab2935d428a4807461f183034abe
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = configure
 CONFIGURE_FLAGS  = --enable-pcre2-16 --enable-pcre2-32
-PC_FILES         = libpcre2-*.pc
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
-INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
-include $(ENV_MAKE_DIR)/inc.ins.mk
-
-release: install_libs install_bins

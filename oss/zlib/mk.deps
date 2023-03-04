@@ -4,7 +4,7 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) zlib(native cache psysroot release): unselect
+#DEPS(mk.deps) zlib(native cache psysroot): unselect
 
 PACKAGE_NAME     = zlib
 
@@ -18,7 +18,6 @@ SRC_URL          = http://www.zlib.net/zlib1213.zip
 SRC_MD5          = 9cb22b7d2aa208b61f5850c04bebda58
 
 CACHE_DEPENDS    = none
-PC_FILES         = zlib.pc
 
 define do_prepend
 cd $(OBJ_PATH) && \
@@ -26,8 +25,3 @@ cd $(OBJ_PATH) && \
 endef
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-INSTALL_LIBRARIES   = $(INS_PATH)/usr/lib/*.so*
-include $(ENV_MAKE_DIR)/inc.ins.mk
-
-release: install_libs

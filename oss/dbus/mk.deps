@@ -4,12 +4,10 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) dbus(native cache psysroot release): unselect expat
+#DEPS(mk.deps) dbus(native cache psysroot): unselect expat
 
 PACKAGE_NAME     = dbus
-SEARCH_HDRS      = expat
 
-EXPORT_PC_ENV    = y
 include $(ENV_MAKE_DIR)/inc.env.mk
 
 VERSION          = 1.15.4
@@ -17,20 +15,15 @@ SRC_DIR          = $(PACKAGE_NAME)-$(VERSION)
 SRC_NAME         = $(SRC_DIR).tar.xz
 SRC_URL          = http://dbus.freedesktop.org/releases/dbus/$(SRC_NAME)
 SRC_MD5          = 5f948b755ccd7c4d0a32d5b7fa423dd5
+INS_SUBDIR       =
 
 CACHE_DEPENDS    =
 COMPILE_TOOL     = configure
 CONFIGURE_FLAGS  = PKG_CONFIG=pkg-config --without-x --disable-tests
-PC_FILES         = dbus-1.pc
+CONFIGURE_FLAGS += --includedir=$(INS_PATH)/usr/include \
+                   --datarootdir=$(INS_PATH)/usr/share \
+                   --bindir=$(INS_PATH)/usr/bin \
+                   --libdir=$(INS_PATH)/usr/lib \
+                   --libexecdir=$(INS_PATH)/usr/libexec
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-INSTALL_BINARIES  = $(INS_PATH)/usr/bin/*
-INSTALL_LIBRARIES = $(INS_PATH)/usr/lib/libdbus-1.so* $(INS_PATH)/usr/lib/dbus-*
-INSTALL_SYSCONFS  = $(INS_PATH)/usr/etc/*
-INSTALL_LIBEXECS  = $(INS_PATH)/usr/libexec/*
-INSTALL_DATAS     = $(INS_PATH)/usr/share/dbus-1 $(INS_PATH)/usr/share/xml
-
-include $(ENV_MAKE_DIR)/inc.ins.mk
-
-release: install_bins install_libs install_sysconfs install_libexecs install_datas

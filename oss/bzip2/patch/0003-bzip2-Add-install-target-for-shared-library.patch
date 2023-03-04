@@ -1,7 +1,7 @@
 From 886c6ff704b768c21bafd22c7c5cca2e02eb9b0d Mon Sep 17 00:00:00 2001
 From: Jing Leng <lengjingzju@163.com>
-Date: Thu, 12 Jan 2023 20:22:52 +0800
-Subject: [PATCH 3/3] bzip2: Add install target for shared library
+Date: Sat, 4 Mar 2023 13:49:12 +0800
+Subject: [PATCH 3/4] bzip2: Add install target for shared library
 
 ---
  Makefile-libbz2_so | 11 ++++++++++-

@@ -18,7 +18,6 @@ SRC_MD5          = 132dde48fe2b563211675626d29f1707
 
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = cmake
-PC_FILES         = eigen3.pc
 
 define do_prepend
 	sed -i 's@\$${CMAKE_INSTALL_DATADIR}/pkgconfig@$${CMAKE_INSTALL_LIBDIR}/pkgconfig@g' $(SRC_PATH)/CMakeLists.txt

@@ -4,7 +4,7 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) cjson(native cache psysroot release): unselect
+#DEPS(mk.deps) cjson(native cache psysroot): unselect
 
 PACKAGE_NAME     = cjson
 
@@ -19,11 +19,5 @@ SRC_MD5          = 921b4bcb401aa604dc632fdb1c8dbdea
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = cmake
 CMAKE_FLAGS      = -DENABLE_CJSON_UTILS=ON -DENABLE_CJSON_TEST=OFF
-PC_FILES         = libcjson.pc libcjson_utils.pc
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
-include $(ENV_MAKE_DIR)/inc.ins.mk
-
-release: install_libs

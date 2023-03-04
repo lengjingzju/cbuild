@@ -4,7 +4,7 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) wireless-tools(native cache psysroot release): unselect
+#DEPS(mk.deps) wireless-tools(native cache psysroot): unselect
 
 PACKAGE_NAME     = wireless-tools
 
@@ -19,7 +19,7 @@ SRC_MD5          = e06c222e186f7cc013fd272d023710cb
 CACHE_DEPENDS    = none
 PATCH_FOLDER     = $(shell pwd)/patch
 CACHE_CHECKSUM  += $(PATCH_FOLDER)
-MAKES_FLAGS      = PREFIX=$(INS_PATH) INSTALL_INC=$(INS_PATH)/usr/include INSTALL_MAN=$(INS_PATH)/usr/share -C $(SRC_PATH)
+MAKES_FLAGS      = PREFIX=$(INS_PATH) INSTALL_INC=$(INS_PATH)/usr/include INSTALL_MAN=$(INS_PATH)/usr/share/man -C $(SRC_PATH)
 MAKES_FLAGS     += $(if $(CROSS_COMPILE),CC=$(CC) AR=$(AR) RANLIB=$(RANLIB))
 
 define do_prepend
@@ -27,9 +27,3 @@ define do_prepend
 endef
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-INSTALL_BASE_LIBS  = $(INS_PATH)/lib/*.so*
-INSTALL_BASE_SBINS = $(INS_PATH)/sbin/*
-include $(ENV_MAKE_DIR)/inc.ins.mk
-
-release: install_base_sbins install_base_libs

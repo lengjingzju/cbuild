@@ -4,7 +4,7 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) alsa-lib(native cache psysroot release): unselect
+#DEPS(mk.deps) alsa-lib(native cache psysroot): unselect
 
 PACKAGE_NAME     = alsa-lib
 
@@ -18,13 +18,5 @@ SRC_MD5          = ab32de4b6054d7ab23723f8d85e50a27
 
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = configure
-PC_FILES         = alsa.pc alsa-topology.pc
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
-INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
-INSTALL_DATAS    = $(INS_PATH)/usr/share/*
-include $(ENV_MAKE_DIR)/inc.ins.mk
-
-release: install_libs install_bins install_datas

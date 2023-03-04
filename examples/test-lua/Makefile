@@ -11,11 +11,7 @@ SRC_MD5          = bd8ce7069ff99a400efd14cf339a727b
 PATCH_FOLDER     = $(shell pwd)/patch
 CACHE_CHECKSUM  += $(PATCH_FOLDER)
 CACHE_DEPENDS    = none
-MAKES_FLAGS      = INSTALL_TOP=$(INS_PATH)$(INS_SUBDIR) INSTALL_DATA="cp -rfp" -C $(SRC_PATH)
+MAKES_FLAGS      = INSTALL_TOP=$(INS_PATH)$(INS_SUBDIR) INSTALL_MAN=$(INS_PATH)$(INS_SUBDIR)/share/man/man1 INSTALL_DATA="cp -rfp" -C $(SRC_PATH)
 MAKES_FLAGS     += $(if $(CROSS_COMPILE),CC=$(CC) AR="$(AR) rcs" RANLIB="$(RANLIB) -D")
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/liblua.so*
-INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
-include $(ENV_MAKE_DIR)/inc.ins.mk

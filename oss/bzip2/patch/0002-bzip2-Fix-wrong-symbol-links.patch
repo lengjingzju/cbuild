@@ -1,7 +1,7 @@
 From 1b13c433e7b661d93cded9f6c9d948ae34247214 Mon Sep 17 00:00:00 2001
 From: Jing Leng <lengjingzju@163.com>
-Date: Thu, 29 Dec 2022 15:20:03 +0800
-Subject: [PATCH] bzip2: Fix wrong symbol links
+Date: Sat, 4 Mar 2023 13:46:37 +0800
+Subject: [PATCH 2/4] bzip2: Fix wrong symbol links
 
 ---
  Makefile | 8 ++++----

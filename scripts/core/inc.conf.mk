@@ -77,7 +77,7 @@ endef
 ifneq ($(ENV_BUILD_MODE), yocto)
 
 buildkconfig:
-	@make $(ENV_MAKE_FLAGS) -C $(CONF_SRC) && make $(ENV_MAKE_FLAGS) -C $(CONF_SRC) install
+	@unset PKG_CONFIG_LIBDIR PKG_CONFIG_PATH; make $(ENV_MAKE_FLAGS) -C $(CONF_SRC) && make $(ENV_MAKE_FLAGS) -C $(CONF_SRC) install
 
 cleankconfig:
 	@make $(ENV_MAKE_FLAGS) -C $(CONF_SRC) clean

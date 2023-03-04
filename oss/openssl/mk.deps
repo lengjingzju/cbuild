@@ -4,7 +4,7 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) openssl(native cache psysroot release): unselect
+#DEPS(mk.deps) openssl(native cache psysroot): unselect
 
 PACKAGE_NAME     = openssl
 
@@ -17,7 +17,6 @@ SRC_URL          = http://ftp.openssl.org/source/$(SRC_NAME)
 SRC_MD5          = 1cfee919e0eac6be62c88c5ae8bcd91e
 
 CACHE_DEPENDS    = none
-PC_FILES         = libcrypto.pc libssl.pc openssl.pc
 
 define do_compile
 	$(call do_fetch); \
@@ -28,10 +27,3 @@ define do_compile
 endef
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/engines-* $(INS_PATH)/usr/lib/*.so*
-INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
-INSTALL_TODIR_ssl= $(INS_PATH)/usr/ssl /usr
-include $(ENV_MAKE_DIR)/inc.ins.mk
-
-release: install_libs install_bins install_todir_ssl

@@ -4,11 +4,10 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) uvc-gadget(cache psysroot release): unselect
+#DEPS(mk.deps) uvc-gadget(cache psysroot): unselect
 
 PACKAGE_NAME     = uvc-gadget
 
-EXPORT_PC_ENV    = y
 include $(ENV_MAKE_DIR)/inc.env.mk
 
 FETCH_METHOD     = git
@@ -22,12 +21,5 @@ PATCH_FOLDER     = $(shell pwd)/patch
 CACHE_CHECKSUM  += $(PATCH_FOLDER)
 CACHE_DEPENDS    = none
 COMPILE_TOOL     = meson
-PC_FILES         = uvcgadget.pc
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
-INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
-include $(ENV_MAKE_DIR)/inc.ins.mk
-
-release: install_libs install_bins

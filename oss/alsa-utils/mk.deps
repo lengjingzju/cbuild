@@ -4,7 +4,7 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) alsa-utils(native cache psysroot release): unselect alsa-lib
+#DEPS(mk.deps) alsa-utils(native cache psysroot): unselect alsa-lib
 
 PACKAGE_NAME     = alsa-utils
 SEARCH_HDRS      = alsa
@@ -25,12 +25,3 @@ CONFIGURE_FLAGS += --disable-alsamixer --disable-xmlto --disable-rst2man
 CONFIGURE_FLAGS += CFLAGS="$(call link_hdrs)" CPPFLAGS="$(call link_hdrs)" LDFLAGS="$(call link_libs)"
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-INSTALL_LIBRARIES = $(INS_PATH)/lib/*
-INSTALL_BINARIES  = $(INS_PATH)/usr/bin/*
-INSTALL_TODIR_lib = $(INS_PATH)/usr/lib/alsa-topology/*.so* /usr/lib/alsa-topology
-INSTALL_SBINS     = $(INS_PATH)/usr/sbin/*
-INSTALL_DATAS     = $(INS_PATH)/usr/share/alsa
-include $(ENV_MAKE_DIR)/inc.ins.mk
-
-release: install_base_libs install_bins install_todir_lib install_sbins install_datas

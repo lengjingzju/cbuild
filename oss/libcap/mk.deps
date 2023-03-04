@@ -4,7 +4,7 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) libcap(native cache psysroot release): unselect
+#DEPS(mk.deps) libcap(native cache psysroot): unselect
 
 PACKAGE_NAME     = libcap
 
@@ -17,14 +17,7 @@ SRC_URL          = http://www.kernel.org/pub/linux/libs/security/linux-privs/lib
 SRC_MD5          = 06333f4301657298890fd8d6f1fb4793
 
 CACHE_DEPENDS    = none
-MAKES_FLAGS      = -C $(SRC_PATH) FAKEROOT=$(INS_PATH)$(INS_SUBDIR) lib=lib
+MAKES_FLAGS      = -C $(SRC_PATH) FAKEROOT=$(INS_PATH) lib=lib
 MAKES_FLAGS     += $(if $(CROSS_COMPILE),CC=$(CC) AR=$(AR) RANLIB=$(RANLIB) BUILD_CC=gcc)
-PC_FILES         = libcap.pc libpsx.pc
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
-INSTALL_SBINS    = $(INS_PATH)/usr/sbin/*
-include $(ENV_MAKE_DIR)/inc.ins.mk
-
-release: install_libs install_sbins

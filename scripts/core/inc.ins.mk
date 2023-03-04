@@ -105,33 +105,4 @@ install_tofile_%:
 	fi; \
 	install -d $$(dirname $${idst}) && $(call safe_copy,$${iopt},$${isrc} $${idst})
 
-.PHONY: install_sysroot
-install_sysroot:
-	@install -d $(INS_PREFIX); \
-	for v1 in $$(ls $(INSTALL_SYSROOT)); do \
-		if [ "$${v1}" = "usr" ]; then \
-			install -d $(INS_PREFIX)/$${v1}; \
-			for v2 in $$(ls $(INSTALL_SYSROOT)/$${v1}); do \
-				if [ "$${v2}" = "local" ]; then \
-					install -d $(INS_PREFIX)/$${v1}/$${v2}; \
-					for v3 in $$(ls $(INSTALL_SYSROOT)/$${v1}/$${v2}); do \
-						if [ "$${v2}" = "include" ]; then \
-							$(call safe_copy,-drfp,$(INSTALL_SYSROOT)/$${v1}/$${v2}/$${v3} $(INS_PREFIX)/$${v1}/$${v2}); \
-						else \
-							$(call safe_copy,-drf,$(INSTALL_SYSROOT)/$${v1}/$${v2}/$${v3} $(INS_PREFIX)/$${v1}/$${v2}); \
-						fi; \
-					done; \
-				elif [ "$${v2}" = "include" ]; then \
-					$(call safe_copy,-drfp,$(INSTALL_SYSROOT)/$${v1}/$${v2} $(INS_PREFIX)/$${v1}); \
-				else \
-					$(call safe_copy,-drf,$(INSTALL_SYSROOT)/$${v1}/$${v2} $(INS_PREFIX)/$${v1}); \
-				fi; \
-			done; \
-		elif [ "$${v1}" = "include" ]; then \
-			$(call safe_copy,-drfp,$(INSTALL_SYSROOT)/$${v1} $(INS_PREFIX)); \
-		else \
-			$(call safe_copy,-drf,$(INSTALL_SYSROOT)/$${v1} $(INS_PREFIX)); \
-		fi; \
-	done
-
 endif

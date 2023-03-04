@@ -4,13 +4,12 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(harfbuzz-without-freetype.mk) harfbuzz-without-freetype(native cache psysroot release): unselect icu glib
-#DEPS(mk.deps) harfbuzz(native cache psysroot release): unselect icu libpng freetype glib
+#DEPS(harfbuzz-without-freetype.mk) harfbuzz-without-freetype(native cache psysroot): unselect icu glib
+#DEPS(mk.deps) harfbuzz(native cache psysroot): unselect icu libpng freetype glib
 
 PACKAGE_NAME    ?= harfbuzz
 SEARCH_HDRS      = icu glib
 
-EXPORT_PC_ENV    = y
 include $(ENV_MAKE_DIR)/inc.env.mk
 
 VERSION          = 7.0.0
@@ -23,7 +22,6 @@ CACHE_DEPENDS    =
 COMPILE_TOOL     = configure
 CONFIGURE_FLAGS  = --with-icu=yes --with-glib=yes
 CONFIGURE_FLAGS  = PKG_CONFIG=pkg-config
-PC_FILES         = harfbuzz*.pc
 CONFIGURE_FLAGS += CFLAGS="$(call link_hdrs)" LDFLAGS="$(call link_libs)"
 
 ifeq ($(findstring -without-freetype,$(PACKAGE_NAME)), )
@@ -39,8 +37,3 @@ endef
 endif
 
 include $(ENV_MAKE_DIR)/inc.cache.mk
-
-INSTALL_LIBRARIES= $(INS_PATH)/usr/lib/*.so*
-include $(ENV_MAKE_DIR)/inc.ins.mk
-
-release: install_libs
