@@ -4,7 +4,7 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-import sys, os, re
+import sys, os, re, copy
 from argparse import ArgumentParser
 
 def escape_toupper(var):
@@ -32,6 +32,7 @@ class Deps:
 
         self.conf_name = ''
         self.conf_str = ''
+        self.uni_packages = []
         self.user_metas = []
         self.keywords = []
         self.prepend_flag = 0
@@ -168,6 +169,99 @@ class Deps:
         return self.__get_append_flag(item, check_append)
 
 
+    def __switch_native_dep(self, nitem, item, deptype):
+        nitem[deptype] = []
+        for dep in item[deptype]:
+            if not dep.endswith('-native') and dep not in self.uni_packages:
+                dep = dep + '-native'
+            if dep != nitem['target'] and dep not in nitem[deptype]:
+                nitem[deptype].append(dep)
+
+
+    def __get_native_deps(self, item):
+        nitem = copy.deepcopy(item)
+
+        nitem['target'] = item['target'] + '-native'
+
+        if item['vtype']:
+            self.__switch_native_dep(nitem, item, 'targets')
+        else:
+            nitem['targets'] = []
+            for target in item['targets']:
+                if ':' in target:
+                    deps = []
+                    targets_pair = target.split('::')
+                    targets_deps = targets_pair[1].split(':')
+                    for dep in targets_deps:
+                        if not dep.endswith('-native') and dep not in self.uni_packages:
+                            dep = dep + '-native'
+                        if dep != nitem['target'] and dep not in deps:
+                            deps.append(dep)
+                    if deps:
+                        nitem['targets'].append(targets_pair[0] + '::')
+                    else:
+                        nitem['targets'].append(targets_pair[0] + '::' + ':'.join(deps))
+                elif target != 'release':
+                    nitem['targets'].append(target)
+
+        self.__switch_native_dep(nitem, item, 'asdeps')
+        self.__switch_native_dep(nitem, item, 'vsdeps')
+        self.__switch_native_dep(nitem, item, 'awdeps')
+        self.__switch_native_dep(nitem, item, 'vwdeps')
+        self.__switch_native_dep(nitem, item, 'cdeps')
+        self.__switch_native_dep(nitem, item, 'select')
+        self.__switch_native_dep(nitem, item, 'imply')
+
+        nitem['ideps'] = []
+        ideps = []
+        for idep in item['ideps']:
+            dep,cond = re.split(r'@+', idep)
+            split_str == '@@' if '@@' in idep else '@'
+            if not dep.endswith('-native') and dep not in self.uni_packages:
+                dep = dep + '-native'
+            if dep != nitem['target'] and dep not in ideps:
+                ideps.append(dep)
+                nitem['ideps'].append(dep + split_str + cond)
+
+        nitem['wrule'] = []
+        for wrule in item['wrule']:
+            ndeps = []
+            deps = re.split(r'|+', wrule)
+            split_str == '||' if '||' in wrule else '|'
+            for dep in deps:
+                if not dep.endswith('-native') and dep not in self.uni_packages:
+                    dep = dep + '-native'
+                if dep != nitem['target'] and dep not in ndeps:
+                    ndeps.append(dep)
+            if ndeps:
+                nitem['wrule'].append(split_str.join(ndeps))
+
+        if nitem['conf']:
+            if nitem['conf'] == 'kconfig':
+                for kconf_path in self.KconfigDict.keys():
+                    if item['target'] in self.KconfigDict[kconf_path]:
+                        self.KconfigDict[kconf_path].append(nitem['target'])
+                        break
+            else:
+                baseconf = os.path.basename(item['conf'])
+                if item['target'] in baseconf:
+                    dirconf = os.path.dirname(item['conf'])
+                    nativeconf = os.path.join(dirconf, baseconf.replace(item['target'], nitem['target']))
+                    if os.path.exists(nativeconf):
+                        nitem['conf'] = nativeconf
+                    else:
+                        nitem['conf'] = ''
+                else:
+                    nitem['conf'] = ''
+
+        nitem['member'] = []
+        nitem['edeps'] = []
+        item['acount'] = 0
+        item['default'] = False
+
+        return nitem
+
+
     def __add_virtual_deps(self, vir_name, root, rootdir):
         target_list = []
         vir_path = os.path.join(root, vir_name)
@@ -234,6 +328,14 @@ class Deps:
                     self.__set_item_deps(last_group.strip().split(), item, False)
                     self.VirtualList.append(item)
                     self.PathList.append((item['path'], item['spath'], item['target']))
+
+                    if 'native' in item['targets']:
+                        item['targets'].remove('native')
+                        if 'menu' not in item['vtype']:
+                            nitem = self.__get_native_deps(item)
+                            target_list.append(nitem['target'])
+                            self.VirtualList.append(nitem)
+                            self.PathList.append((nitem['path'], nitem['spath'], nitem['target']))
 
 
     def search_normal_depends(self, dep_name, vir_name, search_dirs, ignore_dirs = [], go_on_dirs = []):
@@ -458,8 +560,17 @@ class Deps:
                             ItemDict[makestr] = item
                         else:
                             self.__add_item_to_list(item, refs)
-
                     self.ActualList.append(item)
+
+                    if 'native' in item['targets']:
+                        item['targets'].remove('native')
+                        nitem = self.__get_native_deps(item)
+                        if self.__get_append_flag(nitem, True):
+                            if makestr and '/' in makestr:
+                                ItemDict[makestr + '.native'] = nitem
+                            else:
+                                self.__add_item_to_list(nitem, refs)
+                        self.ActualList.append(nitem)
                     continue
 
                 elif match_type == 'INCDEPS':
@@ -899,8 +1010,10 @@ class Deps:
                 ideps = []
                 dep_target_name = '%s_depends' % (item['target'])
                 dep_target_flag = False
+                if item['target'] in self.FinallyList:
+                    dep_target_flag = True
 
-                ignore_targets = ['all', 'clean', 'install', 'release', 'psysroot', 'prepare', 'jobserver', 'union', 'cache']
+                ignore_targets = ['all', 'clean', 'install', 'release', 'psysroot', 'prepare', 'jobserver', 'union', 'cache', 'native']
                 real_targets = [t for t in item['targets'] if t not in ignore_targets]
 
                 dep_targets_name = '%s_targets_depends' % (item['target'])
@@ -920,9 +1033,9 @@ class Deps:
                 make = '@$(PRECMD)make'
                 if item['targets'] and 'jobserver' in item['targets']:
                     make += ' $(ENV_BUILD_JOBS)'
-                make += ' $(ENV_MAKE_FLAGS) -C %s' % (item['path'])
+                make += ' $(ENV_MAKE_FLAGS) -C $(%s-path)' % (item['target'])
                 if item['make']:
-                    make += ' -f %s' % (item['make'])
+                    make += ' -f $(%s-make)' % (item['target'])
 
                 if item['targets'] and 'psysroot' in item['targets']:
                     make += ' PREPARE_SYSROOT=y'
@@ -939,6 +1052,11 @@ class Deps:
                             break
 
                 fp.write('ifeq ($(CONFIG_%s), y)\n\n' % (escape_toupper(item['target'])))
+
+                fp.write('%s-path = %s\n' % (item['target'], item['path']))
+                if item['make']:
+                    fp.write('%s-make = %s\n' % (item['target'], item['make']))
+                fp.write('\n')
 
                 if item['target'] in self.FinallyList:
                     ignore_deps = self.FinallyList + item['asdeps'] + item['awdeps'] + ideps
@@ -1185,7 +1303,7 @@ class Deps:
 def parse_options():
     parser = ArgumentParser( description='''
             Tool to generate build chain.
-            do_normal_analysis must set options (-m -k -d -s) and can set options (-v -c -t -i -g -l -w -p -a).
+            do_normal_analysis must set options (-m -k -d -s) and can set options (-v -c -t -i -g -l -w -p -a -u).
             do_yocto_analysis must set options (-t -k) and can set options (-v -c -i -l -w -p -u).
             do_image_analysis must set options (-o -t -c) and can set options (-i -p).
             ''')
@@ -1236,7 +1354,8 @@ def parse_options():
 
     parser.add_argument('-u', '--usermeta',
             dest='user_metas',
-            help='Specify the user metas whose recipes will be selected by default')
+            help='Specify the user metas whose recipes will be selected by default (Yocto Build);' + '\n' +
+            'Specify the packages which do not have native-compilation when they are dependencies of native package (Normal Build)')
 
     parser.add_argument('-l', '--maxlayer',
             dest='max_depth',
@@ -1296,6 +1415,10 @@ def do_normal_analysis(args):
     if args.go_on_dirs:
         go_on_dirs = [s.strip() for s in args.go_on_dirs.split(':')]
 
+    uni_packages = []
+    if args.user_metas:
+        uni_packages = [s.strip() for s in args.user_metas.split(':')]
+
     max_depth = 0
     if args.max_depth:
         max_depth = int(args.max_depth)
@@ -1310,6 +1433,7 @@ def do_normal_analysis(args):
 
     deps = Deps()
     deps.conf_name = conf_name
+    deps.uni_packages = uni_packages
     deps.keywords = keywords
     deps.prepend_flag = prepend_flag
 

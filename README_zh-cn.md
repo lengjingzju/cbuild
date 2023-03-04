@@ -118,7 +118,7 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
 
     ```sh
     # Normal Build
-    gen_build_chain.py -m MAKEFILE_OUT -k KCONFIG_OUT [-t TARGET_OUT] [-a DEPENDS_OUT] -d DEP_NAME [-v VIR_NAME] [-c CONF_NAME] -s SEARCH_DIRS [-i IGNORE_DIRS] [-g GO_ON_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG]
+    gen_build_chain.py -m MAKEFILE_OUT -k KCONFIG_OUT [-t TARGET_OUT] [-a DEPENDS_OUT] -d DEP_NAME [-v VIR_NAME] [-c CONF_NAME] -s SEARCH_DIRS [-i IGNORE_DIRS] [-g GO_ON_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG] [-u UNIQUE_PACKAGES]
 
     # Yocto Build Step1
     gen_build_chain.py -k KCONFIG_OUT -t TARGET_OUT [-v VIR_NAME] [-c CONF_NAME] [-i IGNORE_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG] [-u USER_METAS]
@@ -157,7 +157,8 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
         * 如果在当前目录下搜索到 `<Search Depend Name>`，`<Go On Directories>` 没有指定或当前目录不在它里面，不会再继续搜索当前目录的子目录
     * `-l <Max Layer Depth>`: 设置 menuconfig 菜单的最大层数，0 表示菜单平铺，1表示2层菜单，...
     * `-w <Keyword Directories>`: 设置 menuconfig 菜单的忽略层级名，如果路径中的目录匹配设置值，则这个路径的层数减1，设置的多个目录使用冒号隔开
-    * `-p <prepend Flag>`: 设置生成的 Kconfig 中配置项的前缀，如果用户运行 conf / mconf 时设置了无前缀 `CONFIG_=""`，则运行此脚本需要设置此 flag 为 1
+    * `-p <{Prepend Flag>`: 设置生成的 Kconfig 中配置项的前缀，如果用户运行 conf / mconf 时设置了无前缀 `CONFIG_=""`，则运行此脚本需要设置此 flag 为 1
+    * `-u <Unique Packages>`: 指定唯一包(即此包作为 native 包的依赖时，此包的形式还是不含 native)，一般是和 arch 无关的包，多个包名使用冒号隔开
 <br>
 
 * Yocto Build Step1 命令选项
@@ -169,7 +170,7 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
     * `-i <Ignore Directories>`: 指定忽略的目录名，不会搜索指定目录名下的依赖文件，多个目录使用冒号隔开
     * `-l <Max Layer Depth>`: 设置 menuconfig 菜单的最大层数，0 表示菜单平铺，1表示2层菜单，...
     * `-w <Keyword Directories>`: 设置 menuconfig 菜单的忽略层级名，如果路径中的目录匹配设置值，则这个路径的层数减1，设置的多个目录使用冒号隔开
-    * `-p <prepend Flag>`: 设置生成的 Kconfig 中配置项的前缀，如果用户运行 conf / mconf 时设置了无前缀 `CONFIG_=""`，则运行此脚本需要设置此 flag 为 1
+    * `-p <Prepend Flag>`: 设置生成的 Kconfig 中配置项的前缀，如果用户运行 conf / mconf 时设置了无前缀 `CONFIG_=""`，则运行此脚本需要设置此 flag 为 1
     * `-u <User Metas>`: 指定用户层，多个层使用冒号隔开。只有用户层的包才会: 分析依赖关系，默认选中，托管 Kconfig，支持 `EXTRADEPS` 特殊依赖和虚拟依赖
 <br>
 
@@ -209,6 +210,7 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
             * release 目标不存在时，安装到 fakeroot rootfs 时运行 make install
         * `union` 关键字是特殊的虚拟目标，用于多个包共享一个 Makefile
             * 此时 `prepare all install clean release` 目标的名字变为 `Target_Name-prepare Target_Name-all Target_Name-install Target_Name-clean Target_Name-release`
+        * `native` 关键字是特殊的虚拟目标，表示同时定义了包的交叉编译包和本地编译包
         * `cache` 关键字是特殊的虚拟目标，表明该包支持缓存机制
         * `jobserver` 关键字是特殊的虚拟目标，表示 make 后加上 `$(ENV_BUILD_JOBS)`，用户需要 `export ENV_BUILD_JOBS=-jn` 才会启动多线程编译
             * 某些包的 Makefile 包含 make 指令时不要加上 jobserver 目标，例如编译驱动
@@ -297,7 +299,7 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
         * 例如： `&&*build-libtest||prebuild-libtest||libtest` 表示强选中这三个包中第一个存在的包，并弱依赖后面两个实包
     * `depname@condition` or `depname@@condition` : condition 为 y 且 depname 选中时，此包才依赖 depname
     * 其它说明:
-        * 对Normal Build 来说，`?` `??` 没有区别，`|` `||` 没有区别，`@` `@@` 没有区别
+        * 对 Normal Build 来说，`?` `??` 没有区别，`|` `||` 没有区别，`@` `@@` 没有区别
         * 对 Yocto Build 来说，`?` `|` `@` 中的弱依赖只会设置 `DEPENDS`，`??` `||` `@@` 中的弱依赖会同时设置 `DEPENDS` 和 `RDEPENDS:${PN}`
 <br>
 

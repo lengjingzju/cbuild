@@ -4,7 +4,7 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) gdb(cache psysroot release): unselect gmp mpfr mpc isl
+#DEPS(mk.deps) gdb(cache psysroot): unselect gmp mpfr mpc isl
 
 PACKAGE_NAME     = gdb
 
@@ -23,14 +23,21 @@ CONFIGURE_FLAGS  = --with-gmp=$(DEP_PREFIX)/usr \
                    --with-mpc=$(DEP_PREFIX)/usr \
                    --with-isl=$(DEP_PREFIX)/usr \
                    --with-libgmp-prefix=$(DEP_PREFIX)/usr
+
 CONFIGURE_FLAGS += --disable-bootstrap \
                    --disable-multilib \
                    gl_cv_c_multiarch=yes \
                    --enable-lto
 
+ifeq ($(CROSS_COMPILE), )
+
+.PHONY: all clean install psysroot
+
+all clean install psysroot:
+	@
+
+else
+
 include $(ENV_MAKE_DIR)/inc.cache.mk
 
-INSTALL_BINARIES = $(INS_PATH)/usr/bin/*
-include $(ENV_MAKE_DIR)/inc.ins.mk
-
-release: install_bins
+endif

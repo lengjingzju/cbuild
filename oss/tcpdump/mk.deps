@@ -4,8 +4,7 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) tcpdump-native(cache psysroot): unselect libpcap-native
-#DEPS(mk.deps) tcpdump(cache psysroot release): unselect libpcap
+#DEPS(mk.deps) tcpdump(native cache psysroot release): unselect libpcap
 
 PACKAGE_NAME     = tcpdump
 SEARCH_HDRS      = pcap

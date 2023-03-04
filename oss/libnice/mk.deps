@@ -4,8 +4,7 @@
 # Contact: Jing Leng <lengjingzju@163.com> #
 ############################################
 
-#DEPS(mk.deps) libnice-native(cache psysroot): unselect openssl-native glib-native
-#DEPS(mk.deps) libnice(cache psysroot release): unselect openssl glib
+#DEPS(mk.deps) libnice(native cache psysroot release): unselect openssl glib
 
 PACKAGE_NAME     = libnice
 SEARCH_HDRS      = openssl glib-2.0

@@ -70,7 +70,8 @@ endef
 	build-gmp build-mpfr build-mpc build-isl \
 	build-binutils-initial build-gcc-initial \
 	build-linux-headers build-glibc \
-	build-binutils build-gcc build-gdb
+	build-binutils build-gcc build-gdb \
+	install-append
 
 all:
 	@set -e
@@ -88,7 +89,6 @@ all:
 		exit 1; \
 	else \
 		make build-all && \
-		rm -rf $(HOST_SYSROOT) && \
 		$(call do_cache,push); \
 		echo "Push $(CROSS_DIR) Cache to $(ENV_CACHE_DIR)."; \
 	fi
@@ -102,7 +102,8 @@ clean:
 build-all: | fetch-all build-depends \
 	build-binutils-initial build-gcc-initial \
 	build-linux-headers build-glibc \
-	build-binutils build-gcc build-gdb
+	build-binutils build-gcc build-gdb \
+	install-append
 
 ########## Fetch packages ##########
 
@@ -318,3 +319,15 @@ build-gdb:
 			$(GDB_EXTRA_OPTIONS) \
 			&& \
 		$(MAKES) && $(MAKES) install
+
+install-append:
+	rm -rf $(HOST_SYSROOT)
+	rm -f $(CROSS_SYSROOT)/bin/$(CROSS_TARGET)-c++
+	ln -sf $(CROSS_TARGET)-g++ $(CROSS_SYSROOT)/bin/$(CROSS_TARGET)-c++
+	rm -f $(CROSS_SYSROOT)/bin/$(CROSS_TARGET)-gcc-$(GCC_VER)
+	ln -sf $(CROSS_TARGET)-gcc $(CROSS_SYSROOT)/bin/$(CROSS_TARGET)-gcc-$(GCC_VER)
+	rm -f $(CROSS_SYSROOT)/bin/$(CROSS_TARGET)-ld.bfd
+	ln -sf $(CROSS_TARGET)-ld $(CROSS_SYSROOT)/bin/$(CROSS_TARGET)-ld.bfd
+	rm -f $(CROSS_SYSROOT)/$(CROSS_TARGET)/bin/ld.bfd
+	ln -sf ld $(CROSS_SYSROOT)/$(CROSS_TARGET)/bin/ld.bfd
+

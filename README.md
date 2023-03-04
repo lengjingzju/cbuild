@@ -118,7 +118,7 @@ This project has contributed 2 commits to the Linux Kernel Community so far, whi
 
     ```sh
     # Normal Build
-    gen_build_chain.py -m MAKEFILE_OUT -k KCONFIG_OUT [-t TARGET_OUT] [-a DEPENDS_OUT] -d DEP_NAME [-v VIR_NAME] [-c CONF_NAME] -s SEARCH_DIRS [-i IGNORE_DIRS] [-g GO_ON_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG]
+    gen_build_chain.py -m MAKEFILE_OUT -k KCONFIG_OUT [-t TARGET_OUT] [-a DEPENDS_OUT] -d DEP_NAME [-v VIR_NAME] [-c CONF_NAME] -s SEARCH_DIRS [-i IGNORE_DIRS] [-g GO_ON_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG] [-u UNIQUE_PACKAGES]
 
     # Yocto Build Step1
     gen_build_chain.py -k KCONFIG_OUT -t TARGET_OUT [-v VIR_NAME] [-c CONF_NAME] [-i IGNORE_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG] [-u USER_METAS]
@@ -160,8 +160,9 @@ This project has contributed 2 commits to the Linux Kernel Community so far, whi
     * `-l <Max Layer Depth>`: Sets the maximum number of levels of the menuconfig, 0 for tile, 1 for 2-levels, ...
     * `-w <Keyword Directories>`: Sets the ignored level names of the menuconfig, and the multiple names set are separated by colon
         * If the directory name in the path matches the set value, the levels of this path is subtracted by one
-    * `-p <prepend Flag>`: Set the prefix of the configuration item in the auto-generated Kconfig
+    * `-p <Prepend Flag>`: Set the prefix of the configuration item in the auto-generated Kconfig
         * If users run `conf` / `mconf` without prefix (`CONFIG_=""`), this flag needs to be set to 1
+    * `-u <Unique Packages>`: Specify the packages which do not have native-compilation when they are dependencies of native package, and the multiple names set are separated by colon
 <br>
 
 * Command Options of Yocto Build Step1
@@ -177,7 +178,7 @@ This project has contributed 2 commits to the Linux Kernel Community so far, whi
     * `-l <Max Layer Depth>`: Sets the maximum number of levels of the menuconfig, 0 for tile, 1 for 2-levels, ...
     * `-w <Keyword Directories>`: Sets the ignored level names of the menuconfig, and the multiple names set are separated by colon
         * If the directory name in the path matches the set value, the levels of this path is subtracted by one
-    * `-p <prepend Flag>`: Set the prefix of the configuration item in the auto-generated Kconfig
+    * `-p <Prepend Flag>`: Set the prefix of the configuration item in the auto-generated Kconfig
         * If users run `conf` / `mconf` without prefix (option: `CONFIG_=""`), this flag needs to be set to 1
     * `-u <User Metas>`: Specifies the user layers, and the multiple layers set are separated by colon
         *  Only analyze package dependencies,  packages in the user layers will analyze dependencies, be selected by default, support special dependencies and virtual dependencies
@@ -222,6 +223,7 @@ This project has contributed 2 commits to the Linux Kernel Community so far, whi
             * When the release target is not present, It will run `make install` when installing to fakeroot rootfs
         * The keyword of `union` is a special virtual target that indicates multiple packages sharing one Makefile
             * At this point, the targets of `prepare` `all` `install` `clean` `release` shound renamed as `package_name-xxx`
+        * The keyword of `native` is a special virtual target that indicates both cross-compilation package and native-compilation package are defined at the same time
         * The keyword of `cache` is a special virtual target that indicates package with caching mechanism
         *  The keyword of `jobserver` is a special virtual target that indicates multi-threaded compilation (`ENV_BUILD_JOBS`)
             * Makefile which contains `make` command shouldn't add the target, such as driver Makefile
