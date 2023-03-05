@@ -23,13 +23,13 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
 
 * Makefile 编译模板: 编译驱动、库、应用的模板，只需填写少数几个变量就可以完成一个超大项目的 Makefile
     * 支持编译生成最新的交叉编译工具链 `process_machine.sh` `toolchain/Makefile`
-    * 一个 Makefile 同时支持本地编译和交叉编译  `inc.env.mk`  `inc.env.mk`
+    * 一个 Makefile 同时支持本地编译和交叉编译  `inc.env.mk`
     * 一个 Makefile 同时支持生成多个库、可执行文件或驱动
     * 一个 Makefile 同时支持 Normal Build 模式(源码和编译输出分离模式和不分离模式)和 Yocto Build 方式
     * 支持自动分析头文件作为编译依赖，支持分别指定源文件的 CFLAGS 等
     * 提供编译静态库、共享库和可执行文件的模板 `inc.app.mk`，支持 C(`*.c`) C++(`*.cc *.cp *.cxx *.cpp *.CPP *.c++ *.C`) 和 汇编(`*.S *.s *.asm`) 混合编译
     * 提供编译驱动的模板 `inc.mod.mk`，支持 C(`*.c`) 和 汇编(`*.S`) 混合编译
-    * 提供安装的模板 `inc.ins.mk`
+    * 提供符合 [GNUInstallDirs](https://www.gnu.org/prep/standards/html_node/Directory-Variables.html) 标准的安装模板 `inc.ins.mk`
     * 提供 Kconfig 配置参数的模板 `inc.conf.mk`
 <br>
 

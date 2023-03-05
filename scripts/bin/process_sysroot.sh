@@ -141,7 +141,6 @@ release_sysroot_with_check() {
     done
 }
 
-
 release_sysroot_without_check() {
     local s=$1
     local d=$2
@@ -213,6 +212,15 @@ replace_pkgconfig() {
         sed -i "s@${src}@\${DEP_PREFIX}@g" $pcs
     fi
 }
+
+if [ -z "$src" ]; then
+    usage
+    exit 1
+fi
+
+if [ ! -e $src ]; then
+    exit 0
+fi
 
 case $opt in
     link) link_sysroot $src $dst;;

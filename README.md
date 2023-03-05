@@ -29,7 +29,7 @@ The CBuild compilation system is mainly composed of three parts: task analysis a
     * Supports automatic analysis of header files as compilation dependencies, and specifies CFLAGS for source files separately
     * Provides a template for compiling static libraries, shared libraries, and executables, and supports mixed compilation of C (`*.c`), C++ (`*.cc *.cp *.cxx *.cpp *.CPP *.c++ *.C`) and assembly (`*.S *.s *.asm`) (`inc.app.mk`)
     * Provides a template for compiling drivers, and supports mixed compilation of C (`*.c`) and assembly (`*.S`) (`inc.mod.mk`)
-    * Provides a template for installation (`inc.ins.mk`)
+    * Provides a template for installation, which is compliant with [GNUInstallDirs](https://www.gnu.org/prep/standards/html_node/Directory-Variables.html) standard (`inc.ins.mk`)
     * Provides a template for configuring parameters with Kbuild (`inc.conf.mk`)
 <br>
 
@@ -99,7 +99,7 @@ This project has contributed 2 commits to the Linux Kernel Community so far, whi
     * The script analyzes the DEPS-statement of all packages and automatically generates the compilation chain of all packages
         * All packages are compiled individually, and users can enter the package folder and enter `make` to compile
     * Supports managed Kconfig or managing Kconfig by itself.
-        * The managed Kconfig must be placed in the same directory as the DEPS-statement file.
+        * The managed Kconfig must be placed in the same directory as the DEPS-statement file
         * There is no need to manually specify the parent-child inclusion relationship, the script automatically analyzes and assembles it
 * Yocto Build Framework:
     * The compilation scripts of the applications and drivers are composed of `Makefile + Recipe`
