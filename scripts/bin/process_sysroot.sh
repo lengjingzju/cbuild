@@ -25,14 +25,27 @@ link_sysroot() {
 
     mkdir -p $d
     for v in $(ls $s); do
-        if [ -d $s/$v ]; then
+        if [ -d $s/$v ] && [ ! -L $s/$v ]; then
+            case $v in
+                locale|man|info|doc)
+                    if [ $(echo $s | grep -c '/share$') -eq 1 ]; then
+                        continue
+                    fi
+                    ;;
+                terminfo)
+                    if [ $(echo $s | grep -c '/share$\|/lib$') -eq 1 ]; then
+                        ln -sfT $s/$v $d/$v
+                        continue
+                    fi
+                    ;;
+            esac
             link_sysroot $s/$v $d/$v
         else
             if [ $(echo $v | grep -c '\.pc$') -eq 1 ]; then
                 cp -df $s/$v $d/$v
                 sed -i "s@\${DEP_PREFIX}@${dst}@g" $d/$v
             else
-                ln -sf $s/$v $d/$v
+                ln -sfT $s/$v $d/$v
             fi
         fi
     done
@@ -41,19 +54,51 @@ link_sysroot() {
 install_sysroot() {
     local s=$1
     local d=$2
-    local o=$3
     local v=
 
     mkdir -p $d
     for v in $(ls $s); do
-        if [ -d $s/$v ]; then
-            if [ "$v" == "include" ]; then
-                install_sysroot $s/$v $d/$v p
-            else
-                install_sysroot $s/$v $d/$v $o
-            fi
+        if [ -d $s/$v ] && [ ! -L $s/$v ]; then
+            case $v in
+                include)
+                    mkdir -p $d/$v
+                    cp -drfp $s/$v/* $d/$v
+                    ;;
+                bin|sbin|libexec)
+                    mkdir -p $d/$v
+                    cp -drf $s/$v/* $d/$v
+                    ;;
+                etc|srv|com|var|run)
+                    if [ "$s" == "$src" ]; then
+                        mkdir -p $d/$v
+                        cp -drf $s/$v/* $d/$v
+                    else
+                        install_sysroot $s/$v $d/$v
+                    fi
+                    ;;
+                locale|man|info|doc)
+                    if [ $(echo $s | grep -c '/share$') -eq 1 ]; then
+                        mkdir -p $d/$v
+                        cp -drf $s/$v/* $d/$v
+                    else
+                        install_sysroot $s/$v $d/$v
+                    fi
+                    ;;
+                terminfo)
+                    # for ncurses
+                    if [ $(echo $s | grep -c '/share$\|/lib$') -eq 1 ]; then
+                        mkdir -p $d/$v
+                        cp -drf $s/$v/* $d/$v
+                    else
+                        install_sysroot $s/$v $d/$v
+                    fi
+                    ;;
+                *)
+                    install_sysroot $s/$v $d/$v
+                    ;;
+            esac
         else
-            cp -df$o $s/$v $d/$v
+            cp -df $s/$v $d/$v
             if [ $(echo $v | grep -c '\.pc$') -eq 1 ]; then
                 sed -i "s@\${DEP_PREFIX}@${dst}@g" $d/$v
             fi
@@ -61,22 +106,19 @@ install_sysroot() {
     done
 }
 
-release_sysroot() {
+release_sysroot_with_check() {
     local s=$1
     local d=$2
     local v=
 
     mkdir -p $d
     for v in $(ls $s); do
-        if [ -d $s/$v ]; then
+        if [ -d $s/$v ] && [ ! -L $s/$v ]; then
             case $v in
                 include)
                     continue
                     ;;
                 pkgconfig|aclocal|cmake)
-                    continue
-                    ;;
-                include)
                     continue
                     ;;
                 locale|man|info|doc)
@@ -85,13 +127,84 @@ release_sysroot() {
                     fi
                     ;;
             esac
-            release_sysroot $s/$v $d/$v
+            release_sysroot_with_check $s/$v $d/$v
         else
             if [ $(echo $v | grep -Ec '\.l?a$') -eq 0 ]; then
+                if [ -e $d/$v ]; then
+                    echo "        $d/$v # already existed"
+                else
+                    echo "        $d/$v"
+                fi
                 cp -df $s/$v $d/$v
             fi
         fi
     done
+}
+
+
+release_sysroot_without_check() {
+    local s=$1
+    local d=$2
+    local v=
+
+    mkdir -p $d
+    for v in $(ls $s); do
+        if [ -d $s/$v ] && [ ! -L $s/$v ]; then
+            case $v in
+                include)
+                    ;;
+                pkgconfig|aclocal|cmake)
+                    ;;
+                bin|sbin|libexec)
+                    mkdir -p $d/$v
+                    cp -drf $s/$v/* $d/$v
+                    ;;
+                etc|srv|com|var|run)
+                    if [ "$s" == "$src" ]; then
+                        mkdir -p $d/$v
+                        cp -drf $s/$v/* $d/$v
+                    else
+                        release_sysroot_without_check $s/$v $d/$v
+                    fi
+                    ;;
+                locale|man|info|doc)
+                    if [ $(echo $s | grep -c '/share$') -eq 1 ]; then
+                        mkdir -p $d/$v
+                        cp -drf $s/$v/* $d/$v
+                    else
+                        release_sysroot_without_check $s/$v $d/$v
+                    fi
+                    ;;
+                terminfo)
+                    # for ncurses
+                    if [ $(echo $s | grep -c '/share$\|/lib$') -eq 1 ]; then
+                        mkdir -p $d/$v
+                        cp -drf $s/$v/* $d/$v
+                    else
+                        release_sysroot_without_check $s/$v $d/$v
+                    fi
+                    ;;
+                *)
+                    release_sysroot_without_check $s/$v $d/$v
+                    ;;
+            esac
+        else
+            if [ $(echo $v | grep -Ec '\.l?a$') -eq 0 ]; then
+                if [ -e $d/$v ]; then
+                    echo "        WARNING: $d/$v is already existed"
+                fi
+                cp -df $s/$v $d/$v
+            fi
+        fi
+    done
+}
+
+release_sysroot() {
+    if [ -z "${ENV_MAKE_FLAGS}" ]; then
+        release_sysroot_with_check $1 $2
+    else
+        release_sysroot_without_check $1 $2
+    fi
 }
 
 replace_pkgconfig() {
