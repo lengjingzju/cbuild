@@ -2,7 +2,7 @@
 
 [中文版](./README_zh-cn.md)
 
-CBuild 暂停开发新特性，请升级到 [Cbuild-ng](https://github.com/lengjingzju/cbuild-ng), Cbuild-ng 和 Cbuild 不完全兼容。
+CBuild suspends development of new features, please upgrade to [Cbuild-ng](https://github.com/lengjingzju/cbuild-ng), Cbuild-ng and Cbuild are not fully compatible.
 
 ## Overview
 
