@@ -2,6 +2,8 @@
 
 [中文版](./README_zh-cn.md)
 
+CBuild 暂停开发新特性，请升级到 [Cbuild-ng](https://github.com/lengjingzju/cbuild-ng), Cbuild-ng 和 Cbuild 不完全兼容。
+
 ## Overview
 
 The CBuild compilation system is a more powerful and flexible build system than Buildroot, and faster and succincter than Yocto. It doesn't have a steep learning curve and doesn't re-define a new language, the total code line of the system core is less than 4000 composed of Python / Shell / Makefile scripts. It is easier to understand and use than Buildroot and Yocto.
@@ -103,7 +105,7 @@ This project has contributed 2 commits to the Linux Kernel Community so far, whi
         * There is no need to manually specify the parent-child inclusion relationship, the script automatically analyzes and assembles it
 * Yocto Build Framework:
     * The compilation scripts of the applications and drivers are composed of `Makefile + Recipe`
-    * The build chain is assembled through dependencies defined by DEPENDS and RDEPENDS in the recipe (package-level dependency)
+    * The build chain is assembled through dependencies defined by `DEPENDS` / `RDEPENDS` and extended `EXTRADEPS` in the recipe (package-level dependency)
     * The custom's recipes basically only need to define dependencies, following the assembly rules defined by Yocto
     * Extends Yocto: the script analyzes the recipe's name of all packages and the DEPENDS variable in the recipe of custom package to automatically generate the compilation chain of all packages
     * Extends Yocto: Supports weak dependencies, and can modify rootfs (add packages, delete packages, modify configuration, etc.) through `make menuconfig`
@@ -124,7 +126,7 @@ This project has contributed 2 commits to the Linux Kernel Community so far, whi
     gen_build_chain.py -k KCONFIG_OUT -t TARGET_OUT [-v VIR_NAME] [-c CONF_NAME] [-i IGNORE_DIRS] [-l MAX_LAYER_DEPTH] [-w KEYWORDS] [-p PREPEND_FLAG] [-u USER_METAS]
 
     # Yocto Build Step2
-    gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-p $PATCH_PKG_PATH] [-i IGNORE_RECIPES]
+    gen_build_chain.py -t TARGET_PATH -c DOT_CONFIG_NAME -o RECIPE_IMAGE_NAME [-p PATCH_PKG_PATH] [-i IGNORE_RECIPES]
     ```
 
 * Command Options of Normal Build
@@ -222,9 +224,9 @@ This project has contributed 2 commits to the Linux Kernel Community so far, whi
             * This target doesn't need to install headers and static libraries
             * When the release target is not present, It will run `make install` when installing to fakeroot rootfs
         * The keyword of `union` is a special virtual target that indicates multiple packages sharing one Makefile
-            * At this point, the targets of `prepare` `all` `install` `clean` `release` shound renamed as `package_name-xxx`
+            * At this point, the targets of `prepare` `all` `install` `clean` `release` ... shound renamed as `<package_name>-xxx`
         * The keyword of `native` is a special virtual target that indicates both cross-compilation package and native-compilation package are defined at the same time
-        * The keyword of `cache` is a special virtual target that indicates package with caching mechanism
+        * The keyword of `cache` is a special virtual target that indicates that package supports cache mechanism
         *  The keyword of `jobserver` is a special virtual target that indicates multi-threaded compilation (`ENV_BUILD_JOBS`)
             * Makefile which contains `make` command shouldn't add the target, such as driver Makefile
         * `subtarget1:subtarget2:...::dep1:dep2:...` is a special syntax format that explicitly specifies dependencies for child targets
@@ -232,7 +234,6 @@ This project has contributed 2 commits to the Linux Kernel Community so far, whi
             * Single colon separates the child internal targets and the internal dependencies, and the dependencies list can be empty
     * Depend_Names: The dependency package name ID, and multiple dependencies are separated by space (can be empty)
         * Depend_Names supports multiple lines with using `\` at the end of the line
-        * If there are circular dependencies or undefined dependencies, parsing will fail
 
 Note: The IDs (Target_Name / Depend_Names) only can consist of lowercase letters, numbers, dashes; Other_Target_Names doesn't have such requirement, wildcard symbol is accepted (`%`)
 
@@ -247,12 +248,15 @@ Note: The single type commands only exist in the packages with dependencies
 
 ### Dependency of Yocto Build
 
-* The dependencies of Yocto Build are defined in the recipe (DEPENDS / RDEPENDS / PACKAGECONFIG / ...)
-* `DEPENDS`: compilation dependencies
-    * Note: Yocto uses some host commands and may also need to specify native dependency (`<package>-native`), for example: `bash-native`
-* `RDEPENDS:${PN}`: compilation dependencies
-    * The dependency packages which install shared libraries should be set to RDEPENDS, otherwise the compilation will fail or the dependency packages will not added to rootfs
-* `PACKAGECONFIG`: Dynamically sets dependency packages which install pkg-config (`xxx/usr/lib/pkgconfig/xxx.pc`)
+* The dependencies of Yocto Build are defined in the recipe
+    * `DEPENDS`: compilation dependencies
+        * Note: Yocto uses some host commands and may also need to specify native dependency (`<package>-native`), for example: `bash-native`
+    * `RDEPENDS:${PN}`: running dependencies
+        * The dependency packages which install shared libraries should be set to RDEPENDS, otherwise the compilation will fail or the dependency packages will not added to rootfs
+    * `EXTRADEPS`: extra dependencies externed by CBuild
+        * If EXTRADEPS contains weak dependencies, the recipe should class `inherit weakdep`
+            * `weakdep.bbclass` will analyze `.config` in the ENV_CFG_ROOT, set `DEPENDS` and `RDEPENDS:${PN}` according to whether this item is selected or not
+    * `PACKAGECONFIG`: Dynamically sets dependency packages which install pkg-config (`xxx/usr/lib/pkgconfig/xxx.pc`)
 
 
 ### Virtual Dependency of Normal/Yocto Build
@@ -316,7 +320,7 @@ Note: The virtual packages will not participate in compilation, but is used to o
         * Omitting the preceding word of last `|` is implicitly deduced using either a prebuild package or a source package
         * For example: `&&||libtest` is implicitly deduced as `&&*build-libtest||prebuild-libtest||libtest`
             * It means that the first virtual packages is strongly selected, and the next two actual packages are weakly dependencies
-    * `depname@condition` or `depname@@condition` : If condition is set to y and depname is selected, this package will depend on the depname package
+    * `depname@condition` or `depname@@condition` : If condition is set to y and depname is selected, this package will depend on the depname package (Normal Build)
     * Additional Notes              :
         * For Normal Build, there is no difference between `?` and `??`, there is no difference between `|` and `||`, there is no difference between `@` and `@@`
         * For Yocto Build, `?` `|` `@` only set `DEPENDS`, `??` `||` `@@` set both `DEPENDS` and `RDEPENDS:${PN}`
@@ -683,7 +687,7 @@ Note: The reason for providing the above functions is that multiple libraries or
 
 ### Driver Template inc.mod.mk
 
-* `inc.app.mk` is used to compile drivers (external linux modules)
+* `inc.mod.mk` is used to compile drivers (external linux modules)
 
 #### Makefile Part of Driver Template (when KERNELRELEASE is empty)
 
@@ -781,7 +785,6 @@ Note: The reason for providing the above functions is that multiple libraries or
 ### Download fetch_package.sh
 
 * Usage: `fetch_package.sh <method> <urls> <package> [outdir] [outname]`
-    * When outdir and outname are not specified, It only downloads the package, doesn't copy or decompress the package to the output
     * method: Download method, currently only supports 4 methods:
         * tar: Package downloaded with `curl` and extracted with `tar`, suffix of the package file can be `tar.gz`, `tar.bz2`, `tar.xz`, `tar`, and so on
         * zip: Package downloaded with `curl` and extracted with `unzip`, suffix of the package file can be `gz`, `zip`, and so on
@@ -803,6 +806,8 @@ Note: The reason for providing the above functions is that multiple libraries or
     * package: The saved filename for `tar` / `zip`, or the saved dirname for `git` / `svn`, and the saved path is `ENV_DOWN_DIR`
     * outdir: The path to extract to or copy to
     * outname: The folder name of the package under `outdir`
+    * Note: `fetch_package.sh` preferentially tries to download the package from the mirror URL specified by `ENV_MIRROR_URL` instead of the original URL
+    * Note: When outdir and outname are not specified, tt only downloads the package, doesn't copy or decompress the package to the output
 
 Note: `fetch_package.sh` preferentially tries to download the package from the mirror URL specified by `ENV_MIRROR_URL` instead of the original URL
 
@@ -815,7 +820,7 @@ Note: `fetch_package.sh` preferentially tries to download the package from the m
     * patch_dst: The path of the source code to be patched
 <br>
 
-* Example: Choose whether to patch or not
+* Extension: Choose whether to patch or not
     * Creates two new packages: patch package (`<package to be patched>-patch-<ID>`) and unpatch package (`<package to be patched>-unpatch-<ID>`)
     * The source package weakly depends on these two packages, Sets `xxx-patch-xxx|xxx-unpatch-xxx` to the `Depend_Names` of DEPS-statement for the source package
     * Creates virtual package `#VDEPS(choice) xxx-patch-xxx-choice(xxx-unpatch-xxx xxx-patch-xxx):`
@@ -882,6 +887,7 @@ Note: `fetch_package.sh` preferentially tries to download the package from the m
 * Variables for Cache Processing
     * CACHE_SRCFILE   : Save filename or dirname for download package, its default value is `$(SRC_NAME)
         * Local package needn't set it
+        * If the download attributes are set, the default value is space
     * CACHE_OUTPATH   : Output root path, its default value is `$(OUT_PATH)`
     * CACHE_INSPATH   : Installation root path, its default value is `$(INS_PATH)`
     * CACHE_GRADE     : Cache grade number, which determines the prefix of the compilation cache file, its default value is 2
@@ -911,7 +917,7 @@ Note: `fetch_package.sh` preferentially tries to download the package from the m
             * CROSS_CONFIGURE: Read-only, cross-compilation flags for `configure` command
         * If the value is set to `cmake`, `cmake` command will run before `MAKES` command
             * CMAKE_FLAGS: Users can set extra flags for `cmake` command
-            * CROSS_CONFIGURE: Read-only, cross-compilation flags for `cmake` command
+            * CROSS_CMAKE: Read-only, cross-compilation flags for `cmake` command
         * If the value is set to `meson`, `meson` command will run before `MAKES` command
             * MESON_FLAGS: Users can set extra flags for `meson` command
             * do_meson_cfg: Meson uses a ini file to configure cross-compilation, this function will modify the default configuration
@@ -1468,3 +1474,9 @@ Note: When we compile OSS packages from source code, we usually add `cache` `psy
     Install tcpdump Done.
     ```
 
+
+## Contact
+
+* Phone: +86 18368887550
+* wx/qq: 1083936981
+* Email: lengjingzju@163.com 3090101217@zju.edu.cn

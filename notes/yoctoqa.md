@@ -32,6 +32,7 @@
     * [语法运算★★★](https://docs.yoctoproject.org/bitbake/2.0/bitbake-user-manual/bitbake-user-manual-metadata.html)
     * [文件获取★☆☆](https://docs.yoctoproject.org/bitbake/2.0/bitbake-user-manual/bitbake-user-manual-fetching.html)
     * [变量词汇表★☆☆](https://docs.yoctoproject.org/bitbake/2.0/bitbake-user-manual/bitbake-user-manual-ref-variables.html)
+    * [打印调试★★★](https://docs.yoctoproject.org/dev-manual/common-tasks.html#recipe-logging-mechanisms)
 
 ## Yocto 配方模板
 
@@ -52,48 +53,6 @@
     export ENV_BUILD_MODE
     ```
 
-* 例如 kconfig.bbclass
-
-    ```py
-    inherit terminal
-    KCONFIG_CONFIG_COMMAND ??= "menuconfig"
-    KCONFIG_CONFIG_PATH ??= "${B}/.config"
-
-    python do_setrecompile () {
-        if hasattr(bb.build, 'write_taint'):
-            bb.build.write_taint('do_compile', d)
-    }
-
-    do_setrecompile[nostamp] = "1"
-    addtask setrecompile
-
-    python do_menuconfig() {
-        config = d.getVar('KCONFIG_CONFIG_PATH')
-
-        try:
-            mtime = os.path.getmtime(config)
-        except OSError:
-            mtime = 0
-
-        oe_terminal("sh -c \"make %s; if [ \\$? -ne 0 ]; then echo 'Command failed.'; printf 'Press any key to continue... '; read r; fi\"" % d.getVar('KCONFIG_CONFIG_COMMAND'),
-            d.getVar('PN') + ' Configuration', d)
-
-        if hasattr(bb.build, 'write_taint'):
-            try:
-                newmtime = os.path.getmtime(config)
-            except OSError:
-                newmtime = 0
-
-            if newmtime != mtime:
-                bb.build.write_taint('do_compile', d)
-    }
-
-    do_menuconfig[depends] += "kconfig-native:do_populate_sysroot"
-    do_menuconfig[nostamp] = "1"
-    do_menuconfig[dirs] = "${B}"
-    addtask menuconfig after do_configure
-    ```
-
 ### 编写配方文件 (xxx.bb)
 
 * `recipetool create -o <xxx.bb> <package_src_dir>` 创建一个基本配方，例子中手动增加的条目说明如下
@@ -102,15 +61,23 @@
 * 包依赖
     * 包依赖其他包时需要使用 `DEPENDS += "package1 package2"` 说明
     * 链接其它包时 (`LDFLAGS += -lname1 -lname2`) 的动态库，需要增加 `RDEPENDS:${PN} += "package1 package2"` 说明
+        * 不写可能编译或动态库没有安装到 rootfs
+    * 依赖主机工具时需要使用 `DEPENDS += "package3-native"` 说明
 <br>
 
 * 编译继承类
     * 使用 menuconfig 需要继承 `inherit kconfig`
-        * 如果是 `make -f wrapper.mk menuconfig`，需要设置 `KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"`
+        * 如果命令是 `make -f wrapper.mk menuconfig`
+            * 需要设置 `KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"`
+            * 需要设置 `KCONFIG_DEFCONFIG_COMMAND = "-f wrapper.mk defconfig"`
         * 如果 .config 输出目录是编译输出目录，需要设置 `KCONFIG_CONFIG_PATH = "${OUT_PATH}/.config"`
     * 使用 Makefile 编译应用继承 `inherit sanity`，使用 cmake 编译应用继承 `inherit cmake`
     * 编译外部内核模块继承 `inherit module`
     * 编译主机本地工具继承 `inherit native`
+    * 一个配方同时支持交叉编译和本地编译需要声明 `BBCLASSEXTEND = "native"`，无需继承 `inherit native`
+        * 如果变量值在交叉编译和本地编译不同时，使用下面覆盖语法
+            * `somevar:class-target = "some value"`
+            * `somevar:class-native = "some value"`
 <br>
 
 * 安装和打包
@@ -136,8 +103,6 @@
     ```
     LICENSE = "CLOSED"
     LIC_FILES_CHKSUM = ""
-
-    # No information for SRC_URI yet (only an external source tree was specified)
     SRC_URI = ""
 
     #DEPENDS += "package1 package2"
@@ -145,6 +110,7 @@
 
     inherit cbuildenv
     #KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"
+    #KCONFIG_DEFCONFIG_COMMAND = "-f wrapper.mk defconfig"
     #KCONFIG_CONFIG_PATH = "${OUT_PATH}/.config"
     #inherit kconfig
     inherit sanity
@@ -152,31 +118,24 @@
     #inherit module
     #inherit native
 
-
-    # NOTE: this is a Makefile-only piece of software, so we cannot generate much of the
-    # recipe automatically - you will need to examine the Makefile yourself and ensure
-    # that the appropriate arguments are passed in.
-
     do_configure () {
-     # Specify any needed configure commands here
-     :
+        :
     }
 
     do_compile () {
-     # You will almost certainly need to add additional arguments here
-     oe_runmake
+        oe_runmake
     }
 
     do_install () {
-     # NOTE: unable to determine what to put here - there is a Makefile but no
-     # target named "install", so you will need to define this yourself
-     oe_runmake install
+        oe_runmake install
     }
 
     ALLOW_EMPTY:${PN} = "1"
     INSANE_SKIP:${PN} += "dev-so"
     FILES:${PN}-dev = "${includedir}"
     FILES:${PN} = "${base_libdir} ${libdir} ${bindir} ${datadir}"
+
+    #BBCLASSEXTEND = "native"
     ```
 
 注: [从3.4版本开始，对变量的覆盖样式语法由下滑线 `_` 变成了冒号 `:`](https://docs.yoctoproject.org/migration-guides/migration-3.4.html#override-syntax-changes)
@@ -440,6 +399,9 @@ bitbake -c clean openssl && bitbake openssl	# 取自 openssl_3.0.4.bb 的 openss
 bitbake -c clean gcc && bitbake gcc	# 取自 gcc_11.3.bb 的 gcc
 ```
 
+也可能是内存不足，通常出现在编译大型软件，例如 gcc / rust 等的时候，请加大内存(8G内存不够的)，或者单独编这个包
+
+
 ## 为什么外部linux模块的配方文件名以 `kernel-module-` 开头
 
 答：查看 poky 的 `meta/classes/module.bbclass` 源码：
@@ -478,7 +440,7 @@ python do_menuconfig() {
 
 所以我们需要继承cml1类 `inherit cml1` 来加上 menuconfig 任务，如果我们的 Makefile 不是默认名称，我们还需要修改 `KCONFIG_CONFIG_COMMAND` 变量，例如 `KCONFIG_CONFIG_COMMAND = "-f wrapper.mk menuconfig"`。
 
-但是cml1类不支持.config文件放在和运行编译的工作目录的不同的目录，如果.config文件和运行编译的工作目录不同，包不会使用新的参数重新编译，此种情况我们可以继承自定义的类 `inherit kconfig`
+但是cml1类不支持 `.config` 文件放在和运行编译的工作目录的不同的目录，如果 `.config` 文件和运行编译的工作目录不同，包不会使用新的参数重新编译，此种情况我们可以继承自定义的类 `inherit kconfig`
 
 ## 如何禁止编译在源码创建 oe-workdir 和 oe-logs 符号链接
 
@@ -503,6 +465,24 @@ ERROR:  OE-core's config sanity checker detected a potential misconfiguration.
 
     Please use a umask which allows a+rx and u+rwx
 ```
+
+## `aarch64-poky-linux-ld.bfd: cannot find libgcc.a: No such file or directory` 怎么解决
+
+答：说明用户没有使用 Yocto 导出的交叉编译编译变量等 `CC` `LD` ...，请明确下面规则:
+
+* Yocto 编译相当于一个容器或虚拟机，它无法直接获取本地主机的命令和环境变量
+    * Yocto 自动依赖了一些基本包，例如 gcc / ls / cp / sed / grep / awk 等，这些不需要填写依赖，但还有一些主机包需要自己在配方文件中声明 DEPENDS += "xxxx-native"，例如包里面运行 bash 脚本需要设置 DEPENDS += "bash-native"
+   * Yocto 在输出目录的 conf/local.conf 自定义的环境变量，在配方文件中导出，cbuild的做法是配方继承 cbuild.bbclass 里面导出的环境变量
+
+* Yocto 编译和普通的交叉编译完全不一样
+    * 普通编译的交叉编译器会编译交叉编译器时固化了 sysroot arch 等变量，而 Yocto 的交叉编译器没有这些变量，它在导出的 CC 、CFLAGS 变量里面设置，这意味着你使用自己定义的 CC 而不是 Yocto 导出的 CC ，你就要自己关心和设置各种导出的变量，例如不设置 `--sysroot` 可能 C 标准库和头文件都找不到
+    * Yocto 编译每个包都有自己的工作目录，称为 WORKDIR https://docs.yoctoproject.org/ref-manual/structure.html#build-tmp-work-tunearch-recipename-version，他的编译输出、安装、依赖等目录都有固定的定义，而不是想怎么用就怎么用，bitbake 解释器会检查各种情况看符不符合他的规则，不符合规则他也就只能拒绝执行，也没办法执行。例如每个包的依赖都是在各自包的工作目录下，由 bitbake 解释器为每个包根据依赖关系准备好，目录都不对就无法准备
+    * 普通编译一般每个包只有配置、编译、安装三个任务，Yocto 编译有远远比这多的任务，主要的任务有 准备编译环境 、下载、 解包、 补丁 、配置、编译、安装、打包、部属等
+    * 某些子目录的定义要符合linux标准，而不是随便定义，一般是符合 GNUInstallDirs 标准，可以查看下面的链接，都是符合标准定义的
+        * GNUInstallDirs/Autotools: https://www.gnu.org/prep/standards/html_node/Directory-Variables.html
+        * CMake: https://cmake.org/cmake/help/latest/module/GNUInstallDirs.html
+        * Meson: https://mesonbuild.com/Builtin-options.html#directories
+        * Yocto: https://git.yoctoproject.org/poky/tree/meta/conf/bitbake.conf
 
 ## `QA Issue [ldflags]` 怎么解决
 
@@ -548,6 +528,13 @@ FILES:${PN} = "${libdir}/lib*.so.*.*.*"
 * a. 忽略错误，在recipe文件加上 `ALLOW_EMPTY:${PN} = "1"` (目前使用方法)
 * b. 不要将此包加入到do_rootfs变量 `IMAGE_INSTALL:append` ，修改 `build/bin/yocto/inc-yocto-build.mk` 的 IGNORES_RECIPES 变量
 
+## Yocto 官方明明提供了某个包，为什么 bitbake 这个包还是报找不到这个包
+
+答：有多种原因，如下我遇到的几种：
+* 配方设置的打包规则没有加上配方名的打包规则，见变量 [PACKAGES](https://docs.yoctoproject.org/ref-manual/variables.html#term-PACKAGES) 说明，例如 `glibc-locale`
+* 配方的法律声明没有接受，例如 `ffmpeg`，需要在 `local.conf` 文件加上 `LICENSE_FLAGS_ACCEPTED = "commercial"`
+* 配方限制了本包适配的 HOST / MACHINE 等，见变量 [COMPATIBLE_HOST](https://docs.yoctoproject.org/ref-manual/variables.html#term-COMPATIBLE_HOST) [COMPATIBLE_MACHINE](https://docs.yoctoproject.org/ref-manual/variables.html#term-COMPATIBLE_MACHINE)，例如 `x265`
+
 ## `Error: Transaction test error:` 怎么解决
 
 答：该错误的打印出现在do_rootfs时，打印信息 `"xxx do_rootfs: Could not invoke dnf. Command..."`， 然后一连串的包列表，然后 `"Error: Transaction test error: file xxx conflicts between attempted installs of xxx and xxx"`。
@@ -568,9 +555,26 @@ Error:
 ```
 此时我们只能删除自定义的配方转而使用官方的配方。
 
+## `do_deploy_source_date_epoch PermissionError`  怎么解决
+
+答: 检查下变量 `EXTERNALSRC_BUILD`，他设错了
+
+```
+ERROR: kconfig-native-1.0-r0 do_deploy_source_date_epoch: PermissionError(13, 'Permission denied')
+ERROR: Logfile of failure stored in: /home/lengjing/data/cbuild-ng/build/tmp/work/x86_64-linux/kconfig-native/1.0-r0/temp/log.do_deploy_source_date_epoch.27600
+Log data follows:
+| DEBUG: Executing python function create_source_date_epoch_stamp
+| DEBUG: No tarball or git repo found to determine SOURCE_DATE_EPOCH
+| DEBUG: Using SOURCE_DATE_EPOCH_FALLBACK
+| DEBUG: SOURCE_DATE_EPOCH: 1302044400
+| DEBUG: Python function create_source_date_epoch_stamp finished
+| DEBUG: Executing python function sstate_task_prefunc
+| DEBUG: Python function sstate_task_prefunc finished
+```
+
 ## 怎么设置使包每次编译都重新编译
 
-答：如果某个包每次编译都要重新编译，例如 amboot，用户可以使用 `bitbake -f packagename` 强制编译，但是会有警告 `WARNING: xxx.bb:do_build is tainted from a forced run`, 如果不强制编译又要求每次编译都要重新编译，用户需要在配方文件中 [设置任务属性](https://docs.yoctoproject.org/bitbake/bitbake-user-manual/bitbake-user-manual-metadata.html?highlight=nostamp#variable-flags) ：
+答：如果某个包每次编译都要重新编译，用户可以使用 `bitbake -f packagename` 强制编译，但是会有警告 `WARNING: xxx.bb:do_build is tainted from a forced run`, 如果不强制编译又要求每次编译都要重新编译，用户需要在配方文件中 [设置任务属性](https://docs.yoctoproject.org/bitbake/bitbake-user-manual/bitbake-user-manual-metadata.html?highlight=nostamp#variable-flags) ：
  `do_compile[nostamp] = "1"`
 
 ## 如何自定义任务
@@ -601,4 +605,3 @@ do_user_defined_config[depends] += "kconfig-native:do_populate_sysroot"
 do_user_defined_config[postfuncs] += "do_setrecompile"
 addtask user_defined_config
 ```
-

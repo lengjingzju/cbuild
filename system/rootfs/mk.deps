@@ -36,6 +36,7 @@ ifneq ($(ENV_BUILD_TOOL), )
 endif
 
 strip_elfs:
+	@echo "Strip ELFs ..."
 	@rm -rf $(FAKEROOT_DIR)/include/* $(FAKEROOT_DIR)/usr/include/* $(FAKEROOT_DIR)/usr/local/include/*
 	@libs=$$(find $(FAKEROOT_DIR) -name "*.a" -o -name "*.la"); \
 	if [ ! -z "$${libs}" ]; then \

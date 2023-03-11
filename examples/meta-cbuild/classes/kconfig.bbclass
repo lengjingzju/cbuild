@@ -10,7 +10,7 @@ DEPENDS:append = " coreutils-native kconfig-native"
 
 KCONFIG_CONFIG_COMMAND ??= "menuconfig"
 KCONFIG_DEFCONFIG_COMMAND ??= "defconfig"
-KCONFIG_CONFIG_PATH ??= "${B}/.config"
+KCONFIG_CONFIG_PATH ??= "${WORKDIR}/build/.config"
 
 python do_setrecompile () {
     if hasattr(bb.build, 'write_taint'):
@@ -60,4 +60,3 @@ do_defconfig[depends] += "kconfig-native:do_populate_sysroot"
 do_defconfig[nostamp] = "1"
 do_defconfig[dirs] = "${B}"
 addtask defconfig
-

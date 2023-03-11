@@ -256,8 +256,8 @@ class Deps:
 
         nitem['member'] = []
         nitem['edeps'] = []
-        item['acount'] = 0
-        item['default'] = False
+        nitem['acount'] = 0
+        nitem['default'] = False
 
         return nitem
 
@@ -997,7 +997,7 @@ class Deps:
                     fp.write('%s_single:\n' % (t))
                     fp.write('\t%s $(patsubst %s_%%,%%,$(patsubst %%_single,%%,$@))\n\n' % (make, target))
                 else:
-                    fp.write('%s:\n' % (target))
+                    fp.write('%s:\n' % (t))
                     fp.write('\t%s $(patsubst %s_%%,%%,$@)\n\n' % (make, target))
 
         return ret

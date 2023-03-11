@@ -7,7 +7,7 @@
 LICENSE ?= "CLOSED"
 LIC_FILES_CHKSUM ?= ""
 SRC_URI = ""
-DEPENDS:append = "patch-native"
+DEPENDS:append = " patch-native"
 
 do_configure () {
     :
@@ -39,8 +39,6 @@ do_install () {
     :
 }
 
-ALLOW_EMPTY:${PN} = "1"
-
 python () {
     import subprocess
     patch_opt = d.getVar('EXTERNALPATCH_OPT')
@@ -63,3 +61,5 @@ python () {
                 d.setVarFlag('do_compile', 'nostamp', '1')
                 break
 }
+
+ALLOW_EMPTY:${PN} = "1"

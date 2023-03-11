@@ -115,9 +115,6 @@ defconfig: buildkconfig
 	@$(call load_specific_config,$(CONF_SAVE_PATH)/$(DEF_CONFIG))
 endif
 
-syncconfig:
-	@$(call gen_config_header)
-
 %_config: $(CONF_SAVE_PATH)/%_config buildkconfig
 	@$(call load_specific_config,$<)
 

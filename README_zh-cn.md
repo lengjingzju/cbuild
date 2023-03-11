@@ -2,6 +2,8 @@
 
 [English Edition](./README.md)
 
+CBuild suspends development of new features, please upgrade to [Cbuild-ng](https://github.com/lengjingzju/cbuild-ng), Cbuild-ng and Cbuild are not fully compatible.
+
 ## 概述
 
 CBuild 编译系统是一个比 Buildroot 更强大灵活，比 Yocto 更快速简洁的编译系统。他没有陡峭的学习曲线，也没有定义新的语言，比 Buildroot 和 Yocto 更易于理解和使用。
@@ -104,7 +106,7 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
     * 支持 Kconfig 自己管理或托管，托管的 Kconfig 必需放置和 DEPS-statement 语句文件的同目录，无需手动指定父子包含关系，而是由脚本自动分析组装
 * Yocto Build 组成:
     * 应用和驱动的编译脚本都是由 Makefile + Recipe 组成
-    * 编译链通过在 Recipe 中定义的 DEPENDS / RDEPENDS 依赖关系组装(包级别的依赖)
+    * 编译链通过在 Recipe 中定义的 DEPENDS / RDEPENDS 和扩展的 EXTRADEPS 依赖关系组装(包级别的依赖)
     * 自定义包的 Recipe 基本只需要定义依赖，遵循 Yocto 定义的组装规则
     * 扩展 Yocto 编译，脚本分析所有包的 Recipe 的文件名和自定义包的 Recipe 的 DEPENDS 变量自动生成所有包的编译链
     * 扩展 Yocto 编译，支持弱依赖，可通过 `make menuconfig` 修改 rootfs (增加包、删除包、修改配置等)
@@ -131,19 +133,7 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
     * `-m <Makefile Path>`: 指定自动生成的 Makefile 文件路径名
         * 可以使用一个顶层 Makefile 包含自动生成的 Makefile，all 目标调用 `make $(ENV_BUILD_JOBS) $(ENV_MAKE_FLAGS) MAKEFLAGS= all_targets` 多线程编译所有包
         * 如果某个包的内部需要启用多线程编译，需要在此包的其它目标中指定 `jobserver`，见下面章节说明
-        * 可以统计各个包的编译时间，Makefile 示例如下:
-            ```makefile
-            TIME_FORMAT    := /usr/bin/time -a -o $(OUT_PATH)/time_statistics -f \"%e\\t\\t%U\\t\\t%S\\t\\t\$$@\"
-
-            total_time: loadconfig
-            	@$(PRECMD)make -s all_targets
-            	@echo "Build done!"
-
-            time_statistics:
-            	@mkdir -p $(OUT_PATH)
-            	@$(if $(findstring dash,$(shell readlink /bin/sh)),echo,echo -e) "real\t\tuser\t\tsys\t\tpackage" > $(OUT_PATH)/$@
-            	@make -s PRECMD="$(TIME_FORMAT) " total_time
-            ```
+        * 可以统计各个包的编译时间 `make time_statistics`
     * `-k <Kconfig Path>`: 指定自动生成的 Kconfig 文件路径名
     * `-t <Target Path>`: 指定自动生成的存储包名和源码路径列表的文件路径名
     * `-a <Depends Path>`: 指定自动生成的存储包名和依赖列表的文件路径名
@@ -157,7 +147,7 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
         * 如果在当前目录下搜索到 `<Search Depend Name>`，`<Go On Directories>` 没有指定或当前目录不在它里面，不会再继续搜索当前目录的子目录
     * `-l <Max Layer Depth>`: 设置 menuconfig 菜单的最大层数，0 表示菜单平铺，1表示2层菜单，...
     * `-w <Keyword Directories>`: 设置 menuconfig 菜单的忽略层级名，如果路径中的目录匹配设置值，则这个路径的层数减1，设置的多个目录使用冒号隔开
-    * `-p <{Prepend Flag>`: 设置生成的 Kconfig 中配置项的前缀，如果用户运行 conf / mconf 时设置了无前缀 `CONFIG_=""`，则运行此脚本需要设置此 flag 为 1
+    * `-p <Prepend Flag>`: 设置生成的 Kconfig 中配置项的前缀，如果用户运行 conf / mconf 时设置了无前缀 `CONFIG_=""`，则运行此脚本需要设置此 flag 为 1
     * `-u <Unique Packages>`: 指定唯一包(即此包作为 native 包的依赖时，此包的形式还是不含 native)，一般是和 arch 无关的包，多个包名使用冒号隔开
 <br>
 
@@ -175,7 +165,7 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
 <br>
 
 * Yocto Build Step2 命令选项
-    * `-t <Target Path>`: 指定自动生成的存储包名和源码路径列表的文件路径名
+    * `-t <Target Path>`: 指定 Step1 自动生成的存储包名、和源码路径列表的文件路径名
     * `-c <Search Kconfig Path>`: 指定配置文件 .config 的路径名
     * `-o <Output Recipe Path>`: 指定存储 rootfs 安装包列表的文件路径名
     * `-p <Output patch/unpatch Path>`: 指定存储使能的打/去补丁包列表的文件路径名，`prepare-patch` 包 include 此文件
@@ -209,7 +199,7 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
         * `release` 关键字是特殊的实目标，表示安装进 fakeroot rootfs 时运行 make release，此目标不需要安装头文件和静态库文件等
             * release 目标不存在时，安装到 fakeroot rootfs 时运行 make install
         * `union` 关键字是特殊的虚拟目标，用于多个包共享一个 Makefile
-            * 此时 `prepare all install clean release` 目标的名字变为 `Target_Name-prepare Target_Name-all Target_Name-install Target_Name-clean Target_Name-release`
+            * 此时 `prepare all install clean release` 等目标的名字变为 `Target_Name-prepare Target_Name-all Target_Name-install Target_Name-clean Target_Name-release`
         * `native` 关键字是特殊的虚拟目标，表示同时定义了包的交叉编译包和本地编译包
         * `cache` 关键字是特殊的虚拟目标，表明该包支持缓存机制
         * `jobserver` 关键字是特殊的虚拟目标，表示 make 后加上 `$(ENV_BUILD_JOBS)`，用户需要 `export ENV_BUILD_JOBS=-jn` 才会启动多线程编译
@@ -232,11 +222,14 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
 
 ### Yocto Build 实依赖规则
 
-* Yocto Build 的依赖定义在 Recipe 中  (DEPENDS / RDEPENDS / PACKAGECONFIG / ...)
+* Yocto Build 的依赖定义在 Recipe 中
 * `DEPENDS`: 编译时依赖的包名
     * 注: Yocto 使用一些主机命令，还可能需要指定依赖主机包 `包名-native`，例如 `bash-native`
 * `RDEPENDS:${PN}`: 运行时依赖的包名
     * 注: 有动态库的依赖包需要加到此变量，否则编译报错或依赖的包未安装到 rootfs
+* `EXTRADEPS: CBuild 扩展的特殊依赖
+    * 如果 EXTRADEPS 中含有弱依赖，需要继承类 `inherit weakdep`
+        * `weakdep` 类会解析 ENV_CFG_ROOT 目录下的 `.config` 文件，根据是否选中此项来设置 `DEPENDS` 和 `RDEPENDS:${PN}`
 * `PACKAGECONFIG`: 动态设置是否依赖安装了 `xxx/usr/lib/pkgconfig/xxx.pc` 的依赖包
 
 
@@ -297,7 +290,7 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
         * 省略最后一个 `|` `||` 前面的字符直到 `&`被隐式推导为 `*build-包名 prebuild-包名 包名` 三元组
         * 例如： `&&||libtest` 被隐式推导为 `&&*build-libtest||prebuild-libtest||libtest`
         * 例如： `&&*build-libtest||prebuild-libtest||libtest` 表示强选中这三个包中第一个存在的包，并弱依赖后面两个实包
-    * `depname@condition` or `depname@@condition` : condition 为 y 且 depname 选中时，此包才依赖 depname
+    * `depname@condition` or `depname@@condition` : condition 为 y 且 depname 选中时，此包才依赖 depname，只用在 Normal Build 中
     * 其它说明:
         * 对 Normal Build 来说，`?` `??` 没有区别，`|` `||` 没有区别，`@` `@@` 没有区别
         * 对 Yocto Build 来说，`?` `|` `@` 中的弱依赖只会设置 `DEPENDS`，`??` `||` `@@` 中的弱依赖会同时设置 `DEPENDS` 和 `RDEPENDS:${PN}`
@@ -307,9 +300,7 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
     * ENVNAME=val1,val2 : 表示此包依赖环境变量 ENVNAME 的值等于 val1 或等于 val2
     * ENVNAME!=val1,val2: 表示此包依赖环境变量 ENVNAME 的值不等于 val1 且不等于 val2
 
-* 注: 特殊依赖 Normal Build 时设置的是 `#DEPS` 语句的 `Depend_Names` 元素，Yocto Build 时赋值给配方文件的 `EXTRADEPS` 变量，且如果 EXTRADEPS 中含有弱依赖，需要继承类 `inherit weakdep`
-    * `weakdep` 类会解析输出根目录的 `config/.config` 文件，根据是否选中此项来设置 `DEPENDS` 和 `RDEPENDS:${PN}`
-    * 可以设置 `conf/bblayers.conf` 中的 `BBFILES` 变量，指定查找自动生成的 image 配方的路径，例如 `BBFILES ?= "${TOPDIR}/config/*.bb"`
+* 注: 特殊依赖 Classic Build 时设置的是 `#DEPS` 语句的 `Depend_Names` 元素，Yocto Build 时赋值给配方文件的 `EXTRADEPS` 变量
 
 
 ### 生成依赖关系图 gen_depends_image.sh
@@ -633,7 +624,7 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
 
 #### 应用模板的可设置变量说明
 
-* SRC_PATH: 包中源码所在的目录，默认是包的根目录，也有的包将源码放在 src 下
+* SRC_PATH: 包中源码所在的目录，默认值(`.`)是包的根目录，也有的包将源码放在 src 下
     * 也可以指定包下多个(不交叉)目录的源码，例如 `SRC_PATH = src1 src2 src3`
 * IGNORE_PATH: 查找源码文件时，忽略搜索的目录名集合，默认已忽略 `.git scripts output` 文件夹
 * REG_SUFFIX: 支持查找的源码文件的后缀名，默认查找以 `c cpp S` 为后缀的源码文件
@@ -674,7 +665,6 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
 * loadconfig: 如果 .config 不存在，加载 DEF_CONFIG 指定的默认配置
 * defconfig: 还原当前配置为 DEF_CONFIG 指定的默认配置
 * menuconfig: 图形化配置工具
-* syncconfig: 手动更改 .config 后更新 config.h
 * cleanconfig: 清理配置文件
 * xxx_config: 将 CONF_SAVE_PATH 下的 xxx_config 作为当前配置
 * xxx_saveconfig: 将当前配置保存到 CONF_SAVE_PATH 下的 xxx_config
@@ -768,28 +758,27 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
 ### 下载 fetch_package.sh
 
 * 用法 `fetch_package.sh <method> <urls> <package> [outdir] [outname]`
-    *  outdir outname 不指定时只下载包，不复制或解压到输出
     * method: 包下载方式，目前支持 4 种方式
         * tar: 可用 `tar` 命令解压的包，使用 `curl` 下载包，后缀名为 `tar.gz` `tar.bz2` `tar.xz` `tar` 等
         * zip: 使用 `unzip` 命令解压的包，使用 `curl` 下载包，后缀名为 `gz` `zip` 等
         * git: 使用 `git clone` 下载包
         * svn: 使用 `svn checkout` 下载包
     * urls: 下载链接
-        * tar/zip: 最好同时设置 MD5, 例如:
+        * tar/zip: 最好同时设置 md5, 例如:
             * `https://xxx/xxx.tar.xz;md5=yyy`
             * `https://xxx/xxx.gz;md5=yyy`
-        * git: 最好同时设置 branch / tag / revision (tag 和 revision 不要同时设置)，例如:
+        * git: 最好同时设置 branch / tag / rev(revision)，tag 和 rev 不要同时设置，例如:
             * `https://xxx/xxx.git;branch=xxx;tag=yyy`
             * `https://xxx/xxx.git;branch=xxx;rev=yyy`
             * `https://xxx/xxx.git;tag=yyy`
             * `https://xxx/xxx.git;rev=yyy`
-        * svn: 最好同时设置 revision, 例如:
+        * svn: 最好同时设置 rev, 例如:
             * `https://xxx/xxx;rev=yyy`
     * package: tar zip 是保存的文件名，git svn 是保存的文件夹名，保存的目录是 `ENV_DOWN_DIR`
     * outdir: 解压或复制到的目录，用于编译
     * outname: outdir 中包的文件夹名称
-
-注: 下载包优先尝试 `ENV_MIRROR_URL` 指定的镜像 URL 下载包，下载失败时才从原始的 URL 下载
+    * 注: 下载包优先尝试 `ENV_MIRROR_URL` 指定的镜像 URL 下载包，下载失败时才从原始的 URL 下载
+    * 注: outdir outname 不指定时只下载包，不复制或解压到输出
 
 
 ### 打补丁 exec_patch.sh
@@ -1459,3 +1448,9 @@ CBuild 编译系统主要由三部分组成: 任务分析处理工具、Makefile
     Install tcpdump Done.
     ```
 
+
+## 联系方式
+
+* Phone: +86 18368887550
+* wx/qq: 1083936981
+* Email: lengjingzju@163.com 3090101217@zju.edu.cn
